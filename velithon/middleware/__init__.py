@@ -10,13 +10,13 @@ if sys.version_info >= (3, 10):  # pragma: no cover
 else:  # pragma: no cover
     from typing_extensions import ParamSpec
 
-from velithon.types import ASGIApp
+from velithon.types import RSGIApp
 
 P = ParamSpec("P")
 
 
 class _MiddlewareFactory(Protocol[P]):
-    def __call__(self, app: ASGIApp, /, *args: P.args, **kwargs: P.kwargs) -> ASGIApp: ...  # pragma: no cover
+    def __call__(self, app: RSGIApp, /, *args: P.args, **kwargs: P.kwargs) -> RSGIApp: ...  # pragma: no cover
 
 
 class Middleware:

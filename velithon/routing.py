@@ -2,7 +2,7 @@ import typing
 from enum import Enum
 
 from velithon.middleware import Middleware
-from velithon.types import ASGIApp, Lifespan, Receive, Scope, Send
+from velithon.types import RSGIApp, Lifespan, Scope, Protocol
 
 from .requests import Request
 from .responses import PlainTextResponse, Response
@@ -19,10 +19,10 @@ class BaseRoute:
     def matches(self, scope: Scope) -> tuple[Match, Scope]:
         raise NotImplementedError()  # pragma: no cover
 
-    async def handle(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def handle(self, scope: Scope, protocol: Protocol) -> None:
         raise NotImplementedError()  # pragma: no cover
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def __call__(self, scope: Scope, protocol: Protocol) -> None:
         """
         A route may be used in isolation as a stand-alone ASGI app.
         This is a somewhat contrived case, as they'll almost always be used
@@ -32,7 +32,7 @@ class BaseRoute:
         if match == Match.NONE:
             if scope["type"] == "http":
                 response = PlainTextResponse("Not Found", status_code=404)
-                await response(scope, receive, send)
+                await response(scope, protocol)
             elif scope["type"] == "websocket":  # pragma: no branch
                 # websocket_close = WebSocketClose()
                 # await websocket_close(scope, receive, send)
@@ -40,14 +40,14 @@ class BaseRoute:
             return
 
         scope.update(child_scope)
-        await self.handle(scope, receive, send)
+        await self.handle(scope, protocol)
 
 
 class Router:
     def __init__(
         self,
         routes: typing.Sequence[BaseRoute] | None = None,
-        default: ASGIApp | None = None,
+        default: RSGIApp | None = None,
         on_startup: typing.Sequence[typing.Callable[[], typing.Any]] | None = None,
         on_shutdown: typing.Sequence[typing.Callable[[], typing.Any]] | None = None,
         # the generic to Lifespan[AppType] is the type of the top level application
@@ -61,7 +61,7 @@ class Router:
         self.on_startup = [] if on_startup is None else list(on_startup)
         self.on_shutdown = [] if on_shutdown is None else list(on_shutdown)
 
-    async def not_found(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def not_found(self, scope: Scope, protocol: Protocol) -> None:
         # if scope["type"] == "websocket":
         #     websocket_close = WebSocketClose()
         #     await websocket_close(scope, receive, send)
@@ -74,7 +74,7 @@ class Router:
             raise HTTPException(status_code=404)
         else:
             response = PlainTextResponse("Not Found", status_code=404)
-        await response(scope, receive, send)
+        await response(scope, protocol)
 
     async def handle(self, request: Request) -> Response:
         key = (request.path, request.method)

@@ -4,12 +4,10 @@ import json
 import typing
 from http import cookies as http_cookies
 
-import anyio
-
 from velithon.datastructures import URL, Address, FormData, Headers, QueryParams, State
 from velithon.exceptions import HTTPException
 from velithon.formparsers import FormParser, MultiPartException, MultiPartParser
-from velithon.types import Message, Receive, Scope, Send
+from velithon.types import Scope, Protocol
 
 if typing.TYPE_CHECKING:
     from python_multipart.multipart import parse_options_header
@@ -100,9 +98,10 @@ class HTTPConnection(typing.Mapping[str, typing.Any]):
     any functionality that is common to both `Request` and `WebSocket`.
     """
 
-    def __init__(self, scope: Scope, receive: Receive | None = None) -> None:
-        assert scope["type"] in ("http", "websocket")
+    def __init__(self, scope: Scope,  protocol: Protocol) -> None:
+        assert scope.proto in ("http", "websocket")
         self.scope = scope
+        self.protocol = protocol
 
     def __getitem__(self, key: str) -> typing.Any:
         return self.scope[key]
@@ -120,36 +119,15 @@ class HTTPConnection(typing.Mapping[str, typing.Any]):
     __hash__ = object.__hash__
 
     @property
-    def app(self) -> typing.Any:
-        return self.scope["app"]
-
-    @property
     def url(self) -> URL:
         if not hasattr(self, "_url"):  # pragma: no branch
             self._url = URL(scope=self.scope)
         return self._url
 
     @property
-    def base_url(self) -> URL:
-        if not hasattr(self, "_base_url"):
-            base_url_scope = dict(self.scope)
-            # This is used by request.url_for, it might be used inside a Mount which
-            # would have its own child scope with its own root_path, but the base URL
-            # for url_for should still be the top level app root path.
-            app_root_path = base_url_scope.get("app_root_path", base_url_scope.get("root_path", ""))
-            path = app_root_path
-            if not path.endswith("/"):
-                path += "/"
-            base_url_scope["path"] = path
-            base_url_scope["query_string"] = b""
-            base_url_scope["root_path"] = app_root_path
-            self._base_url = URL(scope=base_url_scope)
-        return self._base_url
-
-    @property
     def headers(self) -> Headers:
         if not hasattr(self, "_headers"):
-            self._headers = Headers(scope=self.scope)
+            self._headers = self.scope.headers
         return self._headers
 
     @property
@@ -160,7 +138,7 @@ class HTTPConnection(typing.Mapping[str, typing.Any]):
 
     @property
     def path_params(self) -> dict[str, typing.Any]:
-        return self.scope.get("path_params", {})
+        return self.scope.path
 
     @property
     def cookies(self) -> dict[str, str]:
@@ -176,20 +154,14 @@ class HTTPConnection(typing.Mapping[str, typing.Any]):
     @property
     def client(self) -> Address | None:
         # client is a 2 item tuple of (host, port), None if missing
-        host_port = self.scope.get("client")
+        host_port = self.scope.client.split(":")
         if host_port is not None:
             return Address(*host_port)
         return None
 
     @property
-    def session(self) -> dict[str, typing.Any]:
-        assert "session" in self.scope, "SessionMiddleware must be installed to access request.session"
-        return self.scope["session"]  # type: ignore[no-any-return]
-
-    @property
     def auth(self) -> typing.Any:
-        assert "auth" in self.scope, "AuthenticationMiddleware must be installed to access request.auth"
-        return self.scope["auth"]
+        return self.scope.authority
 
     @property
     def user(self) -> typing.Any:
@@ -218,48 +190,28 @@ async def empty_receive() -> typing.NoReturn:
     raise RuntimeError("Receive channel has not been made available")
 
 
-async def empty_send(message: Message) -> typing.NoReturn:
-    raise RuntimeError("Send channel has not been made available")
-
 
 class Request(HTTPConnection):
     _form: FormData | None
 
-    def __init__(self, scope: Scope, receive: Receive = empty_receive, send: Send = empty_send):
-        super().__init__(scope)
-        assert scope["type"] == "http"
-        self._receive = receive
-        self._send = send
+    def __init__(self, scope: Scope, protocol: Protocol) -> None:
+        super().__init__(scope, protocol)
+        assert scope.proto == "http"
         self._stream_consumed = False
         self._is_disconnected = False
         self._form = None
 
     @property
     def method(self) -> str:
-        return typing.cast(str, self.scope["method"])
-
-    @property
-    def receive(self) -> Receive:
-        return self._receive
+        return typing.cast(str, self.scope.method)
 
     async def stream(self) -> typing.AsyncGenerator[bytes, None]:
         if hasattr(self, "_body"):
             yield self._body
             yield b""
             return
-        if self._stream_consumed:
-            raise RuntimeError("Stream consumed")
-        while not self._stream_consumed:
-            message = await self._receive()
-            if message["type"] == "http.request":
-                body = message.get("body", b"")
-                if not message.get("more_body", False):
-                    self._stream_consumed = True
-                if body:
-                    yield body
-            elif message["type"] == "http.disconnect":  # pragma: no branch
-                self._is_disconnected = True
-                raise ClientDisconnect()
+        async for message in self.protocol:
+            yield message
         yield b""
 
     async def body(self) -> bytes:
@@ -325,20 +277,6 @@ class Request(HTTPConnection):
     async def close(self) -> None:
         if self._form is not None:  # pragma: no branch
             await self._form.close()
-
-    async def is_disconnected(self) -> bool:
-        if not self._is_disconnected:
-            message: Message = {}
-
-            # If message isn't immediately available, move on
-            with anyio.CancelScope() as cs:
-                cs.cancel()
-                message = await self._receive()
-
-            if message.get("type") == "http.disconnect":
-                self._is_disconnected = True
-
-        return self._is_disconnected
 
     async def send_push_promise(self, path: str) -> None:
         if "http.response.push" in self.scope.get("extensions", {}):
