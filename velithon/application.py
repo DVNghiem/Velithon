@@ -23,7 +23,7 @@ class Velithon:
 
     async def __call__(self, scope: Scope, protocol: Protocol):
         request = Request(scope, protocol)
-        print(request.base_url)
+        print(request.method)
         # response = await self.router.handle(request)
         
         protocol.response_str(

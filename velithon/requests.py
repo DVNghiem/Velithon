@@ -1,28 +1,19 @@
 from __future__ import annotations
 
-import json
 import typing
 from http import cookies as http_cookies
 
-from velithon.datastructures import URL, Address, FormData, Headers, QueryParams, State
+import orjson
+from python_multipart.multipart import parse_options_header
+
+from velithon.datastructures import URL, Address, FormData, Headers, QueryParams
 from velithon.exceptions import HTTPException
 from velithon.formparsers import FormParser, MultiPartException, MultiPartParser
-from velithon.types import Scope, Protocol
+from velithon.types import Protocol, Scope
 
 if typing.TYPE_CHECKING:
-    from python_multipart.multipart import parse_options_header
-
     from velithon.application import Velithon
     from velithon.routing import Router
-else:
-    try:
-        try:
-            from python_multipart.multipart import parse_options_header
-        except ModuleNotFoundError:  # pragma: no cover
-            from multipart.multipart import parse_options_header
-    except ModuleNotFoundError:  # pragma: no cover
-        parse_options_header = None
-
 
 SERVER_PUSH_HEADERS_TO_COPY = {
     "accept",
@@ -33,14 +24,19 @@ SERVER_PUSH_HEADERS_TO_COPY = {
 }
 T_co = typing.TypeVar("T_co", covariant=True)
 
-class AwaitableOrContextManager(typing.Awaitable[T_co], typing.AsyncContextManager[T_co], typing.Protocol[T_co]): ...
+
+class AwaitableOrContextManager(
+    typing.Awaitable[T_co], typing.AsyncContextManager[T_co], typing.Protocol[T_co]
+): ...
 
 
 class SupportsAsyncClose(typing.Protocol):
     async def close(self) -> None: ...  # pragma: no cover
 
 
-SupportsAsyncCloseType = typing.TypeVar("SupportsAsyncCloseType", bound=SupportsAsyncClose, covariant=False)
+SupportsAsyncCloseType = typing.TypeVar(
+    "SupportsAsyncCloseType", bound=SupportsAsyncClose, covariant=False
+)
 
 
 class AwaitableOrContextManagerWrapper(typing.Generic[SupportsAsyncCloseType]):
@@ -88,17 +84,13 @@ def cookie_parser(cookie_string: str) -> dict[str, str]:
     return cookie_dict
 
 
-class ClientDisconnect(Exception):
-    pass
-
-
 class HTTPConnection(typing.Mapping[str, typing.Any]):
     """
     A base class for incoming HTTP connections, that is used to provide
     any functionality that is common to both `Request` and `WebSocket`.
     """
 
-    def __init__(self, scope: Scope,  protocol: Protocol) -> None:
+    def __init__(self, scope: Scope, protocol: Protocol) -> None:
         assert scope.proto in ("http", "websocket")
         self.scope = scope
         self.protocol = protocol
@@ -133,7 +125,7 @@ class HTTPConnection(typing.Mapping[str, typing.Any]):
     @property
     def query_params(self) -> QueryParams:
         if not hasattr(self, "_query_params"):  # pragma: no branch
-            self._query_params = QueryParams(self.scope["query_string"])
+            self._query_params = QueryParams(self.scope.query_string)
         return self._query_params
 
     @property
@@ -159,37 +151,16 @@ class HTTPConnection(typing.Mapping[str, typing.Any]):
             return Address(*host_port)
         return None
 
-    @property
-    def auth(self) -> typing.Any:
-        return self.scope.authority
-
-    @property
-    def user(self) -> typing.Any:
-        assert "user" in self.scope, "AuthenticationMiddleware must be installed to access request.user"
-        return self.scope["user"]
-
-    @property
-    def state(self) -> State:
-        if not hasattr(self, "_state"):
-            # Ensure 'state' has an empty dict if it's not already populated.
-            self.scope.setdefault("state", {})
-            # Create a state instance with a reference to the dict in which it should
-            # store info
-            self._state = State(self.scope["state"])
-        return self._state
-
     def url_for(self, name: str, /, **path_params: typing.Any) -> URL:
-        url_path_provider: Router | Velithon | None = self.scope.get("router") or self.scope.get("app")
+        url_path_provider: Router | Velithon | None = self.scope.get(
+            "router"
+        ) or self.scope.get("app")
         if url_path_provider is None:
-            raise RuntimeError("The `url_for` method can only be used inside a Starlette application or with a router.")
+            raise RuntimeError(
+                "The `url_for` method can only be used inside a Starlette application or with a router."
+            )
         url_path = url_path_provider.url_path_for(name, **path_params)
         return url_path.make_absolute_url(base_url=self.base_url)
-
-
-async def empty_receive() -> typing.NoReturn:
-    raise RuntimeError("Receive channel has not been made available")
-
-
 
 class Request(HTTPConnection):
     _form: FormData | None
@@ -197,13 +168,11 @@ class Request(HTTPConnection):
     def __init__(self, scope: Scope, protocol: Protocol) -> None:
         super().__init__(scope, protocol)
         assert scope.proto == "http"
-        self._stream_consumed = False
-        self._is_disconnected = False
         self._form = None
 
     @property
     def method(self) -> str:
-        return typing.cast(str, self.scope.method)
+        return self.scope.method
 
     async def stream(self) -> typing.AsyncGenerator[bytes, None]:
         if hasattr(self, "_body"):
@@ -225,7 +194,7 @@ class Request(HTTPConnection):
     async def json(self) -> typing.Any:
         if not hasattr(self, "_json"):  # pragma: no branch
             body = await self.body()
-            self._json = json.loads(body)
+            self._json = orjson.loads(body)
         return self._json
 
     async def _get_form(
@@ -271,7 +240,9 @@ class Request(HTTPConnection):
         max_part_size: int = 1024 * 1024,
     ) -> AwaitableOrContextManager[FormData]:
         return AwaitableOrContextManagerWrapper(
-            self._get_form(max_files=max_files, max_fields=max_fields, max_part_size=max_part_size)
+            self._get_form(
+                max_files=max_files, max_fields=max_fields, max_part_size=max_part_size
+            )
         )
 
     async def close(self) -> None:
@@ -283,5 +254,9 @@ class Request(HTTPConnection):
             raw_headers: list[tuple[bytes, bytes]] = []
             for name in SERVER_PUSH_HEADERS_TO_COPY:
                 for value in self.headers.getlist(name):
-                    raw_headers.append((name.encode("latin-1"), value.encode("latin-1")))
-            await self._send({"type": "http.response.push", "path": path, "headers": raw_headers})
+                    raw_headers.append(
+                        (name.encode("latin-1"), value.encode("latin-1"))
+                    )
+            await self._send(
+                {"type": "http.response.push", "path": path, "headers": raw_headers}
+            )

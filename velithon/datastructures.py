@@ -432,7 +432,6 @@ class FormData(ImmutableMultiDict[str, typing.Union[UploadFile, str]]):
             if isinstance(value, UploadFile):
                 await value.close()
 
-
 class Headers(typing.Mapping[str, str]):
     def keys(self) -> list[str]: ...
 
@@ -440,29 +439,3 @@ class Headers(typing.Mapping[str, str]):
 
     def items(self) -> list[tuple[str, str]]: ...
 
-class State:
-    """
-    An object that can be used to store arbitrary state.
-
-    Used for `request.state` and `app.state`.
-    """
-
-    _state: dict[str, typing.Any]
-
-    def __init__(self, state: dict[str, typing.Any] | None = None):
-        if state is None:
-            state = {}
-        super().__setattr__("_state", state)
-
-    def __setattr__(self, key: typing.Any, value: typing.Any) -> None:
-        self._state[key] = value
-
-    def __getattr__(self, key: typing.Any) -> typing.Any:
-        try:
-            return self._state[key]
-        except KeyError:
-            message = "'{}' object has no attribute '{}'"
-            raise AttributeError(message.format(self.__class__.__name__, key))
-
-    def __delattr__(self, key: typing.Any) -> None:
-        del self._state[key]
