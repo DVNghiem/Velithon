@@ -432,10 +432,76 @@ class FormData(ImmutableMultiDict[str, typing.Union[UploadFile, str]]):
             if isinstance(value, UploadFile):
                 await value.close()
 
+
 class Headers(typing.Mapping[str, str]):
-    def keys(self) -> list[str]: ...
+    """
+    An immutable, case-insensitive multidict.
+    """
 
-    def values(self) -> list[str]: ...
+    def __init__(
+        self,
+        headers: typing.Mapping[str, str] | None = None,
+        scope: Scope | None = None,
+    ) -> None:
+        self._list: list[tuple[str, str]] = []
+        if headers is not None:
+            assert scope is None, 'Cannot set both "headers" and "scope".'
+            self._list = headers
+        elif scope is not None:
+            self._list = scope.headers.items()
 
-    def items(self) -> list[tuple[str, str]]: ...
+    @property
+    def raw(self) -> list[tuple[str, str]]:
+        return list(self._list)
+
+    def keys(self) -> list[str]:  # type: ignore[override]
+        return [key for key, value in self._list]
+
+    def values(self) -> list[str]:  # type: ignore[override]
+        return [value for key, value in self._list]
+
+    def items(self) -> list[tuple[str, str]]:  # type: ignore[override]
+        return [(key, value) for key, value in self._list]
+
+    def __getitem__(self, key: str) -> str:
+        get_header_key = key.lower()
+        for header_key, header_value in self._list:
+            if header_key == get_header_key:
+                return header_value
+        raise KeyError(key)
+
+    def __contains__(self, key: typing.Any) -> bool:
+        get_header_key = key.lower()
+        for header_key, header_value in self._list:
+            if header_key == get_header_key:
+                return True
+        return False
+
+    def __iter__(self) -> typing.Iterator[typing.Any]:
+        return iter(self.keys())
+    
+    def __len__(self) -> int:
+        return len(self._list)
+    
+    def __setitem__(self, key: str, value: str) -> None:
+        """
+        Set the header `key` to `value`, removing any duplicate entries.
+        Retains insertion order.
+        """
+        key = key.lower()
+
+        found_indexes: list[int] = []
+        for idx, (item_key, item_value) in enumerate(self._list):
+            if item_key == key:
+                found_indexes.append(idx)
+
+        for idx in reversed(found_indexes[1:]):
+            del self._list[idx]
+
+        if found_indexes:
+            idx = found_indexes[0]
+            self._list[idx] = (key, value)
+        else:
+            self._list.append((key, value))
+
 

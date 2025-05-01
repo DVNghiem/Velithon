@@ -248,15 +248,3 @@ class Request(HTTPConnection):
     async def close(self) -> None:
         if self._form is not None:  # pragma: no branch
             await self._form.close()
-
-    async def send_push_promise(self, path: str) -> None:
-        if "http.response.push" in self.scope.get("extensions", {}):
-            raw_headers: list[tuple[bytes, bytes]] = []
-            for name in SERVER_PUSH_HEADERS_TO_COPY:
-                for value in self.headers.getlist(name):
-                    raw_headers.append(
-                        (name.encode("latin-1"), value.encode("latin-1"))
-                    )
-            await self._send(
-                {"type": "http.response.push", "path": path, "headers": raw_headers}
-            )

@@ -1,18 +1,11 @@
 from __future__ import annotations
 
-import hashlib
 import http.cookies
-import json
-import os
-import re
-import stat
+import orjson
 import typing
-import warnings
 from datetime import datetime
-from email.utils import format_datetime, formatdate
+from email.utils import format_datetime
 from functools import partial
-from mimetypes import guess_type
-from secrets import token_hex
 from urllib.parse import quote
 
 import anyio
@@ -21,7 +14,6 @@ import anyio.to_thread
 from velithon.background import BackgroundTask
 from velithon.concurrency import iterate_in_threadpool
 from velithon.datastructures import URL, Headers
-from velithon.requests import ClientDisconnect
 from velithon.types import Scope, Protocol 
 from contextlib import contextmanager
 
@@ -73,14 +65,14 @@ class Response:
 
     def init_headers(self, headers: typing.Mapping[str, str] | None = None) -> None:
         if headers is None:
-            raw_headers: list[tuple[bytes, bytes]] = []
+            raw_headers: list[tuple[str, str]] = []
             populate_content_length = True
             populate_content_type = True
         else:
-            raw_headers = [(k.lower().encode("latin-1"), v.encode("latin-1")) for k, v in headers.items()]
+            raw_headers = [(k.lower(), v) for k, v in headers.items()]
             keys = [h[0] for h in raw_headers]
-            populate_content_length = b"content-length" not in keys
-            populate_content_type = b"content-type" not in keys
+            populate_content_length = "content-length" not in keys
+            populate_content_type = "content-type" not in keys
 
         body = getattr(self, "body", None)
         if (
@@ -89,20 +81,20 @@ class Response:
             and not (self.status_code < 200 or self.status_code in (204, 304))
         ):
             content_length = str(len(body))
-            raw_headers.append((b"content-length", content_length.encode("latin-1")))
+            raw_headers.append(("content-length", content_length))
 
         content_type = self.media_type
         if content_type is not None and populate_content_type:
             if content_type.startswith("text/") and "charset=" not in content_type.lower():
                 content_type += "; charset=" + self.charset
-            raw_headers.append((b"content-type", content_type.encode("latin-1")))
+            raw_headers.append(("content-type", content_type))
 
         self.raw_headers = raw_headers
 
     @property
     def headers(self) -> Headers:
         if not hasattr(self, "_headers"):
-            self._headers = Headers(raw=self.raw_headers)
+            self._headers = Headers(headers=self.raw_headers)
         return self._headers
 
     def set_cookie(
@@ -142,7 +134,7 @@ class Response:
             ], "samesite must be either 'strict', 'lax' or 'none'"
             cookie[key]["samesite"] = samesite
         cookie_val = cookie.output(header="").strip()
-        self.raw_headers.append((b"set-cookie", cookie_val.encode("latin-1")))
+        self.raw_headers.append(("set-cookie", cookie_val))
 
     def delete_cookie(
         self,
@@ -197,13 +189,10 @@ class JSONResponse(Response):
         super().__init__(content, status_code, headers, media_type, background)
 
     def render(self, content: typing.Any) -> bytes:
-        return json.dumps(
+        return orjson.dumps(
             content,
-            ensure_ascii=False,
-            allow_nan=False,
-            indent=None,
-            separators=(",", ":"),
-        ).encode("utf-8")
+            option=orjson.OPT_NON_STR_KEYS | orjson.OPT_SERIALIZE_NUMPY
+        )
 
 
 class RedirectResponse(Response):
@@ -222,7 +211,6 @@ Content = typing.Union[str, bytes, memoryview]
 SyncContentStream = typing.Iterable[Content]
 AsyncContentStream = typing.AsyncIterable[Content]
 ContentStream = typing.Union[AsyncContentStream, SyncContentStream]
-
 
 class StreamingResponse(Response):
     body_iterator: AsyncContentStream
@@ -244,7 +232,6 @@ class StreamingResponse(Response):
         self.background = background
         self.init_headers(headers)
 
-
     async def stream_response(self, protocol: Protocol) -> None:
 
         trx = protocol.response_stream(self.status_code, self.raw_headers)
@@ -260,7 +247,7 @@ class StreamingResponse(Response):
             try:
                 await self.stream_response(protocol)
             except OSError:
-                raise ClientDisconnect()
+                raise Exception()
         else:
             with collapse_excgroups():
                 async with anyio.create_task_group() as task_group:
@@ -268,7 +255,6 @@ class StreamingResponse(Response):
                     async def wrap(func: typing.Callable[[], typing.Awaitable[None]]) -> None:
                         await func()
                         task_group.cancel_scope.cancel()
-
                     task_group.start_soon(wrap, partial(self.stream_response, protocol))
 
         if self.background is not None:

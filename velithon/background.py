@@ -2,24 +2,17 @@ from __future__ import annotations
 
 import sys
 import typing
-import functools
-import inspect
 
 if sys.version_info >= (3, 10):  # pragma: no cover
     from typing import ParamSpec
 else:  # pragma: no cover
     from typing_extensions import ParamSpec
 
-from velithon.concurrency import run_in_threadpool
+if typing.TYPE_CHECKING:  # pragma: no cover
+    from velithon._utils import is_async_callable
+    from velithon.concurrency import run_in_threadpool
 
 P = ParamSpec("P")
-
-def is_async_callable(obj: typing.Any) -> typing.Any:
-    while isinstance(obj, functools.partial):
-        obj = obj.func
-
-    return inspect.iscoroutinefunction(obj) or (callable(obj) and inspect.iscoroutinefunction(obj.__call__))
-
 
 class BackgroundTask:
     def __init__(self, func: typing.Callable[P, typing.Any], *args: P.args, **kwargs: P.kwargs) -> None:
