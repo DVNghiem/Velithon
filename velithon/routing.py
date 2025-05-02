@@ -1,6 +1,7 @@
 import re
-import typing
 from enum import Enum
+from typing import Any, Callable, Pattern, Sequence, TypeVar, Annotated
+from typing_extensions import Doc
 
 from velithon.middleware import Middleware
 from velithon.responses import PlainTextResponse
@@ -8,9 +9,10 @@ from velithon.types import Protocol, RSGIApp, Scope
 from velithon.convertors import CONVERTOR_TYPES, Convertor
 
 
-T = typing.TypeVar("T")
+T = TypeVar("T")
 # Match parameters in URL paths, eg. '{param}', and '{param:int}'
 PARAM_REGEX = re.compile("{([a-zA-Z_][a-zA-Z0-9_]*)(:[a-zA-Z_][a-zA-Z0-9_]*)?}")
+
 
 class Match(Enum):
     NONE = 0
@@ -45,13 +47,14 @@ class BaseRoute:
         scope.update(child_scope)
         await self.handle(scope, protocol)
 
-def get_name(endpoint: typing.Callable[..., typing.Any]) -> str:
+
+def get_name(endpoint: Callable[..., Any]) -> str:
     return getattr(endpoint, "__name__", endpoint.__class__.__name__)
 
-    
+
 def compile_path(
     path: str,
-) -> tuple[typing.Pattern[str], str, dict[str, Convertor[typing.Any]]]:
+) -> tuple[Pattern[str], str, dict[str, Convertor[Any]]]:
     """
     Given a path string, like: "/{username:str}",
     or a host string, like: "{subdomain}.mydomain.org", return a three-tuple
@@ -72,7 +75,9 @@ def compile_path(
     for match in PARAM_REGEX.finditer(path):
         param_name, convertor_type = match.groups("str")
         convertor_type = convertor_type.lstrip(":")
-        assert convertor_type in CONVERTOR_TYPES, f"Unknown path convertor '{convertor_type}'"
+        assert convertor_type in CONVERTOR_TYPES, (
+            f"Unknown path convertor '{convertor_type}'"
+        )
         convertor = CONVERTOR_TYPES[convertor_type]
 
         path_regex += re.escape(path[idx : match.start()])
@@ -104,25 +109,43 @@ def compile_path(
 
     return re.compile(path_regex), path_format, param_convertors
 
-def request_response():
-    pass
 
 class Route(BaseRoute):
     def __init__(
         self,
-        path: str,
-        endpoint: typing.Callable[..., typing.Any],
+        path: Annotated[str, Doc("Path to match")],
+        endpoint: Annotated[
+            Callable[..., Any],
+            Doc("The endpoint to call when the route matches"),
+        ],
         *,
-        methods: list[str] | None = None,
-        name: str | None = None,
-        include_in_schema: bool = True,
-        middleware: typing.Sequence[Middleware] | None = None,
+        methods: Annotated[
+            Sequence[str] | None,
+            Doc("HTTP methods to match, defaults to all methods"),
+        ] = None,
+        name: Annotated[
+            str | None,
+            Doc("Name of the route, used for OpenAPI schema generation"),
+        ] = None,
+        middleware: Annotated[
+            Sequence[Middleware] | None,
+            Doc("Middleware to apply to the route"),
+        ] = None,
+        description: Annotated[
+            str | None,
+            Doc("Description of the route, used for OpenAPI schema generation"),
+        ] = None,
+        tags: Annotated[
+            Sequence[str] | None,
+            Doc("Tags for the route, used for OpenAPI schema generation"),
+        ] = None,
     ) -> None:
         assert path.startswith("/"), "Routed paths must start with '/'"
         self.path = path
         self.endpoint = endpoint
         self.name = get_name(endpoint) if name is None else name
-        self.include_in_schema = include_in_schema
+        self.description = description
+        self.tags = tags
 
         self.app = endpoint
 
@@ -153,15 +176,28 @@ class Route(BaseRoute):
                     return Match.FULL
         return Match.NONE, {}
 
-    async def handle(self,  scope: Scope, protocol: Protocol) -> None:
+    async def handle(self, scope: Scope, protocol: Protocol) -> None:
         if self.methods and scope.method not in self.methods:
             headers = {"Allow": ", ".join(self.methods)}
-            response = PlainTextResponse("Method Not Allowed", status_code=405, headers=headers)
+            response = PlainTextResponse(
+                "Method Not Allowed", status_code=405, headers=headers
+            )
             await response(scope, protocol)
         else:
             await self.app(scope, protocol)
 
-    def __eq__(self, other: typing.Any) -> bool:
+    def openapi(self) -> dict[str, Any]:
+        """
+        Return the OpenAPI schema for this route.
+        """
+        return {
+            "path": self.path,
+            "name": self.name,
+            "methods": sorted(self.methods or []),
+            "include_in_schema": self.include_in_schema,
+        }
+
+    def __eq__(self, other: Any) -> bool:
         return (
             isinstance(other, Route)
             and self.path == other.path
@@ -175,18 +211,19 @@ class Route(BaseRoute):
         path, name = self.path, self.name
         return f"{class_name}(path={path!r}, name={name!r}, methods={methods!r})"
 
+
 class Router:
     def __init__(
         self,
-        routes: typing.Sequence[BaseRoute] | None = None,
+        routes: Sequence[BaseRoute] | None = None,
         redirect_slashes: bool = True,
         default: RSGIApp | None = None,
-        on_startup: typing.Sequence[typing.Callable[[], typing.Any]] | None = None,
-        on_shutdown: typing.Sequence[typing.Callable[[], typing.Any]] | None = None,
+        on_startup: Sequence[Callable[[], Any]] | None = None,
+        on_shutdown: Sequence[Callable[[], Any]] | None = None,
         # the generic to Lifespan[AppType] is the type of the top level application
-        # which the router cannot know statically, so we use typing.Any
+        # which the router cannot know statically, so we use Any
         *,
-        middleware: typing.Sequence[Middleware] | None = None,
+        middleware: Sequence[Middleware] | None = None,
     ):
         self.routes = [] if routes is None else list(routes)
         self.redirect_slashes = redirect_slashes
