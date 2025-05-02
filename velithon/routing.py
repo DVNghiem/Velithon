@@ -1,13 +1,15 @@
+import inspect
 import re
 from enum import Enum
-from typing import Any, Callable, Pattern, Sequence, TypeVar, Annotated
+from typing import Annotated, Any, Callable, Dict, Pattern, Sequence, Tuple, TypeVar
+
 from typing_extensions import Doc
 
+from velithon.convertors import CONVERTOR_TYPES, Convertor
 from velithon.middleware import Middleware
+from velithon.openapi import swagger_generate
 from velithon.responses import PlainTextResponse
 from velithon.types import Protocol, RSGIApp, Scope
-from velithon.convertors import CONVERTOR_TYPES, Convertor
-
 
 T = TypeVar("T")
 # Match parameters in URL paths, eg. '{param}', and '{param:int}'
@@ -25,6 +27,9 @@ class BaseRoute:
         raise NotImplementedError()  # pragma: no cover
 
     async def handle(self, scope: Scope, protocol: Protocol) -> None:
+        raise NotImplementedError()  # pragma: no cover
+    
+    async def openapi(self) -> tuple[Dict, Dict]:
         raise NotImplementedError()  # pragma: no cover
 
     async def __call__(self, scope: Scope, protocol: Protocol) -> None:
@@ -186,16 +191,20 @@ class Route(BaseRoute):
         else:
             await self.app(scope, protocol)
 
-    def openapi(self) -> dict[str, Any]:
+    def openapi(self) -> Tuple[Dict, Dict]:
         """
         Return the OpenAPI schema for this route.
         """
-        return {
-            "path": self.path,
-            "name": self.name,
-            "methods": sorted(self.methods or []),
-            "include_in_schema": self.include_in_schema,
-        }
+        paths = {}
+        schemas = {}
+        for name, func in self.endpoint.__dict__.items():
+            if name.upper() not in ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]:
+                continue
+            sig = inspect.signature(func)
+            path, schema = swagger_generate(sig, name.lower(), self.path)
+            paths.update(path)
+            schemas.update(schema)
+        return paths, schemas
 
     def __eq__(self, other: Any) -> bool:
         return (
