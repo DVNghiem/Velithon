@@ -3,15 +3,14 @@ import os
 import sys
 import zipfile
 from datetime import datetime, timezone
-from logging.handlers import QueueHandler, QueueListener, RotatingFileHandler
-from queue import SimpleQueue
+from logging.handlers import RotatingFileHandler
 
 import orjson
 
 
 class VelithonFilter(logging.Filter):
     def filter(self, record):
-        return record.name.startswith("velithon")
+        return record.name.startswith("velithon") or record.name == "__main__"
 
 
 class TextFormatter(logging.Formatter):
@@ -65,6 +64,7 @@ class TextFormatter(logging.Formatter):
                 msg += f" | {extra_str}"
         return msg
 
+
 class JsonFormatter(logging.Formatter):
     def format(self, record):
         log_entry = {
@@ -102,8 +102,8 @@ class ZipRotatingFileHandler(RotatingFileHandler):
     """
     A subclass of RotatingFileHandler that compresses log files during rotation.
 
-    This handler inherits from the RotatingFileHandler and extends it by automatically 
-    compressing rotated log files into zip format. After each rotation, log files are 
+    This handler inherits from the RotatingFileHandler and extends it by automatically
+    compressing rotated log files into zip format. After each rotation, log files are
     stored as zip files, which helps save disk space.
 
     Notes
@@ -112,6 +112,7 @@ class ZipRotatingFileHandler(RotatingFileHandler):
     with the naming pattern: baseFilename.N.zip
     After compression, the original uncompressed file is removed.
     """
+
     def doRollover(self):
         super().doRollover()
         for i in range(self.backupCount - 1, 0, -1):
@@ -133,12 +134,10 @@ def configure_logger(
 ):
     level = getattr(logging, level, logging.INFO)
 
-    log_queue = SimpleQueue()
-
     logger = logging.getLogger("velithon")
     logger.setLevel(level)
     logger.handlers.clear()
-    logger.propagate = False
+    logger.propagate = True
 
     # remove all handlers from the root logger
     root_logger = logging.getLogger("")
@@ -168,6 +167,7 @@ def configure_logger(
     console_handler.setFormatter(
         text_formatter if format_type == "text" else json_formatter
     )
+    logger.addHandler(console_handler)
 
     # File handler
     if log_to_file:
@@ -179,14 +179,3 @@ def configure_logger(
         file_handler.setFormatter(json_formatter)
     else:
         file_handler = None
-
-    # Custom queue handler
-    queue_handler = QueueHandler(log_queue)
-    logger.addHandler(queue_handler)
-
-    # Queue listener
-    handlers = [console_handler]
-    if file_handler:
-        handlers.append(file_handler)
-    listener = QueueListener(log_queue, *handlers, respect_handler_level=True)
-    listener.start()

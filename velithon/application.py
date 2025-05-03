@@ -6,7 +6,6 @@ from typing import (
     Callable,
     Dict,
     List,
-    Literal,
     Sequence,
     TypeVar,
 )
@@ -14,7 +13,7 @@ from typing import (
 from typing_extensions import Doc
 
 from velithon.datastructures import Protocol, Scope
-from velithon.logging import configure_logger
+from velithon.di import Container, Lifecycle
 from velithon.middleware import Middleware
 from velithon.middleware.di import DIMiddleware
 from velithon.middleware.logging import LoggingMiddleware
@@ -24,11 +23,11 @@ from velithon.requests import Request
 from velithon.responses import HTMLResponse, JSONResponse, Response
 from velithon.routing import BaseRoute, Router
 from velithon.types import RSGIApp
-from velithon.di import Container, Lifecycle
 
 AppType = TypeVar("AppType", bound="Velithon")
 
 logger = logging.getLogger(__name__)
+
 
 class Velithon:
     def __init__(
@@ -272,68 +271,7 @@ class Velithon:
                 """
             ),
         ] = None,
-        log_file: Annotated[
-            str,
-            Doc(
-                """
-                The path to the log file. If not provided, the log will be printed
-                to the console.
-                """
-            ),
-        ] = "velithon.log",
-        level: Annotated[
-            str,
-            Doc(
-                """
-                The logging level. Can be one of the following: `DEBUG`, `INFO`,
-                `WARNING`, `ERROR`, `CRITICAL`. Default is `INFO`.
-                """
-            ),
-        ] = "INFO",
-        format_type: Annotated[
-            Literal["text", "json"],
-            Doc(
-                """
-                The format of the log messages. Can be either `text` or `json`.
-                Default is `text`.
-                """
-            ),
-        ] = "text",
-        log_to_file: Annotated[
-            bool,
-            Doc(
-                """
-                Whether to log to a file or not. Default is `True`.
-                """
-            ),
-        ] = False,
-        max_bytes: Annotated[
-            int,
-            Doc(
-                """
-                The maximum size of the log file in bytes. Default is 10 MB.
-                """
-            ),
-        ] = 10 * 1024 * 1024,
-        backup_count: Annotated[
-            int,
-            Doc(
-                """
-                The number of backup files to keep. Default is 7 days.
-                """
-            ),
-        ] = 7,
     ):
-        configure_logger(
-            log_file=log_file,
-            level=level,
-            format_type=format_type,
-            log_to_file=log_to_file,
-            max_bytes=max_bytes,
-            backup_count=backup_count,
-        )
-
-        logger.info("Initializing Velithon application")
         self.router = Router(routes, on_startup=on_startup, on_shutdown=on_shutdown)
         self.container = Container()
 
@@ -357,7 +295,12 @@ class Velithon:
 
         self.setup()
 
-    def register_dependency(self, cls: type, factory: Callable = None, lifecycle: Lifecycle = Lifecycle.SINGLETON):
+    def register_dependency(
+        self,
+        cls: type,
+        factory: Callable = None,
+        lifecycle: Lifecycle = Lifecycle.SINGLETON,
+    ):
         self.container.register(cls, factory, lifecycle)
 
     def build_middleware_stack(self) -> RSGIApp:

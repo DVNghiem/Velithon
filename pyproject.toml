@@ -16,6 +16,8 @@ dependencies = [
     "pydash (>=8.0.5,<9.0.0)"
 ]
 
+[tool.poetry.scripts]
+velithon = "velithon.cli:cli"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
