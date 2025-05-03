@@ -16,6 +16,7 @@ class Scope:
         # extend the scope with additional properties
         self._path_params = {}
         self.request_id = str(uuid.uuid4())
+        self._di_context = {}
 
     @property
     def proto(self) -> typing.Literal["http", "websocket"]:

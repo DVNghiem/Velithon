@@ -1,18 +1,31 @@
 import logging
-from typing import Annotated, Any, Callable, Dict, List, Sequence, TypeVar, Awaitable, Literal
+from typing import (
+    Annotated,
+    Any,
+    Awaitable,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Sequence,
+    TypeVar,
+)
 
 from typing_extensions import Doc
 
-from velithon.responses import HTMLResponse, JSONResponse, Response
-from velithon.requests import Request
-from velithon.middleware import Middleware
-from velithon.middleware.wrapped import WrappedRSGITypeMiddleware
-from velithon.middleware.logging import LoggingMiddleware
-from velithon.routing import BaseRoute, Router
 from velithon.datastructures import Protocol, Scope
-from velithon.types import RSGIApp
-from velithon.openapi.ui import get_swagger_ui_html
 from velithon.logging import configure_logger
+from velithon.middleware import Middleware
+from velithon.middleware.di import DIMiddleware
+from velithon.middleware.logging import LoggingMiddleware
+from velithon.middleware.wrapped import WrappedRSGITypeMiddleware
+from velithon.openapi.ui import get_swagger_ui_html
+from velithon.requests import Request
+from velithon.responses import HTMLResponse, JSONResponse, Response
+from velithon.routing import BaseRoute, Router
+from velithon.types import RSGIApp
+from velithon.di import Container, Lifecycle
+
 AppType = TypeVar("AppType", bound="Velithon")
 
 logger = logging.getLogger(__name__)
@@ -259,7 +272,6 @@ class Velithon:
                 """
             ),
         ] = None,
-
         log_file: Annotated[
             str,
             Doc(
@@ -320,9 +332,11 @@ class Velithon:
             max_bytes=max_bytes,
             backup_count=backup_count,
         )
-        
+
         logger.info("Initializing Velithon application")
         self.router = Router(routes, on_startup=on_startup, on_shutdown=on_shutdown)
+        self.container = Container()
+
         self.user_middleware = [] if middleware is None else list(middleware)
         self.middleware_stack: RSGIApp | None = None
         self.title = title
@@ -343,8 +357,15 @@ class Velithon:
 
         self.setup()
 
+    def register_dependency(self, cls: type, factory: Callable = None, lifecycle: Lifecycle = Lifecycle.SINGLETON):
+        self.container.register(cls, factory, lifecycle)
+
     def build_middleware_stack(self) -> RSGIApp:
-        middleware = [Middleware(WrappedRSGITypeMiddleware), Middleware(LoggingMiddleware)] + self.user_middleware
+        middleware = [
+            Middleware(WrappedRSGITypeMiddleware),
+            Middleware(LoggingMiddleware),
+            Middleware(DIMiddleware, self),
+        ] + self.user_middleware
         app = self.router
         for cls, args, kwargs in reversed(middleware):
             app = cls(app, *args, **kwargs)
@@ -355,7 +376,6 @@ class Velithon:
             self.middleware_stack = self.build_middleware_stack()
         await self.middleware_stack(scope, protocol)
 
-    
     def setup(self) -> None:
         if self.openapi_url:
             urls = (server_data.get("url") for server_data in self.servers)
@@ -365,14 +385,21 @@ class Velithon:
                 root_path = req.scope.server.rstrip("/")
                 if root_path not in server_urls:
                     if root_path:
-                        self.servers.insert(0, {"url": req.scope.scheme + "://" + root_path})
+                        self.servers.insert(
+                            0, {"url": req.scope.scheme + "://" + root_path}
+                        )
                         server_urls.add(root_path)
                 return JSONResponse(self.get_openapi())
 
-            self.add_route(self.openapi_url, openapi, include_in_schema=False,)
+            self.add_route(
+                self.openapi_url,
+                openapi,
+                include_in_schema=False,
+            )
         if self.openapi_url and self.docs_url:
+
             async def swagger_ui_html(req: Request) -> HTMLResponse:
-                root_path = req.scope.scheme + "://"+ req.scope.server.rstrip("/")
+                root_path = req.scope.scheme + "://" + req.scope.server.rstrip("/")
                 openapi_url = root_path + self.openapi_url
                 oauth2_redirect_url = self.swagger_ui_oauth2_redirect_url
                 if oauth2_redirect_url:
@@ -384,8 +411,12 @@ class Velithon:
                     init_oauth=self.swagger_ui_init_oauth,
                 )
 
-            self.add_route(self.docs_url, swagger_ui_html, include_in_schema=False,)
-    
+            self.add_route(
+                self.docs_url,
+                swagger_ui_html,
+                include_in_schema=False,
+            )
+
     def get_openapi(
         self: AppType,
     ) -> Dict[str, Any]:
@@ -393,7 +424,7 @@ class Velithon:
             "openapi": self.openapi_version,
             "info": {},
             "paths": {},
-            "components": {"schemas": {}}
+            "components": {"schemas": {}},
         }
         info: Dict[str, Any] = {"title": self.title, "version": self.version}
         if self.summary:
@@ -430,4 +461,13 @@ class Velithon:
         description: str | None = None,
         tags: list[str] | None = None,
     ) -> None:  # pragma: no cover
-        self.router.add_route(path, route, methods=methods, name=name, include_in_schema=include_in_schema, summary=summary, description=description, tags=tags)
+        self.router.add_route(
+            path,
+            route,
+            methods=methods,
+            name=name,
+            include_in_schema=include_in_schema,
+            summary=summary,
+            description=description,
+            tags=tags,
+        )

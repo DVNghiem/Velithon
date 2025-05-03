@@ -16,10 +16,10 @@ from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefined
 
-from velithon.params.params import Body, Depends, File, Form, Path, Query
+from velithon.params.params import Body, File, Form, Path, Query
 from velithon.requests import Request
 from velithon.responses import PlainTextResponse
-
+from velithon.di import Provide
 from .constants import REF_TEMPLATE
 
 
@@ -175,7 +175,7 @@ def process_model_params(
     default = param.default
 
     # Skip special types
-    SPECIAL_TYPES = (Request, Dict, Callable)
+    SPECIAL_TYPES = (Request, Dict, Callable, Provide)
     if isinstance(annotation, type) and issubclass(annotation, SPECIAL_TYPES):
         return path
 
@@ -274,10 +274,6 @@ def process_model_params(
                 "content": {media_type: {"schema": schema}},
                 "required": default.default is PydanticUndefined,
             }
-        return path
-
-    # Handle Depends
-    if isinstance(default, Depends):
         return path
 
     # Handle Pydantic models

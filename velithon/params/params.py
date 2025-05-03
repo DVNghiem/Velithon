@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Sequence, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefined
@@ -526,28 +526,3 @@ class File(Form):
             include_in_schema=include_in_schema,
             json_schema_extra=json_schema_extra,
         )
-
-
-class Depends:
-    def __init__(
-        self, dependency: Optional[Callable[..., Any]] = None, *, use_cache: bool = True
-    ):
-        self.dependency = dependency
-        self.use_cache = use_cache
-
-    def __repr__(self) -> str:
-        attr = getattr(self.dependency, "__name__", type(self.dependency).__name__)
-        cache = "" if self.use_cache else ", use_cache=False"
-        return f"{self.__class__.__name__}({attr}{cache})"
-
-
-class Security(Depends):
-    def __init__(
-        self,
-        dependency: Optional[Callable[..., Any]] = None,
-        *,
-        scopes: Optional[Sequence[str]] = None,
-        use_cache: bool = True,
-    ):
-        super().__init__(dependency=dependency, use_cache=use_cache)
-        self.scopes = scopes or []

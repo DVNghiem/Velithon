@@ -16,7 +16,7 @@ from .parser import InputHandler
 async def dispatch(handler: typing.Any, request: Request) -> Response:
     is_class_based = not (inspect.isfunction(handler) or inspect.iscoroutinefunction(handler))
     if is_class_based:
-        method_name = request.scope["method"].lower()
+        method_name = request.scope.method.lower()
         endpoint_instance = handler()
         handler_method = getattr(endpoint_instance, method_name, None)
         if not handler_method:
