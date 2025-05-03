@@ -313,7 +313,7 @@ class Velithon:
                         server_urls.add(root_path)
                 return JSONResponse(self.get_openapi())
 
-            self.add_route(self.openapi_url, openapi)
+            self.add_route(self.openapi_url, openapi, include_in_schema=False,)
         if self.openapi_url and self.docs_url:
             async def swagger_ui_html(req: Request) -> HTMLResponse:
                 root_path = req.scope.scheme + "://"+ req.scope.server.rstrip("/")
@@ -328,7 +328,7 @@ class Velithon:
                     init_oauth=self.swagger_ui_init_oauth,
                 )
 
-            self.add_route(self.docs_url, swagger_ui_html)
+            self.add_route(self.docs_url, swagger_ui_html, include_in_schema=False,)
     
     def get_openapi(
         self: AppType,
@@ -353,6 +353,8 @@ class Velithon:
         if self.servers:
             main_docs["servers"] = self.servers
         for route in self.router.routes or []:
+            if not route.include_in_schema:
+                continue
             path, schema = route.openapi()
             main_docs["paths"].update(path)
             main_docs["components"]["schemas"].update(schema)
@@ -367,5 +369,9 @@ class Velithon:
         route: Callable[[Request], Awaitable[Response] | Response],
         methods: list[str] | None = None,
         name: str | None = None,
+        include_in_schema: bool = True,
+        summary: str | None = None,
+        description: str | None = None,
+        tags: list[str] | None = None,
     ) -> None:  # pragma: no cover
-        self.router.add_route(path, route, methods=methods, name=name)
+        self.router.add_route(path, route, methods=methods, name=name, include_in_schema=include_in_schema, summary=summary, description=description, tags=tags)

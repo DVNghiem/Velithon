@@ -168,6 +168,10 @@ class Route(BaseRoute):
             Sequence[str] | None,
             Doc("Tags for the route, used for OpenAPI schema generation"),
         ] = None,
+        include_in_schema: Annotated[
+            bool | None,
+            Doc("Whether to include this route in the OpenAPI schema"),
+        ] = True
     ) -> None:
         assert path.startswith("/"), "Routed paths must start with '/'"
         self.path = path
@@ -176,6 +180,7 @@ class Route(BaseRoute):
         self.description = description
         self.summary = summary
         self.tags = tags
+        self.include_in_schema = include_in_schema
 
         endpoint_handler = endpoint
         while isinstance(endpoint_handler, functools.partial):
@@ -342,12 +347,20 @@ class Router:
         endpoint: Callable[[Request], Awaitable[Response] | Response],
         methods: list[str] | None = None,
         name: str | None = None,
+        include_in_schema: bool = True,
+        summary: str | None = None,
+        description: str | None = None,
+        tags: Sequence[str] | None = None,
     ) -> None:  # pragma: no cover
         route = Route(
             path,
             endpoint=endpoint,
             methods=methods,
             name=name,
+            include_in_schema=include_in_schema,
+            summary=summary,
+            description=description,
+            tags=tags,
         )
         self.routes.append(route)
 
@@ -423,6 +436,10 @@ class Router:
             Sequence[str] | None,
             Doc("Tags for the route, used for OpenAPI schema generation"),
         ] = None,
+        include_in_schema: Annotated[
+            bool | None,
+            Doc("Whether to include this route in the OpenAPI schema"),
+        ] = True,
         route_class_override: Type[BaseRoute] | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -436,6 +453,7 @@ class Router:
                 methods=methods,
                 name=name,
                 middleware=middleware,
+                include_in_schema=include_in_schema,
             )
             return func
 
@@ -449,6 +467,7 @@ class Router:
         sunmmary: str | None = None,
         description: str | None = None,
         name: str | None = None,
+        include_in_schema: bool = True,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """
         Add a *path operation* using an HTTP GET operation.
@@ -469,6 +488,7 @@ class Router:
             description=description,
             methods=["GET"],
             name=name,
+            include_in_schema=include_in_schema,
         )
     
     def post(
@@ -479,6 +499,7 @@ class Router:
         summary: str | None = None,
         description: str | None = None,
         name: str | None = None,
+        include_in_schema: bool = True,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """
         Add a *path operation* using an HTTP GET operation.
@@ -499,6 +520,7 @@ class Router:
             description=description,
             methods=["POST"],
             name=name,
+            include_in_schema=include_in_schema,
         )
     
     def put(
@@ -509,6 +531,7 @@ class Router:
         summary: str | None = None,
         description: str | None = None,
         name: str | None = None,
+        include_in_schema: bool = True,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """
         Add a *path operation* using an HTTP PUT operation.
@@ -529,6 +552,7 @@ class Router:
             description=description,
             methods=["PUT"],
             name=name,
+            include_in_schema=include_in_schema,
         )
     
     def delete(
@@ -539,6 +563,7 @@ class Router:
         summary: str | None = None,
         description: str | None = None,
         name: str | None = None,
+        include_in_schema: bool = True,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """
         Add a *path operation* using an HTTP DELETE operation.
@@ -559,6 +584,7 @@ class Router:
             description=description,
             methods=["DELETE"],
             name=name,
+            include_in_schema=include_in_schema,
         )
     
     def patch (
@@ -569,6 +595,7 @@ class Router:
         summary: str | None = None,
         description: str | None = None,
         name: str | None = None,
+        include_in_schema: bool = True,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """
         Add a *path operation* using an HTTP PATCH operation.
@@ -579,6 +606,8 @@ class Router:
             description=description,
             methods=["PATCH"],
             name=name,
+            include_in_schema=include_in_schema,
+            summary=summary,
         )
     
     def option (
@@ -589,6 +618,7 @@ class Router:
         summary: str | None = None,
         description: str | None = None,
         name: str | None = None,
+        include_in_schema: bool = True,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """
         Add a *path operation* using an HTTP OPTION operation.
@@ -599,4 +629,6 @@ class Router:
             description=description,
             methods=["OPTION"],
             name=name,
+            include_in_schema=include_in_schema,
+            summary=summary,
         )
