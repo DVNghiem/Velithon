@@ -1,11 +1,15 @@
-from typing import Annotated, Any, Callable, Dict, List, Sequence, TypeVar
+from typing import Annotated, Any, Callable, Dict, List, Sequence, TypeVar, Awaitable
 
 from typing_extensions import Doc
 
+from velithon.responses import HTMLResponse, JSONResponse, Response
+from velithon.requests import Request
 from velithon.middleware import Middleware
+from velithon.middleware.wrapped import WrappedRSGITypeMiddleware
 from velithon.routing import BaseRoute, Router
-from velithon.types import Protocol, RSGIApp, Scope
-
+from velithon.datastructures import Protocol, Scope
+from velithon.types import RSGIApp
+from velithon.openapi.ui import get_swagger_ui_html
 AppType = TypeVar("AppType", bound="Velithon")
 
 
@@ -58,6 +62,14 @@ class Velithon:
                 """
             ),
         ] = None,
+        openapi_version: Annotated[
+            str,
+            Doc(
+                """
+                The version string of OpenAPI.
+                """
+            ),
+        ] = "3.0.0",
         title: Annotated[
             str,
             Doc(
@@ -115,6 +127,30 @@ class Velithon:
                 """
             ),
         ] = "/openapi.json",
+        swagger_ui_oauth2_redirect_url: Annotated[
+            str | None,
+            Doc(
+                """
+                The OAuth2 redirect endpoint for the Swagger UI.
+
+                By default it is `/docs/oauth2-redirect`.
+
+                This is only used if you use OAuth2 (with the "Authorize" button)
+                with Swagger UI.
+                """
+            ),
+        ] = "/docs/oauth2-redirect",
+        swagger_ui_init_oauth: Annotated[
+            Dict[str, Any] | None,
+            Doc(
+                """
+                OAuth2 configuration for the Swagger UI, by default shown at `/docs`.
+
+                Read more about the available configuration options in the
+                [Swagger UI docs](https://swagger.io/docs/open-source-tools/swagger-ui/usage/oauth2/).
+                """
+            ),
+        ] = None,
         openapi_tags: Annotated[
             List[Dict[str, Any]] | None,
             Doc(
@@ -206,6 +242,28 @@ class Velithon:
                 """
             ),
         ] = None,
+        tags: Annotated[
+            List[Dict[str, str | Any]] | None,
+            Doc(
+                """
+                A list of tags used by OpenAPI, these are the same `tags` you can set
+                in the *path operations*, like:
+
+                * `@app.get("/users/", tags=["users"])`
+                * `@app.get("/items/", tags=["items"])`
+
+                The order of the tags can be used to specify the order shown in
+                tools like Swagger UI, used in the automatic path `/docs`.
+
+                It's not required to specify all the tags used.
+
+                The tags that are not declared MAY be organized randomly or based
+                on the tools' logic. Each tag name in the list MUST be unique.
+
+                The value of each item is a `dict` containing:
+                """
+            ),
+        ] = None,
     ):
         self.debug = debug
         self.router = Router(routes, on_startup=on_startup, on_shutdown=on_shutdown)
@@ -215,16 +273,22 @@ class Velithon:
         self.summary = summary
         self.description = description
         self.version = version
+        self.openapi_version = openapi_version
         self.openapi_url = openapi_url
+        self.swagger_ui_oauth2_redirect_url = swagger_ui_oauth2_redirect_url
+        self.swagger_ui_init_oauth = swagger_ui_init_oauth
         self.openapi_tags = openapi_tags
-        self.servers = servers
+        self.servers = servers or []
         self.docs_url = docs_url
         self.terms_of_service = terms_of_service
         self.contact = contact
         self.license_info = license_info
+        self.tags = tags or []
+
+        self.setup()
 
     def build_middleware_stack(self) -> RSGIApp:
-        middleware = self.user_middleware
+        middleware = [Middleware(WrappedRSGITypeMiddleware), ] + self.user_middleware
         app = self.router
         for cls, args, kwargs in reversed(middleware):
             app = cls(app, *args, **kwargs)
@@ -235,20 +299,73 @@ class Velithon:
             self.middleware_stack = self.build_middleware_stack()
         await self.middleware_stack(scope, protocol)
 
-    def openapi(self) -> Dict[str, Any]:
-        """
-        Generate the OpenAPI schema for the application.
-        """
-        return {
-            "openapi": "3.0.0",
-            "info": {
-                "title": self.title,
-                "version": self.version,
-                "description": self.description,
-                "termsOfService": self.terms_of_service,
-                "contact": self.contact,
-                "license": self.license_info,
-            },
-            "servers": self.servers,
-            "tags": self.openapi_tags,
+    
+    def setup(self) -> None:
+        if self.openapi_url:
+            urls = (server_data.get("url") for server_data in self.servers)
+            server_urls = {url for url in urls if url}
+
+            async def openapi(req: Request) -> JSONResponse:
+                root_path = req.scope.server.rstrip("/")
+                if root_path not in server_urls:
+                    if root_path:
+                        self.servers.insert(0, {"url": req.scope.scheme + "://" + root_path})
+                        server_urls.add(root_path)
+                return JSONResponse(self.get_openapi())
+
+            self.add_route(self.openapi_url, openapi)
+        if self.openapi_url and self.docs_url:
+            async def swagger_ui_html(req: Request) -> HTMLResponse:
+                root_path = req.scope.scheme + "://"+ req.scope.server.rstrip("/")
+                openapi_url = root_path + self.openapi_url
+                oauth2_redirect_url = self.swagger_ui_oauth2_redirect_url
+                if oauth2_redirect_url:
+                    oauth2_redirect_url = root_path + oauth2_redirect_url
+                return get_swagger_ui_html(
+                    openapi_url=openapi_url,
+                    title=f"{self.title} - Swagger UI",
+                    oauth2_redirect_url=oauth2_redirect_url,
+                    init_oauth=self.swagger_ui_init_oauth,
+                )
+
+            self.add_route(self.docs_url, swagger_ui_html)
+    
+    def get_openapi(
+        self: AppType,
+    ) -> Dict[str, Any]:
+        main_docs = {
+            "openapi": self.openapi_version,
+            "info": {},
+            "paths": {},
+            "components": {"schemas": {}}
         }
+        info: Dict[str, Any] = {"title": self.title, "version": self.version}
+        if self.summary:
+            info["summary"] = self.summary
+        if self.description:
+            info["description"] = self.description
+        if self.terms_of_service:
+            info["termsOfService"] = self.terms_of_service
+        if self.contact:
+            info["contact"] = self.contact
+        if self.license_info:
+            info["license"] = self.license_info
+        if self.servers:
+            main_docs["servers"] = self.servers
+        for route in self.router.routes or []:
+            path, schema = route.openapi()
+            main_docs["paths"].update(path)
+            main_docs["components"]["schemas"].update(schema)
+        if self.tags:
+            main_docs["tags"] = self.tags
+        main_docs["info"] = info
+        return main_docs
+
+    def add_route(
+        self,
+        path: str,
+        route: Callable[[Request], Awaitable[Response] | Response],
+        methods: list[str] | None = None,
+        name: str | None = None,
+    ) -> None:  # pragma: no cover
+        self.router.add_route(path, route, methods=methods, name=name)

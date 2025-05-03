@@ -19,7 +19,7 @@ class Param(FieldInfo):
 
     def __init__(
         self,
-        default: Any = PydanticUndefined,
+        default: Any = ...,
         *,
         default_factory: Union[Callable[[], Any], None] = _Unset,
         annotation: Optional[Any] = None,
@@ -91,7 +91,7 @@ class Path(Param):
 
     def __init__(
         self,
-                default: Any = PydanticUndefined,
+        default: Any = ...,
         *,
         default_factory: Union[Callable[[], Any], None] = _Unset,
         annotation: Optional[Any] = None,
@@ -154,7 +154,7 @@ class Query(Param):
 
     def __init__(
         self,
-                default: Any = PydanticUndefined,
+        default: Any = ...,
         *,
         default_factory: Union[Callable[[], Any], None] = _Unset,
         annotation: Optional[Any] = None,
@@ -215,7 +215,7 @@ class Header(Param):
 
     def __init__(
         self,
-                default: Any = PydanticUndefined,
+        default: Any = ...,
         *,
         default_factory: Union[Callable[[], Any], None] = _Unset,
         annotation: Optional[Any] = None,
@@ -278,7 +278,7 @@ class Cookie(Param):
 
     def __init__(
         self,
-                default: Any = PydanticUndefined,
+                default: Any = ...,
         *,
         default_factory: Union[Callable[[], Any], None] = _Unset,
         annotation: Optional[Any] = None,
@@ -337,7 +337,7 @@ class Cookie(Param):
 class Body(FieldInfo):
     def __init__(
         self,
-        default: Any = PydanticUndefined,
+        default: Any = ...,
         *,
         default_factory: Union[Callable[[], Any], None] = _Unset,
         annotation: Optional[Any] = None,
@@ -409,7 +409,7 @@ class Body(FieldInfo):
 class Form(Body):
     def __init__(
         self,
-        default: Any = PydanticUndefined,
+        default: Any = ...,
         *,
         default_factory: Union[Callable[[], Any], None] = _Unset,
         annotation: Optional[Any] = None,
@@ -470,7 +470,7 @@ class Form(Body):
 class File(Form):
     def __init__(
         self,
-        default: Any = PydanticUndefined,
+        default: Any = ...,
         *,
         default_factory: Union[Callable[[], Any], None] = _Unset,
         annotation: Optional[Any] = None,

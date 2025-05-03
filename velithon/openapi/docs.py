@@ -1,12 +1,27 @@
-
-from typing import Any, Dict, Type, get_args, get_origin, Union, Annotated, Tuple, Sequence, List
+import inspect
 from enum import Enum
+from typing import (
+    Annotated,
+    Any,
+    Callable,
+    Dict,
+    Tuple,
+    Type,
+    Union,
+    get_args,
+    get_origin,
+)
+
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
-import inspect
-from velithon.params.params import Depends, Query, Path, Body, Form
-from velithon.routing import BaseRoute
+from pydantic_core import PydanticUndefined
+
+from velithon.params.params import Body, Depends, File, Form, Path, Query
+from velithon.requests import Request
+from velithon.responses import PlainTextResponse
+
 from .constants import REF_TEMPLATE
+
 
 def get_field_type(field):
     return field.outer_type_
@@ -29,11 +44,7 @@ def pydantic_to_swagger(model: type[BaseModel] | dict) -> Dict[str, Any]:
             schema[name] = _process_field(name, field_type, {})
         return schema
 
-    schema = {
-        "type": "object",
-        "properties": {},
-        "required": []
-    }
+    schema = {"type": "object", "properties": {}, "required": []}
 
     for name, field in model.model_fields.items():
         schema["properties"][name] = _process_field(name, field, {})
@@ -51,11 +62,16 @@ class SchemaProcessor:
             schema = SchemaProcessor._process_field("", inner_type, schemas)
             schema["nullable"] = True
             return schema
-        return {"oneOf": [SchemaProcessor._process_field("", arg, schemas) for arg in args]}
+        return {
+            "oneOf": [SchemaProcessor._process_field("", arg, schemas) for arg in args]
+        }
 
     @staticmethod
     def process_enum(annotation: Type[Enum]) -> Dict[str, Any]:
-        return {"type": "string", "enum": [e.value for e in annotation.__members__.values()]}
+        return {
+            "type": "string",
+            "enum": [e.value for e in annotation.__members__.values()],
+        }
 
     @staticmethod
     def process_primitive(annotation: type) -> Dict[str, str]:
@@ -80,32 +96,41 @@ class SchemaProcessor:
         if args:
             key_type, value_type = args
             if isinstance(key_type, type) and issubclass(key_type, str):
-                schema["additionalProperties"] = SchemaProcessor._process_field("value", value_type, schemas)
+                schema["additionalProperties"] = SchemaProcessor._process_field(
+                    "value", value_type, schemas
+                )
         return schema
 
     @classmethod
-    def _process_field(cls, name: str, field: Any, schemas: Dict[str, Any]) -> Dict[str, Any]:
+    def _process_field(
+        cls, name: str, field: Any, schemas: Dict[str, Any]
+    ) -> Dict[str, Any]:
         if isinstance(field, FieldInfo):
             annotation = field.annotation
             schema = cls._process_annotation(annotation, schemas)
             if field.description:
                 schema["description"] = field.description
-            if field.default is not None and field.default is not ...:
+            if field.default is not None and field.default is not PydanticUndefined:
                 schema["default"] = field.default
             return schema
         return cls._process_annotation(field, schemas)
 
     @classmethod
-    def _process_annotation(cls, annotation: Any, schemas: Dict[str, Any]) -> Dict[str, Any]:
+    def _process_annotation(
+        cls, annotation: Any, schemas: Dict[str, Any]
+    ) -> Dict[str, Any]:
         origin = get_origin(annotation)
         if origin is Annotated:
             base_type, *metadata = get_args(annotation)
             schema = cls._process_annotation(base_type, schemas)
             for meta in metadata:
-                if isinstance(meta, (Query, Body, Form)):
+                if isinstance(meta, (Query, Body, Form, Path, File)):
                     if meta.description:
                         schema["description"] = meta.description
-                    if meta.default is not None and meta.default is not ...:
+                    if (
+                        meta.default is not None
+                        and meta.default is not PydanticUndefined
+                    ):
                         schema["default"] = meta.default
             return schema
 
@@ -126,7 +151,10 @@ class SchemaProcessor:
 
         if isinstance(annotation, type) and issubclass(annotation, BaseModel):
             schemas[annotation.__name__] = pydantic_to_swagger(annotation)
-            return {"$ref": REF_TEMPLATE.format(name=annotation.__name__)}
+            return {"$ref": REF_TEMPLATE.format(model=annotation.__name__)}
+
+        if isinstance(annotation, type) and issubclass(annotation, PlainTextResponse):
+            return {"type": "string"}
 
         return {"type": "object"}
 
@@ -136,115 +164,135 @@ def _process_field(name: str, field: Any, schemas: Dict[str, Any]) -> Dict[str, 
 
 
 def process_model_params(
-    param: inspect.Parameter, 
-    docs: Dict, 
-    path: str, 
-    request_method: str, 
-    schemas: Dict[str, Any]
+    param: inspect.Parameter,
+    docs: Dict,
+    path: str,
+    request_method: str,
+    schemas: Dict[str, Any],
 ) -> str:
     name = param.name
     annotation = param.annotation
     default = param.default
 
+    # Skip special types
+    SPECIAL_TYPES = (Request, Dict, Callable)
+    if isinstance(annotation, type) and issubclass(annotation, SPECIAL_TYPES):
+        return path
+
     # Handle Annotated types
     if get_origin(annotation) is Annotated:
         base_type, *metadata = get_args(annotation)
-        schema = _process_field(name, base_type, schemas)
-        is_query = False
-        is_body = False
-        is_form = False
-        for meta in metadata:
-            if isinstance(meta, Query):
-                is_query = True
-                docs.setdefault("parameters", []).append({
-                    "name": name,
-                    "in": "query",
-                    "required": meta.default is ...,
-                    "schema": schema
-                })
-                break
-            elif isinstance(meta, Body):
-                is_body = True
-                media_type = meta.media_type if meta.media_type else "application/json"
+        param_metadata = next(
+            (m for m in metadata if isinstance(m, (Query, Path, Body, Form, File))),
+            None,
+        )
+        if param_metadata:
+            schema = _process_field(name, base_type, schemas)
+            if param_metadata.description:
+                schema["description"] = param_metadata.description
+            if (
+                param_metadata.default is not None
+                and param_metadata.default is not PydanticUndefined
+            ):
+                schema["default"] = param_metadata.default
+
+            param_type = type(param_metadata)
+            if param_type is Path:
+                docs.setdefault("parameters", []).append(
+                    {"name": name, "in": "path", "required": True, "schema": schema}
+                )
+                if f"{{{name}}}" not in path:
+                    path = path.replace(name, f"{{{name}}}")
+            elif param_type is Query:
+                docs.setdefault("parameters", []).append(
+                    {
+                        "name": name,
+                        "in": "query",
+                        "required": param_metadata.default is PydanticUndefined,
+                        "schema": schema,
+                    }
+                )
+            elif param_type is Body:
+                media_type = param_metadata.media_type or "application/json"
                 docs["requestBody"] = {
-                    "content": {
-                        media_type: {
-                            "schema": schema
-                        }
-                    },
-                    "required": meta.default is ...
+                    "content": {media_type: {"schema": schema}},
+                    "required": param_metadata.default is PydanticUndefined,
                 }
-                break
-            elif isinstance(meta, Form):
-                is_form = True
-                media_type = meta.media_type if meta.media_type else "multipart/form-data"
+            elif param_type is Form:
+                media_type = param_metadata.media_type or "multipart/form-data"
                 docs["requestBody"] = {
-                    "content": {
-                        media_type: {
-                            "schema": schema
-                        }
-                    },
-                    "required": meta.default is ...
+                    "content": {media_type: {"schema": schema}},
+                    "required": param_metadata.default is PydanticUndefined,
                 }
-                break
-        if is_query or is_body or is_form:
+            elif param_type is File:
+                media_type = param_metadata.media_type or "multipart/form-data"
+                docs["requestBody"] = {
+                    "content": {media_type: {"schema": schema}},
+                    "required": param_metadata.default is PydanticUndefined,
+                }
             return path
         annotation = base_type
 
-    if isinstance(default, (Query, Path, Body, Form)):
+    # Handle default metadata
+    if isinstance(default, (Query, Path, Body, Form, File)):
         schema = _process_field(name, annotation, schemas)
         if default.description:
             schema["description"] = default.description
-        if default.default is not None and default.default is not ...:
+        if default.default is not None and default.default is not PydanticUndefined:
             schema["default"] = default.default
 
         if isinstance(default, Path):
-            docs.setdefault("parameters", []).append({
-                "name": name,
-                "in": "path",
-                "required": True,
-                "schema": schema
-            })
-            path = path.replace(name, f"{{{name}}}")
+            docs.setdefault("parameters", []).append(
+                {"name": name, "in": "path", "required": True, "schema": schema}
+            )
+            if f"{{{name}}}" not in path:
+                path = path.replace(name, f"{{{name}}}")
         elif isinstance(default, Query):
-            docs.setdefault("parameters", []).append({
-                "name": name,
-                "in": "query",
-                "required": default.default is ...,
-                "schema": schema
-            })
+            docs.setdefault("parameters", []).append(
+                {
+                    "name": name,
+                    "in": "query",
+                    "required": default.default is PydanticUndefined,
+                    "schema": schema,
+                }
+            )
         elif isinstance(default, Body):
-            media_type = default.media_type if default.media_type else "application/json"
+            media_type = default.media_type or "application/json"
             docs["requestBody"] = {
-                "content": {
-                    media_type: {
-                        "schema": schema
-                    }
-                },
-                "required": default.default is ...
+                "content": {media_type: {"schema": schema}},
+                "required": default.default is PydanticUndefined,
             }
         elif isinstance(default, Form):
-            media_type = default.media_type if default.media_type else "multipart/form-data"
+            media_type = default.media_type or "multipart/form-data"
             docs["requestBody"] = {
-                "content": {
-                    media_type: {
-                        "schema": schema
-                    }
-                 },
-                "required": default.default is ...
+                "content": {media_type: {"schema": schema}},
+                "required": default.default is PydanticUndefined,
             }
-    elif isinstance(default, Depends):
+        elif isinstance(default, File):
+            media_type = default.media_type or "multipart/form-data"
+            docs["requestBody"] = {
+                "content": {media_type: {"schema": schema}},
+                "required": default.default is PydanticUndefined,
+            }
         return path
-    elif isinstance(annotation, type) and issubclass(annotation, BaseModel):
+
+    # Handle Depends
+    if isinstance(default, Depends):
+        return path
+
+    # Handle Pydantic models
+    if isinstance(annotation, type) and issubclass(annotation, BaseModel):
         if request_method.lower() == "get":
             for field_name, field in annotation.model_fields.items():
                 schema = _process_field(field_name, field, schemas)
-                docs.setdefault("parameters", []).append({
-                    "name": field_name,
-                    "in": "query",
-                    "required": field.is_required(),
-                    "schema": schema
-                })
+                docs.setdefault("parameters", []).append(
+                    {
+                        "name": field_name,
+                        "in": "query",
+                        "required": field.is_required(),
+                        "schema": schema,
+                    }
+                )
         else:
             docs["requestBody"] = {
                 "content": {
@@ -253,47 +301,46 @@ def process_model_params(
                     }
                 },
                 "required": default is inspect.Parameter.empty
+                or default is PydanticUndefined,
             }
-    else:
-        schema = _process_field(name, annotation, schemas)
-        docs.setdefault("parameters", []).append({
-            "name": name,
-            "in": "query",
-            "required": default is inspect.Parameter.empty,
-            "schema": schema
-        })
+        return path
 
+    # Handle primitive types as query parameters (only if not a path parameter)
+    if annotation in (int, float, str, bool) and f"{{{name}}}" not in path:
+        schema = _process_field(name, annotation, schemas)
+        docs.setdefault("parameters", []).append(
+            {
+                "name": name,
+                "in": "query",
+                "required": default is inspect.Parameter.empty
+                or default is PydanticUndefined,
+                "schema": schema,
+            }
+        )
     return path
 
 
 def process_response(response_type: type, docs: Dict, schemas: Dict[str, Any]) -> None:
-    schema = _process_field("response", response_type, schemas)
-    docs["responses"] = {
-        "200": {
-            "description": "Successful response",
-            "content": {
-                "application/json": {
-                    "schema": schema
-                }
+    if isinstance(response_type, type) and issubclass(response_type, PlainTextResponse):
+        docs["responses"] = {
+            "200": {
+                "description": "Successful response",
+                "content": {"text/plain": {"schema": {"type": "string"}}},
             }
         }
-    }
+    else:
+        schema = _process_field("response", response_type, schemas)
+        docs["responses"] = {
+            "200": {
+                "description": "Successful response",
+                "content": {"application/json": {"schema": schema}},
+            }
+        }
 
 
-def swagger_generate(func: callable, request_method: str, endpoint_path: str = "/") -> Tuple[Dict, Dict[str, Any]]:
-    """
-    Generate OpenAPI documentation and schemas for a FastAPI-like API function.
-
-    Args:
-        func: The API handler function (e.g., FastAPI endpoint).
-        request_method: HTTP method (e.g., "get", "post").
-        endpoint_path: The endpoint path (e.g., "/items").
-
-    Returns:
-        A tuple of (docs, schemas) where:
-        - docs: OpenAPI path specification.
-        - schemas: Dictionary of schema definitions for Pydantic models.
-    """
+def swagger_generate(
+    func: callable, request_method: str, endpoint_path: str = "/"
+) -> Tuple[Dict, Dict[str, Any]]:
     signature = inspect.signature(func)
     schemas: Dict[str, Any] = {}
     docs = {
@@ -301,55 +348,16 @@ def swagger_generate(func: callable, request_method: str, endpoint_path: str = "
             "summary": func.__name__.replace("_", " ").title(),
             "operationId": func.__name__,
             "parameters": [],
-            "responses": {}
+            "responses": {},
         }
     }
 
+    updated_path = endpoint_path
     for param in signature.parameters.values():
-        endpoint_path = process_model_params(param, docs[request_method.lower()], endpoint_path, request_method, schemas)
+        updated_path = process_model_params(
+            param, docs[request_method.lower()], updated_path, request_method, schemas
+        )
 
     process_response(signature.return_annotation, docs[request_method.lower()], schemas)
 
-    return {endpoint_path: docs}, schemas
-
-
-def get_openapi(
-    *,
-    title: str,
-    version: str,
-    openapi_version: str = "3.1.0",
-    summary: str | None = None,
-    description: str | None = None,
-    routes: Sequence[BaseRoute],
-    tags: List[Dict[str, Any]] | None = None,
-    servers: List[Dict[str, Union[str, Any]]] | None = None,
-    terms_of_service: str | None = None,
-    contact: Dict[str, Union[str, Any]] | None= None,
-    license_info: Dict[str, Union[str, Any]] | None = None,
-) -> Dict[str, Any]:
-    main_docs = {
-        "openapi": openapi_version,
-        "info": {},
-        "paths": {},
-        "components": {"schemas": {}}
-    }
-    info: Dict[str, Any] = {"title": title, "version": version}
-    if summary:
-        info["summary"] = summary
-    if description:
-        info["description"] = description
-    if terms_of_service:
-        info["termsOfService"] = terms_of_service
-    if contact:
-        info["contact"] = contact
-    if license_info:
-        info["license"] = license_info
-    if servers:
-        main_docs["servers"] = servers
-    for route in routes or []:
-        path, schema = route.openapi()
-        main_docs["paths"].update(path)
-        main_docs["components"]["schemas"].update(schema)
-    if tags:
-        main_docs["tags"] = tags
-    return main_docs
+    return {updated_path: docs}, schemas

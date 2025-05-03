@@ -9,12 +9,11 @@ from functools import partial
 from urllib.parse import quote
 
 import anyio
-import anyio.to_thread
 
 from velithon.background import BackgroundTask
 from velithon.concurrency import iterate_in_threadpool
 from velithon.datastructures import URL, Headers
-from velithon.types import Scope, Protocol 
+from velithon.datastructures import Scope, Protocol 
 from contextlib import contextmanager
 
 import sys

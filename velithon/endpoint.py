@@ -4,10 +4,9 @@ import typing
 
 from velithon.requests import Request
 from velithon.responses import JSONResponse, Response
-from velithon.types import Protocol, Scope
+from velithon.datastructures import Protocol, Scope
 
-from .dispatcher import dispatch
-
+from velithon.params.dispatcher import dispatch
 
 class HTTPEndpoint:
     def __init__(self, scope: Scope, protocol: Protocol) -> None:

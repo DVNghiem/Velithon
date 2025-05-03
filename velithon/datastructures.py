@@ -3,11 +3,85 @@ from __future__ import annotations
 
 import typing
 from urllib.parse import SplitResult, parse_qsl, urlencode, urlsplit
-
+from granian.rsgi import HTTPProtocol, Scope as RSGIScope
 from velithon.concurrency import run_in_threadpool
-from velithon.types import Scope
 
+class Scope:
+    """
+    Wrapper for the RSGI scope object.
+    """
 
+    def __init__(self, scope: RSGIScope) -> None:
+        self._scope = scope
+        # extend the scope with additional properties
+        self._path_params = {}
+
+    @property
+    def proto(self) -> typing.Literal["http", "websocket"]:
+        return self._scope.proto
+    @property
+    def rsgi_version(self) -> str:
+        return self._scope.rsgi_version
+    @property
+    def http_version(self) -> str:
+        return self._scope.http_version
+    @property
+    def server(self) -> str:
+        return self._scope.server
+    @property
+    def client(self) -> str:
+        return self._scope.client
+    @property
+    def scheme(self) -> str:
+        return self._scope.scheme
+    @property
+    def method(self) -> str:
+        return self._scope.method
+    @property
+    def path(self) -> str:
+        return self._scope.path
+    @property
+    def query_string(self) -> str:
+        return self._scope.query_string
+    @property
+    def headers(self) -> typing.MutableMapping[str, str]:
+        return self._scope.headers
+    @property
+    def authority(self) -> typing.Optional[str]:
+        return self._scope.authority
+    @property
+    def path_params(self) -> typing.Mapping[str, str]:
+        return self._path_params
+
+class Protocol:
+
+    def __init__(self, protocol: HTTPProtocol) -> None:
+        self._protocol = protocol
+
+    async def __call__(self, *args, **kwds) -> bytes:
+        return await self._protocol(*args, **kwds)
+    async def __aiter__(self) -> typing.AsyncIterator[bytes]:
+        return await self._protocol.__aiter__()
+    async def client_disconnect(self) -> None:
+        await self._protocol.client_disconnect()
+    def response_empty(self, status: int, headers: typing.Tuple[str, str]) -> None:
+        self._protocol.response_empty(status, headers)
+    def response_str(
+        self, status: int, headers: typing.Tuple[str, str], body: str
+    ) -> None:
+        self._protocol.response_str(status, headers, body)
+    def response_bytes(
+        self, status: int, headers: typing.Tuple[str, str], body: bytes
+    ) -> None:
+        self._protocol.response_bytes(status, headers, body)
+    def response_file(
+        self, status: int, headers: typing.Tuple[str, str], file: typing.Any
+    ) -> None:
+        self._protocol.response_file(status, headers, file)
+    def response_stream(
+        self, status: int, headers: typing.Tuple[str, str]
+    ) -> typing.Any: 
+        return self._protocol.response_stream(status, headers)
 class Address(typing.NamedTuple):
     host: str
     port: int

@@ -260,7 +260,7 @@ def Query(  # noqa: N802
             Default value if the parameter field is not set.
             """
         ),
-    ] = PydanticUndefined,
+    ] = ...,
     *,
     default_factory: Annotated[
         Union[Callable[[], Any], None],
@@ -499,7 +499,7 @@ def Header(  # noqa: N802
             Default value if the parameter field is not set.
             """
         ),
-    ] = PydanticUndefined,
+    ] = ...,
     *,
     default_factory: Annotated[
         Union[Callable[[], Any], None],
@@ -556,9 +556,6 @@ def Header(  # noqa: N802
         Doc(
             """
             Automatically convert underscores to hyphens in the parameter field name.
-
-            Read more about it in the
-            [FastAPI docs for Header Parameters](https://fastapi.tiangolo.com/tutorial/header-params/#automatic-conversion)
             """
         ),
     ] = True,
@@ -750,7 +747,7 @@ def Cookie(  # noqa: N802
             Default value if the parameter field is not set.
             """
         ),
-    ] = PydanticUndefined,
+    ] = ...,
     *,
     default_factory: Annotated[
         Union[Callable[[], Any], None],
@@ -989,7 +986,7 @@ def Body(  # noqa: N802
             Default value if the parameter field is not set.
             """
         ),
-    ] = PydanticUndefined,
+    ] = ...,
     *,
     default_factory: Annotated[
         Union[Callable[[], Any], None],
@@ -1010,9 +1007,6 @@ def Body(  # noqa: N802
             key instead of being the JSON body itself.
 
             This happens automatically when more than one `Body` parameter is declared.
-
-            Read more about it in the
-            [FastAPI docs for Body - Multiple Parameters](https://fastapi.tiangolo.com/tutorial/body-multiple-params/#embed-a-single-body-parameter).
             """
         ),
     ] = None,
@@ -1253,7 +1247,7 @@ def Form(  # noqa: N802
             Default value if the parameter field is not set.
             """
         ),
-    ] = PydanticUndefined,
+    ] = ...,
     *,
     default_factory: Annotated[
         Union[Callable[[], Any], None],
@@ -1502,7 +1496,7 @@ def File(  # noqa: N802
             Default value if the parameter field is not set.
             """
         ),
-    ] = PydanticUndefined,
+    ] = ...,
     *,
     default_factory: Annotated[
         Union[Callable[[], Any], None],

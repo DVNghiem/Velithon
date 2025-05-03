@@ -1,15 +1,20 @@
 import inspect
+import functools
 import re
 from enum import Enum
-from typing import Annotated, Any, Callable, Dict, Pattern, Sequence, Tuple, TypeVar
+from typing import Annotated, Any, Callable, Dict, Pattern, Sequence, Tuple, TypeVar, Awaitable, Type
 
 from typing_extensions import Doc
 
 from velithon.convertors import CONVERTOR_TYPES, Convertor
 from velithon.middleware import Middleware
 from velithon.openapi import swagger_generate
-from velithon.responses import PlainTextResponse
-from velithon.types import Protocol, RSGIApp, Scope
+from velithon.responses import PlainTextResponse, Response
+from velithon._utils import is_async_callable, run_in_threadpool
+from velithon.requests import Request
+from velithon.datastructures import Protocol, Scope
+from velithon.types import RSGIApp
+from velithon.params.dispatcher import dispatch
 
 T = TypeVar("T")
 # Match parameters in URL paths, eg. '{param}', and '{param:int}'
@@ -114,6 +119,21 @@ def compile_path(
 
     return re.compile(path_regex), path_format, param_convertors
 
+def request_response(
+    func: Callable[[Request], Awaitable[Response] | Response],
+) -> RSGIApp:
+    """
+    Takes a function or coroutine `func(request) -> response`,
+    and returns an ARGI application.
+    """
+    f: Callable[[Request], Awaitable[Response]] = (
+        func if is_async_callable(func) else functools.partial(run_in_threadpool, func)  # type:ignore
+    )
+    async def app(scope: Scope, protocol: Protocol) -> None:
+        request = Request(scope, protocol)
+        response = await dispatch(f, request)
+        return await response(scope, protocol)
+    return app
 
 class Route(BaseRoute):
     def __init__(
@@ -136,6 +156,10 @@ class Route(BaseRoute):
             Sequence[Middleware] | None,
             Doc("Middleware to apply to the route"),
         ] = None,
+        summary: Annotated[
+            str | None,
+            Doc("Summary of the route, used for OpenAPI schema generation"),
+        ] = None,
         description: Annotated[
             str | None,
             Doc("Description of the route, used for OpenAPI schema generation"),
@@ -150,9 +174,20 @@ class Route(BaseRoute):
         self.endpoint = endpoint
         self.name = get_name(endpoint) if name is None else name
         self.description = description
+        self.summary = summary
         self.tags = tags
 
-        self.app = endpoint
+        endpoint_handler = endpoint
+        while isinstance(endpoint_handler, functools.partial):
+            endpoint_handler = endpoint_handler.func
+        if inspect.isfunction(endpoint_handler) or inspect.ismethod(endpoint_handler):
+            # Endpoint is function or method. Treat it as `func(request, ....) -> response`.
+            self.app = request_response(endpoint)
+            if methods is None:
+                methods = ["GET"]
+        else:
+            # Endpoint is a class
+            self.app = endpoint
 
         if middleware is not None:
             for cls, args, kwargs in reversed(middleware):
@@ -175,6 +210,7 @@ class Route(BaseRoute):
                 matched_params = match.groupdict()
                 for key, value in matched_params.items():
                     matched_params[key] = self.param_convertors[key].convert(value)
+                setattr(scope, "_path_params", matched_params)
                 if self.methods and scope.method not in self.methods:
                     return Match.PARTIAL
                 else:
@@ -193,17 +229,45 @@ class Route(BaseRoute):
 
     def openapi(self) -> Tuple[Dict, Dict]:
         """
-        Return the OpenAPI schema for this route.
+        Return the OpenAPI schema for this route, handling both function-based and class-based endpoints.
         """
         paths = {}
         schemas = {}
-        for name, func in self.endpoint.__dict__.items():
-            if name.upper() not in ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]:
-                continue
-            sig = inspect.signature(func)
-            path, schema = swagger_generate(sig, name.lower(), self.path)
-            paths.update(path)
-            schemas.update(schema)
+        http_methods = ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
+
+        if inspect.isfunction(self.endpoint) or inspect.iscoroutinefunction(self.endpoint):
+            # Function-based endpoint
+            if self.methods:
+                for method in self.methods:
+                    if method in http_methods:
+                        path, schema = swagger_generate(self.endpoint, method.lower(), self.path)
+                        if self.description:
+                            path[self.path][method.lower()]["description"] = self.description
+                        if self.tags:
+                            path[self.path][method.lower()]["tags"] = list(self.tags)
+                        if self.summary:
+                            path[self.path][method.lower()]["summary"] = self.summary
+                        if self.path not in paths:
+                            paths[self.path] = {}
+                        paths[self.path].update(path[self.path])
+                        schemas.update(schema)
+        else:
+            # Class-based endpoint (HTTPEndpoint)
+            for name, func in self.endpoint.__dict__.items():
+                if name.upper() not in http_methods:
+                    continue
+                path, schema = swagger_generate(func, name.lower(), self.path)
+                if self.description:
+                    path[self.path][name.lower()]["description"] = self.description
+                if self.tags:
+                    path[self.path][name.lower()]["tags"] = list(self.tags)
+                if self.summary:
+                    path[self.path][name.lower()]["summary"] = self.summary
+                if self.path not in paths:
+                    paths[self.path] = {}
+                paths[self.path].update(path[self.path])
+                schemas.update(schema)
+
         return paths, schemas
 
     def __eq__(self, other: Any) -> bool:
@@ -229,10 +293,9 @@ class Router:
         default: RSGIApp | None = None,
         on_startup: Sequence[Callable[[], Any]] | None = None,
         on_shutdown: Sequence[Callable[[], Any]] | None = None,
-        # the generic to Lifespan[AppType] is the type of the top level application
-        # which the router cannot know statically, so we use Any
         *,
         middleware: Sequence[Middleware] | None = None,
+        route_class: Type[BaseRoute] = Route,
     ):
         self.routes = [] if routes is None else list(routes)
         self.redirect_slashes = redirect_slashes
@@ -240,6 +303,7 @@ class Router:
         self.on_startup = [] if on_startup is None else list(on_startup)
         self.on_shutdown = [] if on_shutdown is None else list(on_shutdown)
         self.middleware_stack = self.app
+        self.route_class = route_class
         if middleware:
             for cls, args, kwargs in reversed(middleware):
                 self.middleware_stack = cls(self.middleware_stack, *args, **kwargs)
@@ -271,3 +335,268 @@ class Router:
         The main entry point to the Router class.
         """
         await self.middleware_stack(scope, protocol)
+
+    def add_route(
+        self,
+        path: str,
+        endpoint: Callable[[Request], Awaitable[Response] | Response],
+        methods: list[str] | None = None,
+        name: str | None = None,
+    ) -> None:  # pragma: no cover
+        route = Route(
+            path,
+            endpoint=endpoint,
+            methods=methods,
+            name=name,
+        )
+        self.routes.append(route)
+
+    def add_api_route(
+        self,
+        path: str,
+        endpoint: Callable[..., Any],
+        *,
+        methods: Annotated[
+            Sequence[str] | None,
+            Doc("HTTP methods to match, defaults to all methods"),
+        ] = None,
+        name: Annotated[
+            str | None,
+            Doc("Name of the route, used for OpenAPI schema generation"),
+        ] = None,
+        middleware: Annotated[
+            Sequence[Middleware] | None,
+            Doc("Middleware to apply to the route"),
+        ] = None,
+        summary: Annotated[
+            str | None,
+            Doc("Summary of the route, used for OpenAPI schema generation"),
+        ] = None,
+        description: Annotated[
+            str | None,
+            Doc("Description of the route, used for OpenAPI schema generation"),
+        ] = None,
+        tags: Annotated[
+            Sequence[str] | None,
+            Doc("Tags for the route, used for OpenAPI schema generation"),
+        ] = None,
+        route_class_override: Type[BaseRoute] | None = None,
+    ) -> None:
+        route_class = route_class_override or self.route_class
+        route = route_class(
+            self.prefix + path,
+            endpoint=endpoint,
+            description=description,
+            summary=summary,
+            methods=methods,
+            name=name,
+            middleware=middleware,
+            tags=tags,
+        )
+        self.routes.append(route)
+
+    def api_route(
+        self,
+        path: str,
+        *,
+        methods: Annotated[
+            Sequence[str] | None,
+            Doc("HTTP methods to match, defaults to all methods"),
+        ] = None,
+        name: Annotated[
+            str | None,
+            Doc("Name of the route, used for OpenAPI schema generation"),
+        ] = None,
+        middleware: Annotated[
+            Sequence[Middleware] | None,
+            Doc("Middleware to apply to the route"),
+        ] = None,
+        summary: Annotated[
+            str | None,
+            Doc("Summary of the route, used for OpenAPI schema generation"),
+        ] = None,
+        description: Annotated[
+            str | None,
+            Doc("Description of the route, used for OpenAPI schema generation"),
+        ] = None,
+        tags: Annotated[
+            Sequence[str] | None,
+            Doc("Tags for the route, used for OpenAPI schema generation"),
+        ] = None,
+        route_class_override: Type[BaseRoute] | None = None,
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+        def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+            self.add_api_route(
+                path,
+                func,
+                route_class_override=route_class_override,
+                tags=tags,
+                description=description,
+                summary=summary,
+                methods=methods,
+                name=name,
+                middleware=middleware,
+            )
+            return func
+
+        return decorator
+    
+    def get(
+        self,
+        path: str,
+        *,
+        tags: Sequence[str] | None = None,
+        sunmmary: str | None = None,
+        description: str | None = None,
+        name: str | None = None,
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+        """
+        Add a *path operation* using an HTTP GET operation.
+
+        ## Example
+        ```python
+        router = Router()
+
+        @router.get("/items/")
+        def read_items():
+            return [{"name": "Empanada"}, {"name": "Arepa"}]
+        ```
+        """
+        return self.api_route(
+            path=path,
+            tags=tags,
+            summary=sunmmary,
+            description=description,
+            methods=["GET"],
+            name=name,
+        )
+    
+    def post(
+        self,
+        path: str,
+        *,
+        tags: Sequence[str] | None = None,
+        summary: str | None = None,
+        description: str | None = None,
+        name: str | None = None,
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+        """
+        Add a *path operation* using an HTTP GET operation.
+
+        ## Example
+        ```python
+        router = Router()
+
+        @router.post("/items/")
+        def read_items():
+            return [{"name": "Empanada"}, {"name": "Arepa"}]
+        ```
+        """
+        return self.api_route(
+            path=path,
+            tags=tags,
+            summary=summary,
+            description=description,
+            methods=["POST"],
+            name=name,
+        )
+    
+    def put(
+        self,
+        path: str,
+        *,
+        tags: Sequence[str] | None = None,
+        summary: str | None = None,
+        description: str | None = None,
+        name: str | None = None,
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+        """
+        Add a *path operation* using an HTTP PUT operation.
+
+        ## Example
+        ```python
+        router = Router()
+
+        @router.put("/items/")
+        def read_items():
+            return [{"name": "Empanada"}, {"name": "Arepa"}]
+        ```
+        """
+        return self.api_route(
+            path=path,
+            tags=tags,
+            summary=summary,
+            description=description,
+            methods=["PUT"],
+            name=name,
+        )
+    
+    def delete(
+        self,
+        path: str,
+        *,
+        tags: Sequence[str] | None = None,
+        summary: str | None = None,
+        description: str | None = None,
+        name: str | None = None,
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+        """
+        Add a *path operation* using an HTTP DELETE operation.
+
+        ## Example
+        ```python
+        router = Router()
+
+        @router.delet("/items/")
+        def read_items():
+            return [{"name": "Empanada"}, {"name": "Arepa"}]
+        ```
+        """
+        return self.api_route(
+            path=path,
+            tags=tags,
+            summary=summary,
+            description=description,
+            methods=["DELETE"],
+            name=name,
+        )
+    
+    def patch (
+        self,
+        path: str,
+        *,
+        tags: Sequence[str] | None = None,
+        summary: str | None = None,
+        description: str | None = None,
+        name: str | None = None,
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+        """
+        Add a *path operation* using an HTTP PATCH operation.
+        """
+        return self.api_route(
+            path=path,
+            tags=tags,
+            description=description,
+            methods=["PATCH"],
+            name=name,
+        )
+    
+    def option (
+        self,
+        path: str,
+        *,
+        tags: Sequence[str] | None = None,
+        summary: str | None = None,
+        description: str | None = None,
+        name: str | None = None,
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+        """
+        Add a *path operation* using an HTTP OPTION operation.
+        """
+        return self.api_route(
+            path=path,
+            tags=tags,
+            description=description,
+            methods=["OPTION"],
+            name=name,
+        )

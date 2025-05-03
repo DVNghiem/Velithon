@@ -9,7 +9,7 @@ from python_multipart.multipart import parse_options_header
 from velithon.datastructures import URL, Address, FormData, Headers, QueryParams
 from velithon.exceptions import HTTPException
 from velithon.formparsers import FormParser, MultiPartException, MultiPartParser
-from velithon.types import Protocol, Scope
+from velithon.datastructures import Protocol, Scope
 
 if typing.TYPE_CHECKING:
     from velithon.application import Velithon
@@ -130,7 +130,7 @@ class HTTPConnection(typing.Mapping[str, typing.Any]):
 
     @property
     def path_params(self) -> dict[str, typing.Any]:
-        return self.scope.path
+        return self.scope.path_params
 
     @property
     def cookies(self) -> dict[str, str]:
