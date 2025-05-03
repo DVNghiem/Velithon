@@ -1,6 +1,6 @@
 #  @copyright (c) 2025 Starlette
 from __future__ import annotations
-
+import uuid
 import typing
 from urllib.parse import SplitResult, parse_qsl, urlencode, urlsplit
 from granian.rsgi import HTTPProtocol, Scope as RSGIScope
@@ -15,6 +15,7 @@ class Scope:
         self._scope = scope
         # extend the scope with additional properties
         self._path_params = {}
+        self.request_id = str(uuid.uuid4())
 
     @property
     def proto(self) -> typing.Literal["http", "websocket"]:
@@ -57,6 +58,8 @@ class Protocol:
 
     def __init__(self, protocol: HTTPProtocol) -> None:
         self._protocol = protocol
+        self._status_code = 200
+        self._headers = []
 
     async def __call__(self, *args, **kwds) -> bytes:
         return await self._protocol(*args, **kwds)
@@ -65,22 +68,32 @@ class Protocol:
     async def client_disconnect(self) -> None:
         await self._protocol.client_disconnect()
     def response_empty(self, status: int, headers: typing.Tuple[str, str]) -> None:
+        self._status_code = status
+        self._headers = headers
         self._protocol.response_empty(status, headers)
     def response_str(
         self, status: int, headers: typing.Tuple[str, str], body: str
     ) -> None:
+        self._status_code = status
+        self._headers = headers
         self._protocol.response_str(status, headers, body)
     def response_bytes(
         self, status: int, headers: typing.Tuple[str, str], body: bytes
     ) -> None:
+        self._status_code = status
+        self._headers = headers
         self._protocol.response_bytes(status, headers, body)
     def response_file(
         self, status: int, headers: typing.Tuple[str, str], file: typing.Any
     ) -> None:
+        self._status_code = status
+        self._headers = headers
         self._protocol.response_file(status, headers, file)
     def response_stream(
         self, status: int, headers: typing.Tuple[str, str]
     ) -> typing.Any: 
+        self._status_code = status
+        self._headers = headers
         return self._protocol.response_stream(status, headers)
 class Address(typing.NamedTuple):
     host: str

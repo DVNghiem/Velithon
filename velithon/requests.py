@@ -169,6 +169,10 @@ class Request(HTTPConnection):
         super().__init__(scope, protocol)
         assert scope.proto == "http"
         self._form = None
+    
+    @property
+    def request_id(self) -> str:
+        return self.scope.request_id
 
     @property
     def method(self) -> str:

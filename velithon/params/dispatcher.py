@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import inspect
-import traceback
 import typing
 
 from pydantic import BaseModel
@@ -15,48 +14,33 @@ from velithon.responses import JSONResponse, Response
 from .parser import InputHandler
 
 async def dispatch(handler: typing.Any, request: Request) -> Response:
-    try:
-        is_class_based = not (inspect.isfunction(handler) or inspect.iscoroutinefunction(handler))
-        if is_class_based:
-            method_name = request.scope["method"].lower()
-            endpoint_instance = handler()
-            handler_method = getattr(endpoint_instance, method_name, None)
-            if not handler_method:
-                raise HTTPException(405, "Method Not Allowed", "METHOD_NOT_ALLOWED")
-            handler = handler_method
-            signature = inspect.signature(handler)
-        else:
-            signature = inspect.signature(handler)
+    is_class_based = not (inspect.isfunction(handler) or inspect.iscoroutinefunction(handler))
+    if is_class_based:
+        method_name = request.scope["method"].lower()
+        endpoint_instance = handler()
+        handler_method = getattr(endpoint_instance, method_name, None)
+        if not handler_method:
+            raise HTTPException(405, "Method Not Allowed", "METHOD_NOT_ALLOWED")
+        handler = handler_method
+        signature = inspect.signature(handler)
+    else:
+        signature = inspect.signature(handler)
 
-        is_async = is_async_callable(handler)
-        input_handler = InputHandler(request)
-        _response_type = signature.return_annotation
-        _kwargs = await input_handler.get_input_handler(signature)
+    is_async = is_async_callable(handler)
+    input_handler = InputHandler(request)
+    _response_type = signature.return_annotation
+    _kwargs = await input_handler.get_input_handler(signature)
 
-        if is_async:
-            response = await handler(**_kwargs)
-        else:
-            response = await run_in_threadpool(handler, **_kwargs)
+    if is_async:
+        response = await handler(**_kwargs)
+    else:
+        response = await run_in_threadpool(handler, **_kwargs)
 
-        if not isinstance(response, Response):
-            if isinstance(_response_type, type) and issubclass(_response_type, BaseModel):
-                response = _response_type.model_validate(response).model_dump(mode="json")
-            response = JSONResponse(
-                content={"message": response, "error_code": None},
-                status_code=200,
-            )
-
-    except Exception as e:
-        _res: typing.Dict = {"message": "", "error_code": "UNKNOWN_ERROR"}
-        if isinstance(e, HTTPException):
-            _res = e.to_dict()
-            _status = e.status_code
-        else:
-            traceback.print_exc()
-            _res["message"] = str(e)
-            _status = 400
+    if not isinstance(response, Response):
+        if isinstance(_response_type, type) and issubclass(_response_type, BaseModel):
+            response = _response_type.model_validate(response).model_dump(mode="json")
         response = JSONResponse(
-            content=_res,
-            status_code=_status,
+            content={"message": response, "error_code": None},
+            status_code=200,
         )
     return response
