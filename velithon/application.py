@@ -294,7 +294,7 @@ class Velithon:
                 Whether to log to a file or not. Default is `True`.
                 """
             ),
-        ] = True,
+        ] = False,
         max_bytes: Annotated[
             int,
             Doc(
