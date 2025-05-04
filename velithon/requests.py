@@ -118,7 +118,7 @@ class HTTPConnection(typing.Mapping[str, typing.Any]):
     @property
     def headers(self) -> Headers:
         if not hasattr(self, "_headers"):
-            self._headers = self.scope.headers
+            self._headers = Headers(headers=self.scope.headers.items())
         return self._headers
 
     @property

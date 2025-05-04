@@ -2,17 +2,18 @@
 from __future__ import annotations
 
 import inspect
-from typing import Annotated, Any, Dict, get_args, get_origin, Callable, Union, Optional
+from typing import Annotated, Any, Dict, Optional, Union, get_args, get_origin
 
 import orjson
 from pydantic import BaseModel, ValidationError
 from pydantic_core import PydanticUndefined
 from pydash import get
 
+from velithon.datastructures import FormData, Headers, QueryParams, UploadFile
 from velithon.exceptions import BadRequestException, ValidationException
-from velithon.params.params import Body, Form, Path, Query, File
-from velithon.datastructures import UploadFile
+from velithon.params.params import Body, File, Form, Path, Query
 from velithon.requests import Request
+
 
 class ParamParser:
     def __init__(self, request: Request):
@@ -29,7 +30,9 @@ class ParamParser:
         }
         parser = data_parsers.get(param_type)
         if not parser:
-            raise BadRequestException(details={"message": f"Invalid parameter type: {param_type}"})
+            raise BadRequestException(
+                details={"message": f"Invalid parameter type: {param_type}"}
+            )
         return await parser()
 
     def _parse_query_params(self) -> dict:
@@ -37,11 +40,14 @@ class ParamParser:
         return {k: v[0] if isinstance(v, list) else v for k, v in query_params.items()}
 
     def _parse_path_params(self) -> dict:
-        path_params = self.request.path_params or self.request.scope.get("path_params", {})
+        path_params = self.request.path_params or self.request.scope.get(
+            "path_params", {}
+        )
         return dict(path_params.items())
 
     async def _parse_form_data(self) -> dict:
-        return await self.request.form()
+        async with self.request.form() as form:
+            return form
 
     async def _parse_json_body(self) -> dict:
         return await self.request.json()
@@ -49,17 +55,22 @@ class ParamParser:
     async def _parse_file_data(self) -> dict:
         return await self.request.files()
 
+
 class PrimitiveParser:
     def __init__(self, param_parser: ParamParser):
         self.param_parser = param_parser
 
-    async def parse(self, param_name: str, annotation: Any, param_type: str, default: Any = None) -> Any:
+    async def parse(
+        self, param_name: str, annotation: Any, param_type: str, default: Any = None
+    ) -> Any:
         data = await self.param_parser.parse_data(param_type)
         value = data.get(param_name)
         if value is None:
             if default is not None and default is not ...:
                 return default
-            raise BadRequestException(details={"message": f"Missing required parameter: {param_name}"})
+            raise BadRequestException(
+                details={"message": f"Missing required parameter: {param_name}"}
+            )
         try:
             if annotation is int:
                 return int(value)
@@ -89,14 +100,21 @@ class PrimitiveParser:
             else:
                 raise ValueError(f"Unsupported primitive type: {annotation}")
         except (ValueError, TypeError) as e:
-            raise ValidationException(details={"field": param_name, "msg": f"Invalid value for type {annotation}: {str(e)}"})
+            raise ValidationException(
+                details={
+                    "field": param_name,
+                    "msg": f"Invalid value for type {annotation}: {str(e)}",
+                }
+            )
 
 
 class ModelParser:
     def __init__(self, param_parser: ParamParser):
         self.param_parser = param_parser
 
-    async def parse(self, param_name: str, model_class: Any, param_type: str, default: Any = None) -> Any:
+    async def parse(
+        self, param_name: str, model_class: Any, param_type: str, default: Any = None
+    ) -> Any:
         try:
             data = await self.param_parser.parse_data(param_type)
             if not data and default is not None and default is not ...:
@@ -104,15 +122,19 @@ class ModelParser:
 
             if get_origin(model_class) is list:
                 item_class = get_args(model_class)[0]
-                if not isinstance(item_class, type) or not issubclass(item_class, BaseModel):
-                    raise ValueError(f"List item type must be a BaseModel, got {item_class}")
+                if not isinstance(item_class, type) or not issubclass(
+                    item_class, BaseModel
+                ):
+                    raise ValueError(
+                        f"List item type must be a BaseModel, got {item_class}"
+                    )
                 if not isinstance(data, list):
                     data = [data]
                 return [item_class(**item) for item in data]
-            
+
             if isinstance(model_class, type) and issubclass(model_class, BaseModel):
                 return model_class(**data)
-            
+
             raise ValueError(f"Unsupported model type: {model_class}")
         except ValidationError as e:
             invalid_fields = orjson.loads(e.json())
@@ -125,14 +147,14 @@ class ModelParser:
         except (ValueError, TypeError) as e:
             if default is not None and default is not ...:
                 return default
-            raise BadRequestException(details={"message": f"Invalid data for {param_name}: {str(e)}"})
+            raise BadRequestException(
+                details={"message": f"Invalid data for {param_name}: {str(e)}"}
+            )
+
 
 class SpecialTypeParser:
-    def __init__(self, request: Request, receive: Callable, send: Callable):
+    def __init__(self, request: Request):
         self.request = request
-        self.receive = receive
-        self.send = send
-        self._callable_count = 0
 
     async def parse(self, param_name: str, annotation: Any, default: Any = None) -> Any:
         if isinstance(annotation, type):
@@ -140,22 +162,25 @@ class SpecialTypeParser:
                 return self.request
             elif issubclass(annotation, Dict):
                 return self.request.scope
-            elif issubclass(annotation, Callable):
-                self._callable_count += 1
-                return self.receive if self._callable_count == 1 else self.send
             elif issubclass(annotation, UploadFile):
                 files = await self.request.files()
                 file_data = files.get(param_name)
                 if file_data is None:
                     if default is not None and default is not ...:
                         return default
-                    raise BadRequestException(details={"message": f"Missing file for parameter: {param_name}"})
+                    raise BadRequestException(
+                        details={"message": f"Missing file for parameter: {param_name}"}
+                    )
                 if isinstance(file_data, list):
                     file_data = file_data[0]  # Take first file for single UploadFile
                 content, filename, content_type = file_data
                 if not content:
-                    raise ValidationException(details={"field": param_name, "msg": "Empty file content"})
-                return UploadFile(filename=filename, content=content, content_type=content_type)
+                    raise ValidationException(
+                        details={"field": param_name, "msg": "Empty file content"}
+                    )
+                return UploadFile(
+                    filename=filename, content=content, content_type=content_type
+                )
 
         if get_origin(annotation) is list and get_args(annotation)[0] is UploadFile:
             files = await self.request.files()
@@ -164,15 +189,27 @@ class SpecialTypeParser:
                 return default
             if not isinstance(file_data, list):
                 file_data = [file_data]
-            result = [UploadFile(filename=v[1], content=v[0], content_type=v[2]) for v in file_data if v[0]]
+            result = [
+                UploadFile(filename=v[1], content=v[0], content_type=v[2])
+                for v in file_data
+                if v[0]
+            ]
             if not result and file_data:
-                raise ValidationException(details={"field": param_name, "msg": "Empty file content"})
+                raise ValidationException(
+                    details={"field": param_name, "msg": "Empty file content"}
+                )
             return result
 
         return None
 
+
 class AnnotatedParser:
-    def __init__(self, primitive_parser: PrimitiveParser, model_parser: ModelParser, param_parser: ParamParser):
+    def __init__(
+        self,
+        primitive_parser: PrimitiveParser,
+        model_parser: ModelParser,
+        param_parser: ParamParser,
+    ):
         self.primitive_parser = primitive_parser
         self.model_parser = model_parser
         self.param_parser = param_parser
@@ -189,16 +226,27 @@ class AnnotatedParser:
             return None
 
         base_type, *metadata = get_args(annotation)
-        param_metadata = next((m for m in metadata if isinstance(m, (Query, Path, Body, Form, File))), None)
+        param_metadata = next(
+            (m for m in metadata if isinstance(m, (Query, Path, Body, Form, File))),
+            None,
+        )
         if not param_metadata:
             return None
 
         param_type = self.param_types.get(type(param_metadata), "query_params")
-        metadata_default = param_metadata.default if hasattr(param_metadata, "default") and param_metadata.default is not PydanticUndefined else None
-        effective_default = metadata_default if metadata_default is not None else default
-
+        metadata_default = (
+            param_metadata.default
+            if hasattr(param_metadata, "default")
+            and param_metadata.default is not PydanticUndefined
+            else None
+        )
+        effective_default = (
+            metadata_default if metadata_default is not None else default
+        )
         # Handle Optional or Union with None
-        is_optional = get_origin(base_type) in (Union, Optional) and type(None) in get_args(base_type)
+        is_optional = get_origin(base_type) in (Union, Optional) and type(
+            None
+        ) in get_args(base_type)
         if is_optional:
             base_type = next(t for t in get_args(base_type) if t is not type(None))
 
@@ -220,40 +268,49 @@ class AnnotatedParser:
             if not values and effective_default is not None:
                 return effective_default
             if isinstance(item_type, type) and issubclass(item_type, BaseModel):
-                return await self.model_parser.parse(param_name, base_type, param_type, effective_default)
+                return await self.model_parser.parse(
+                    param_name, base_type, param_type, effective_default
+                )
             elif item_type in (int, float, str, bool, bytes):
-                return await self.primitive_parser.parse(param_name, base_type, param_type, effective_default)
+                return await self.primitive_parser.parse(
+                    param_name, base_type, param_type, effective_default
+                )
             else:
-                raise BadRequestException(details={"message": f"Unsupported list item type: {item_type}"})
+                raise BadRequestException(
+                    details={"message": f"Unsupported list item type: {item_type}"}
+                )
 
         # Handle BaseModel
         if isinstance(base_type, type) and issubclass(base_type, BaseModel):
-            return await self.model_parser.parse(param_name, base_type, param_type, effective_default)
+            return await self.model_parser.parse(
+                param_name, base_type, param_type, effective_default
+            )
 
         # Handle primitive types
         if base_type in (int, float, str, bool, bytes):
-            return await self.primitive_parser.parse(param_name, base_type, param_type, effective_default)
+            return await self.primitive_parser.parse(
+                param_name, base_type, param_type, effective_default
+            )
 
         # Fallback for custom types
-        try:
-            if hasattr(base_type, '__init__') and callable(getattr(base_type, '__init__')):
-                return base_type(**data)
-        except Exception as e:
-            raise BadRequestException(details={"message": f"Cannot instantiate {base_type.__name__}: {str(e)}"})
+        if base_type in (FormData, QueryParams, Headers):
+            return data
 
-        raise BadRequestException(details={"message": f"Unsupported Annotated type: {base_type}"})
-    
+        raise BadRequestException(
+            details={"message": f"Unsupported Annotated type: {base_type}"}
+        )
+
+
 class InputHandler:
-    def __init__(self, request: Request, receive: Callable = None, send: Callable = None):
+    def __init__(self, request: Request):
         self.request = request
-        self.receive = receive
-        self.send = send
         self.param_parser = ParamParser(request)
         self.primitive_parser = PrimitiveParser(self.param_parser)
         self.model_parser = ModelParser(self.param_parser)
-        self.special_parser = SpecialTypeParser(request, receive, send)
-        # self.dependency_parser = DependencyParser(request)
-        self.annotated_parser = AnnotatedParser(self.primitive_parser, self.model_parser, self.param_parser)
+        self.special_parser = SpecialTypeParser(request)
+        self.annotated_parser = AnnotatedParser(
+            self.primitive_parser, self.model_parser, self.param_parser
+        )
 
     async def get_input(self, signature: inspect.Signature) -> Dict[str, Any]:
         kwargs = {}
@@ -261,12 +318,6 @@ class InputHandler:
             name = param.name
             annotation = param.annotation
             default = param.default
-
-            # # Try dependency injection
-            # value = await self.dependency_parser.parse(name, default)
-            # if value is not None:
-            #     kwargs[name] = value
-            #     continue
 
             # Try special types
             value = await self.special_parser.parse(name, annotation, default)
@@ -282,26 +333,59 @@ class InputHandler:
 
             # Try Pydantic models
             if isinstance(annotation, type) and issubclass(annotation, BaseModel):
-                param_type = "query_params" if self.request.scope["method"].upper() == "GET" else "json_body"
-                kwargs[name] = await self.model_parser.parse(name, annotation, param_type, default)
+                param_type = (
+                    "query_params"
+                    if self.request.scope["method"].upper() == "GET"
+                    else "json_body"
+                )
+                kwargs[name] = await self.model_parser.parse(
+                    name, annotation, param_type, default
+                )
                 continue
 
             # Try list of Pydantic models
-            if get_origin(annotation) is list and isinstance(get_args(annotation)[0], type) and issubclass(get_args(annotation)[0], BaseModel):
-                param_type = "query_params" if self.request.scope["method"].upper() == "GET" else "json_body"
-                kwargs[name] = await self.model_parser.parse(name, annotation, param_type, default)
+            if (
+                get_origin(annotation) is list
+                and isinstance(get_args(annotation)[0], type)
+                and issubclass(get_args(annotation)[0], BaseModel)
+            ):
+                param_type = (
+                    "query_params"
+                    if self.request.scope["method"].upper() == "GET"
+                    else "json_body"
+                )
+                kwargs[name] = await self.model_parser.parse(
+                    name, annotation, param_type, default
+                )
                 continue
 
             # Try primitive types
             if annotation in (int, float, str, bool):
-                param_type = "query_params" if name not in self.request.path_params else "path_params"
-                kwargs[name] = await self.primitive_parser.parse(name, annotation, param_type, default)
+                param_type = (
+                    "query_params"
+                    if name not in self.request.path_params
+                    else "path_params"
+                )
+                kwargs[name] = await self.primitive_parser.parse(
+                    name, annotation, param_type, default
+                )
                 continue
 
             # Try list of primitive types
-            if get_origin(annotation) is list and get_args(annotation)[0] in (int, float, str, bool):
-                param_type = "query_params" if name not in self.request.path_params else "path_params"
-                kwargs[name] = await self.primitive_parser.parse(name, annotation, param_type, default)
+            if get_origin(annotation) is list and get_args(annotation)[0] in (
+                int,
+                float,
+                str,
+                bool,
+            ):
+                param_type = (
+                    "query_params"
+                    if name not in self.request.path_params
+                    else "path_params"
+                )
+                kwargs[name] = await self.primitive_parser.parse(
+                    name, annotation, param_type, default
+                )
                 continue
 
             # Use default if provided
@@ -309,5 +393,9 @@ class InputHandler:
                 kwargs[name] = default
                 continue
 
-            raise BadRequestException(details={"message": f"Unsupported parameter type for {name}: {annotation}"})
+            raise BadRequestException(
+                details={
+                    "message": f"Unsupported parameter type for {name}: {annotation}"
+                }
+            )
         return kwargs

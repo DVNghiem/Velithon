@@ -1,6 +1,5 @@
 import logging
 import time
-import traceback
 
 from velithon.datastructures import Protocol, Scope
 from velithon.requests import Request
@@ -52,7 +51,6 @@ class LoggingMiddleware:
                 },
             )
         except Exception as e:
-            traceback.print_exc()
             duration_ms = (time.time() - start_time) * 1000
             logger.exception(
                 "Error processing %s %s",
@@ -72,3 +70,4 @@ class LoggingMiddleware:
                 status_code=500,
             )
             await response(scope, protocol)
+            raise e
