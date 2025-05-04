@@ -197,7 +197,6 @@ class Route(BaseRoute):
         if middleware is not None:
             for cls, args, kwargs in reversed(middleware):
                 self.app = cls(self.app, *args, **kwargs)
-
         if methods is None:
             self.methods = None
         else:

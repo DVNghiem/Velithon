@@ -29,7 +29,7 @@ async def dispatch(handler: typing.Any, request: Request) -> Response:
     is_async = is_async_callable(handler)
     input_handler = InputHandler(request)
     _response_type = signature.return_annotation
-    _kwargs = await input_handler.get_input_handler(signature)
+    _kwargs = await input_handler.get_input(signature)
 
     if is_async:
         response = await handler(**_kwargs)

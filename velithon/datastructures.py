@@ -528,7 +528,7 @@ class Headers(typing.Mapping[str, str]):
 
     def __init__(
         self,
-        headers: typing.Mapping[str, str] | None = None,
+        headers: list[tuple[str, str]] | None = None,
         scope: Scope | None = None,
     ) -> None:
         self._list: list[tuple[str, str]] = []

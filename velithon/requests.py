@@ -7,7 +7,6 @@ import orjson
 from python_multipart.multipart import parse_options_header
 
 from velithon.datastructures import URL, Address, FormData, Headers, QueryParams
-from velithon.exceptions import HTTPException
 from velithon.formparsers import FormParser, MultiPartException, MultiPartParser
 from velithon.datastructures import Protocol, Scope
 
@@ -183,8 +182,7 @@ class Request(HTTPConnection):
             yield self._body
             yield b""
             return
-        async for message in self.protocol:
-            yield message
+        yield await self.protocol()
         yield b""
 
     async def body(self) -> bytes:
@@ -226,8 +224,6 @@ class Request(HTTPConnection):
                     )
                     self._form = await multipart_parser.parse()
                 except MultiPartException as exc:
-                    if "app" in self.scope:
-                        raise HTTPException(status_code=400, detail=exc.message)
                     raise exc
             elif content_type == b"application/x-www-form-urlencoded":
                 form_parser = FormParser(self.headers, self.stream())
@@ -248,7 +244,7 @@ class Request(HTTPConnection):
                 max_files=max_files, max_fields=max_fields, max_part_size=max_part_size
             )
         )
-
+    
     async def close(self) -> None:
         if self._form is not None:  # pragma: no branch
             await self._form.close()

@@ -5,6 +5,7 @@ from .param_function import (
     Header,
     Path,
     Query,
+    File,
 )
 
 __all__ = [
@@ -14,4 +15,5 @@ __all__ = [
     "Header",
     "Path",
     "Query",
+    "File",
 ]

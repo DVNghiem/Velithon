@@ -38,7 +38,7 @@ class MultipartPart:
     field_name: str = ""
     data: bytearray = field(default_factory=bytearray)
     file: UploadFile | None = None
-    item_headers: list[tuple[bytes, bytes]] = field(default_factory=list)
+    item_headers: list[tuple[str, str]] = field(default_factory=list)
 
 
 def _user_safe_decode(src: bytes | bytearray, codec: str) -> str:
@@ -190,7 +190,7 @@ class MultiPartParser:
         field = self._current_partial_header_name.lower()
         if field == b"content-disposition":
             self._current_part.content_disposition = self._current_partial_header_value
-        self._current_part.item_headers.append((field, self._current_partial_header_value))
+        self._current_part.item_headers.append((field.decode(), self._current_partial_header_value.decode()))
         self._current_partial_header_name = b""
         self._current_partial_header_value = b""
 
@@ -211,7 +211,7 @@ class MultiPartParser:
                 file=tempfile,  # type: ignore[arg-type]
                 size=0,
                 filename=filename,
-                headers=Headers(raw=self._current_part.item_headers),
+                headers=Headers(headers=self._current_part.item_headers),
             )
         else:
             self._current_fields += 1
