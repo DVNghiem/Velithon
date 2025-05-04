@@ -13,7 +13,7 @@ from typing import (
 from typing_extensions import Doc
 
 from velithon.datastructures import Protocol, Scope
-from velithon.di import Container, Lifecycle
+from velithon.di import ServiceContainer
 from velithon.middleware import Middleware
 from velithon.middleware.di import DIMiddleware
 from velithon.middleware.logging import LoggingMiddleware
@@ -273,7 +273,7 @@ class Velithon:
         ] = None,
     ):
         self.router = Router(routes, on_startup=on_startup, on_shutdown=on_shutdown)
-        self.container = Container()
+        self.container = None
 
         self.user_middleware = [] if middleware is None else list(middleware)
         self.middleware_stack: RSGIApp | None = None
@@ -295,13 +295,14 @@ class Velithon:
 
         self.setup()
 
-    def register_dependency(
-        self,
-        cls: type,
-        factory: Callable = None,
-        lifecycle: Lifecycle = Lifecycle.SINGLETON,
-    ):
-        self.container.register(cls, factory, lifecycle)
+    def register_container(self, container: ServiceContainer):
+        """
+        Register a ServiceContainer for dependency injection.
+        
+        Args:
+            container: The ServiceContainer instance containing providers.
+        """
+        self.container = container
 
     def build_middleware_stack(self) -> RSGIApp:
         middleware = [
