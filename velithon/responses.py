@@ -11,7 +11,7 @@ from urllib.parse import quote
 import anyio
 
 from velithon.background import BackgroundTask
-from velithon.concurrency import iterate_in_threadpool
+from velithon._utils import iterate_in_threadpool
 from velithon.datastructures import URL, Headers
 from velithon.datastructures import Scope, Protocol 
 from contextlib import contextmanager

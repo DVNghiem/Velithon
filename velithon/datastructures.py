@@ -4,7 +4,7 @@ import uuid
 import typing
 from urllib.parse import SplitResult, parse_qsl, urlencode, urlsplit
 from granian.rsgi import HTTPProtocol, Scope as RSGIScope
-from velithon.concurrency import run_in_threadpool
+from velithon._utils import run_in_threadpool
 
 class Scope:
     """
