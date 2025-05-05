@@ -1,7 +1,9 @@
 import logging
 import time
+import traceback
 
 from velithon.datastructures import Protocol, Scope
+from velithon.exceptions import HTTPException
 from velithon.requests import Request
 from velithon.responses import JSONResponse
 
@@ -51,7 +53,18 @@ class LoggingMiddleware:
                 },
             )
         except Exception as e:
+            traceback.print_exc()
             duration_ms = (time.time() - start_time) * 1000
+            error_msg = ""
+            status_code = 500
+            if isinstance(e, HTTPException):
+                error_msg = e.to_dict()
+                status_code = e.status_code
+            else:
+                error_msg = {
+                    "message": str(e),
+                    "error_code": "INTERNAL_SERVER_ERROR",
+                }
             logger.exception(
                 "Error processing %s %s",
                 method,
@@ -62,12 +75,11 @@ class LoggingMiddleware:
                     "path": path,
                     "client_ip": client_ip,
                     "duration_ms": round(duration_ms, 2),
-                    "status": protocol._status_code or 500,
+                    "status": status_code,
                 },
             )
             response = JSONResponse(
-                content={"message": str(e), "error_code": "INTERNAL_SERVER_ERROR"},
+                content=error_msg,
                 status_code=500,
             )
             await response(scope, protocol)
-            raise e

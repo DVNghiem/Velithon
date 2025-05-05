@@ -142,7 +142,7 @@ class URL:
                     url = f"{scheme}://{host}:{port}{path}"
 
             if query_string:
-                url += "?" + query_string.decode()
+                url += "?" + query_string
         elif components:
             assert not url, 'Cannot set both "url" and "**components".'
             url = URL("").replace(**components).components.geturl()

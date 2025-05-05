@@ -1,4 +1,3 @@
-import uuid
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from http import HTTPStatus
@@ -22,7 +21,6 @@ class DefaultFormatter(ResponseFormatter):
                 else "Unknown error occurred",
                 "details": exception.details or {},
                 "timestamp": datetime.now(tz=timezone.utc).isoformat(),
-                "request_id": str(uuid.uuid4()),
             },
             "status": exception.status_code,
         }

@@ -388,10 +388,11 @@ def inject(func: Callable) -> Callable:
                         raise
                 else:
                     resolved_kwargs[name] = kwargs[name]
+        kwargs.update(resolved_kwargs)
         return (
-            await func(*args, **resolved_kwargs)
+            await func(*args, **kwargs)
             if iscoroutinefunction(func)
-            else func(*args, **resolved_kwargs)
+            else func(*args, **kwargs)
         )
 
     return wrapper

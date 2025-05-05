@@ -6,7 +6,7 @@ from http import cookies as http_cookies
 import orjson
 from python_multipart.multipart import parse_options_header
 
-from velithon.datastructures import URL, Address, FormData, Headers, QueryParams
+from velithon.datastructures import URL, Address, FormData, Headers, QueryParams, UploadFile
 from velithon.formparsers import FormParser, MultiPartException, MultiPartParser
 from velithon.datastructures import Protocol, Scope
 
@@ -244,6 +244,18 @@ class Request(HTTPConnection):
                 max_files=max_files, max_fields=max_fields, max_part_size=max_part_size
             )
         )
+    
+    async def files(self) -> typing.Dict[str, typing.List[UploadFile]]:
+        async with self.form() as form:
+            files: typing.Dict[str, typing.List[UploadFile]] = {}
+            for field_name, field_value in self._form.multi_items():
+                if isinstance(field_value, UploadFile):
+                    files.setdefault(field_name, []).append(field_value)
+                elif isinstance(field_value, list):
+                    for item in field_value:
+                        if isinstance(item, UploadFile):
+                            files.setdefault(field_name, []).append(item)
+            return files
     
     async def close(self) -> None:
         if self._form is not None:  # pragma: no branch
