@@ -21,14 +21,3 @@ HTTPExceptionHandler = typing.Callable[
 ]
 ExceptionHandler = typing.Union[HTTPExceptionHandler]
 
-HTTP_METHODS = (
-    "GET",
-    "HEAD",
-    "POST",
-    "PUT",
-    "DELETE",
-    "OPTIONS",
-    "PATCH",
-    "TRACE",
-    "CONNECT",
-)

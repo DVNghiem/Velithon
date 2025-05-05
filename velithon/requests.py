@@ -14,13 +14,7 @@ if typing.TYPE_CHECKING:
     from velithon.application import Velithon
     from velithon.routing import Router
 
-SERVER_PUSH_HEADERS_TO_COPY = {
-    "accept",
-    "accept-encoding",
-    "accept-language",
-    "cache-control",
-    "user-agent",
-}
+
 T_co = typing.TypeVar("T_co", covariant=True)
 
 
@@ -89,6 +83,8 @@ class HTTPConnection(typing.Mapping[str, typing.Any]):
     any functionality that is common to both `Request` and `WebSocket`.
     """
 
+    __slots__ = ("scope", "protocol")
+
     def __init__(self, scope: Scope, protocol: Protocol) -> None:
         assert scope.proto in ("http", "websocket")
         self.scope = scope
@@ -150,16 +146,6 @@ class HTTPConnection(typing.Mapping[str, typing.Any]):
             return Address(*host_port)
         return None
 
-    def url_for(self, name: str, /, **path_params: typing.Any) -> URL:
-        url_path_provider: Router | Velithon | None = self.scope.get(
-            "router"
-        ) or self.scope.get("app")
-        if url_path_provider is None:
-            raise RuntimeError(
-                "The `url_for` method can only be used inside a Starlette application or with a router."
-            )
-        url_path = url_path_provider.url_path_for(name, **path_params)
-        return url_path.make_absolute_url(base_url=self.base_url)
 
 class Request(HTTPConnection):
     _form: FormData | None

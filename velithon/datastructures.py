@@ -10,7 +10,12 @@ class Scope:
     """
     Wrapper for the RSGI scope object.
     """
-
+    __slots__ = (
+        "_scope",
+        "_path_params",
+        "request_id",
+        "_di_context",
+    )
     def __init__(self, scope: RSGIScope) -> None:
         self._scope = scope
         # extend the scope with additional properties
@@ -222,25 +227,6 @@ class URL:
 
         components = self.components._replace(**kwargs)
         return self.__class__(components.geturl())
-
-    def include_query_params(self, **kwargs: typing.Any) -> URL:
-        params = MultiDict(parse_qsl(self.query, keep_blank_values=True))
-        params.update({str(key): str(value) for key, value in kwargs.items()})
-        query = urlencode(params.multi_items())
-        return self.replace(query=query)
-
-    def replace_query_params(self, **kwargs: typing.Any) -> URL:
-        query = urlencode([(str(key), str(value)) for key, value in kwargs.items()])
-        return self.replace(query=query)
-
-    def remove_query_params(self, keys: str | typing.Sequence[str]) -> URL:
-        if isinstance(keys, str):
-            keys = [keys]
-        params = MultiDict(parse_qsl(self.query, keep_blank_values=True))
-        for key in keys:
-            params.pop(key, None)
-        query = urlencode(params.multi_items())
-        return self.replace(query=query)
 
     def __eq__(self, other: typing.Any) -> bool:
         return str(self) == str(other)

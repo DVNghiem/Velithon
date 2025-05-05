@@ -40,7 +40,7 @@ async def dispatch(handler: typing.Any, request: Request) -> Response:
         if isinstance(_response_type, type) and issubclass(_response_type, BaseModel):
             response = _response_type.model_validate(response).model_dump(mode="json")
         response = JSONResponse(
-            content={"message": response, "error_code": None},
+            content={"message": response},
             status_code=200,
         )
     return response
