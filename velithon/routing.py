@@ -392,11 +392,15 @@ class Router:
             Sequence[str] | None,
             Doc("Tags for the route, used for OpenAPI schema generation"),
         ] = None,
+        include_in_schema: Annotated[
+            bool | None,
+            Doc("Whether to include this route in the OpenAPI schema"),
+        ] = True,
         route_class_override: Type[BaseRoute] | None = None,
     ) -> None:
         route_class = route_class_override or self.route_class
         route = route_class(
-            self.prefix + path,
+            path,
             endpoint=endpoint,
             description=description,
             summary=summary,
@@ -404,6 +408,7 @@ class Router:
             name=name,
             middleware=middleware,
             tags=tags,
+            include_in_schema=include_in_schema,
         )
         self.routes.append(route)
 
