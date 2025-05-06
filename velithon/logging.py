@@ -10,7 +10,7 @@ import orjson
 
 class VelithonFilter(logging.Filter):
     def filter(self, record):
-        return record.name.startswith("velithon") or record.name == "__main__"
+        return record.name.startswith("velithon")
 
 
 class TextFormatter(logging.Formatter):
@@ -51,11 +51,9 @@ class TextFormatter(logging.Formatter):
                 "method",
                 "path",
                 "client_ip",
-                "query_params",
                 "headers",
                 "duration_ms",
                 "status",
-                "response_headers",
             ]
         }
         if extra_fields:
@@ -93,9 +91,7 @@ class JsonFormatter(logging.Formatter):
             ]
         }
         log_entry.update(extra_fields)
-        return orjson.dumps(log_entry, option=orjson.OPT_SERIALIZE_NUMPY).decode(
-            "utf-8"
-        )
+        return orjson.dumps(log_entry).decode("utf-8")
 
 
 class ZipRotatingFileHandler(RotatingFileHandler):

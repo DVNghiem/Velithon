@@ -25,47 +25,47 @@ def cli():
 @click.option("--host", default="127.0.0.1", help="Host to bind.")
 @click.option("--port", default=8000, type=int, help="Port to bind.")
 @click.option("--workers", default=1, type=int, help="Number of worker processes.")
-@click.option("--log_file", default="velithon.log", help="Log file path.")
+@click.option("--log-file", default="velithon.log", help="Log file path.")
 @click.option(
-    "--log_level",
+    "--log-level",
     default="INFO",
     type=click.Choice(["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]),
     help="Logging level.",
 )
 @click.option(
-    "--log_format",
+    "--log-format",
     default="text",
     type=click.Choice(["text", "json"]),
     help="Log format.",
 )
-@click.option("--log_to_file", is_flag=True, help="Enable logging to file.")
+@click.option("--log-to-file", is_flag=True, help="Enable logging to file.")
 @click.option(
-    "--max_bytes",
+    "--max-bytes",
     default=10 * 1024 * 1024,
     type=int,
     help="Max bytes for log file rotation.",
 )
-@click.option("--backup_count", default=7, type=int, help="Number of backup log files. (days)")
+@click.option("--backup-count", default=7, type=int, help="Number of backup log files. (days)")
 @click.option(
-    "--blocking_threads", default=None, type=int, help="Number of blocking threads."
+    "--blocking-threads", default=None, type=int, help="Number of blocking threads."
 )
 @click.option(
-    "--blocking_threads_idle_timeout",
+    "--blocking-threads-idle-timeout",
     default=30,
     type=int,
     help="Idle timeout for blocking threads.",
 )
 @click.option(
-    "--runtime_threads", default=1, type=int, help="Number of runtime threads."
+    "--runtime-threads", default=1, type=int, help="Number of runtime threads."
 )
 @click.option(
-    "--runtime_blocking_threads",
+    "--runtime-blocking-threads",
     default=None,
     type=int,
     help="Number of blocking threads for runtime.",
 )
 @click.option(
-    "--runtime_mode",
+    "--runtime-mode",
     default="st",
     type=click.Choice(["st", "mt"]),
     help="Runtime mode (single-threaded or multi-threaded).",
@@ -77,7 +77,7 @@ def cli():
     help="Event loop to use.",
 )
 @click.option(
-    "--task_impl",
+    "--task-impl",
     default="asyncio",
     type=click.Choice(["asyncio", "rust"]),
     help="Task implementation to use. **Note**: `rust` is only support in python <= 3.12",

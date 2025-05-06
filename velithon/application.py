@@ -308,8 +308,10 @@ class Velithon:
         middleware = [
             Middleware(WrappedRSGITypeMiddleware),
             Middleware(LoggingMiddleware),
-            Middleware(DIMiddleware, self),
-        ] + self.user_middleware
+        ]
+        if self.container:
+            middleware.append(Middleware(DIMiddleware, self))
+        middleware += self.user_middleware
         app = self.router
         for cls, args, kwargs in reversed(middleware):
             app = cls(app, *args, **kwargs)

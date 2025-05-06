@@ -16,5 +16,3 @@ class DIMiddleware:
             return await self.app(scope, protocol)
         finally:
             current_scope.reset(token)
-            if hasattr(self.app, "container"):
-                self.app.container.cleanup_scope(scope.request_id)
