@@ -19,7 +19,7 @@ class LoggingMiddleware:
         client_ip = scope.client
         method = scope.method
         path = scope.path
-        headers = scope.headers
+        headers = scope.headers.items()
         status_code = 200
         message = "Processed %s %s"
 

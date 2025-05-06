@@ -10,11 +10,6 @@ from velithon.datastructures import URL, Address, FormData, Headers, QueryParams
 from velithon.formparsers import FormParser, MultiPartException, MultiPartParser
 from velithon.datastructures import Protocol, Scope
 
-if typing.TYPE_CHECKING:
-    from velithon.application import Velithon
-    from velithon.routing import Router
-
-
 T_co = typing.TypeVar("T_co", covariant=True)
 
 
@@ -234,7 +229,7 @@ class Request(HTTPConnection):
     async def files(self) -> typing.Dict[str, typing.List[UploadFile]]:
         async with self.form() as form:
             files: typing.Dict[str, typing.List[UploadFile]] = {}
-            for field_name, field_value in self._form.multi_items():
+            for field_name, field_value in form.multi_items():
                 if isinstance(field_value, UploadFile):
                     files.setdefault(field_name, []).append(field_value)
                 elif isinstance(field_value, list):
