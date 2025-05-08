@@ -8,50 +8,32 @@ from velithon.params import Query, Path, Form, File, Body
 from velithon.datastructures import UploadFile, FormData, Headers
 from velithon.di import Provide, inject, FactoryProvider, ServiceContainer
 from pydantic import BaseModel
+from .container import container, MockUserService, MockUserRepository, create_user_service
 import logging
 from typing import Annotated
+from .endpoint import TestEndpoint
+from .validate import TestValidate
+from ..app.params_inject import (
+    InjectQueryEndpoint,
+    InjectQueryItemEndpoint,
+    InjectPathEndpoint,
+    InjectBodyEndpoint,
+    InjectHeadersEndpoint,
+    InjectRequestEndpoint,
+)
 
 logger = logging.getLogger(__name__)
-
-class User(BaseModel):
-    id: int
-    name: str
-    age: int
-
-class UserService:
-    def get_user(self):
-        return "Name: John Doe, Age: 30"
-    
-class Container(ServiceContainer):
-    user_service_provider = FactoryProvider(UserService)
-
-container = Container()
-
-@inject
-async def print_user(user: UserService = Provide(container.user_service_provider)):
-    print(user.get_user())
-
-class HelloWorld(HTTPEndpoint):
-    
-    @inject
-    async def get(self, query: Annotated[User, Query()], name: Annotated[str, Path()], user: UserService = Provide[container.user_service_provider]):
-        await print_user()
-        print(query, name, user)
-        return PlainTextResponse("Hello, World!")
-    
-    async def post(self, data: Annotated[User, Body()], request: Request, headers: Headers):
-        print(data, headers, request)
-        return PlainTextResponse("File uploaded successfully!")
     
 router = Router()
+router.add_route("/endpoint", TestEndpoint, methods=["GET", "POST", "PUT", "DELETE"])
+router.add_route("/validate", TestValidate, methods=["GET", "POST"])
+router.add_route("/inject/query", InjectQueryEndpoint, methods=["GET"])
+router.add_route("/inject/query/item", InjectQueryItemEndpoint, methods=["GET"])
+router.add_route("/inject/path/{name}", InjectPathEndpoint, methods=["GET"])
+router.add_route("/inject/body", InjectBodyEndpoint, methods=["POST"])
+router.add_route("/inject/headers", InjectHeadersEndpoint, methods=["GET"])
+router.add_route("/inject/request", InjectRequestEndpoint, methods=["GET"])
 
-@router.get("/test")
-@inject
-async def hello_world(request: Request, user: UserService = Provide[container.user_service_provider]):
-    print(user.get_user())
-    return PlainTextResponse("Hello, !")
-
-router.add_route("/hello/{name}", HelloWorld)
 
 app = Velithon(routes=router.routes)
 app.register_container(container)
