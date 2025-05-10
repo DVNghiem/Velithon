@@ -57,18 +57,19 @@ class ParamParser:
     async def _parse_file_data(self) -> dict:
         return await self.request.files()
 
-
 class PrimitiveParser:
     def __init__(self, param_parser: 'ParamParser'):
         self.param_parser = param_parser
 
-    async def parse(self, param_name: str, annotation: Any, param_type: str, default: Any = None) -> Any:
+    async def parse(self, param_name: str, annotation: Any, param_type: str, default: Any = None, is_required: bool = False) -> Any:
         data = await self.param_parser.parse_data(param_type)
         value = data.get(param_name)
 
         if value is None:
             if default is not None and default is not ...:
                 return default
+            if is_required:
+                raise BadRequestException(details={"message": f"Missing required parameter: {param_name}"})
             raise BadRequestException(details={"message": f"Missing required parameter: {param_name}"})
 
         try:
@@ -106,18 +107,19 @@ class PrimitiveParser:
             raise ValidationException(
                 details={"field": param_name, "msg": f"Invalid value for type {annotation}: {str(e)}"}
             )
-
 class ModelParser:
     def __init__(self, param_parser: ParamParser):
         self.param_parser = param_parser
 
     async def parse(
-        self, param_name: str, model_class: Any, param_type: str, default: Any = None
+        self, param_name: str, model_class: Any, param_type: str, default: Any = None, is_required: bool = False
     ) -> Any:
         try:
             data = await self.param_parser.parse_data(param_type)
             if not data and default is not None and default is not ...:
                 return default
+            if not data and is_required:
+                raise BadRequestException(details={"message": f"Missing required parameter: {param_name}"})
 
             if get_origin(model_class) is list:
                 item_class = get_args(model_class)[0]
@@ -149,13 +151,11 @@ class ModelParser:
             raise BadRequestException(
                 details={"message": f"Invalid data for {param_name}: {str(e)}"}
             )
-
-
 class SpecialTypeParser:
     def __init__(self, request: 'Request'):
         self.request = request
 
-    async def parse(self, param_name: str, annotation: Any, default: Any = None) -> Any:
+    async def parse(self, param_name: str, annotation: Any, default: Any = None, is_required: bool = False) -> Any:
         # Handle single special types
         type_map = {
             'Request': lambda: self.request,
@@ -163,7 +163,7 @@ class SpecialTypeParser:
             'Headers': lambda: self.request.headers,
             'QueryParams': lambda: self.request.query_params,
             'Dict': lambda: self.request.scope,
-            'UploadFile': lambda: self._get_file(param_name, default)
+            'UploadFile': lambda: self._get_file(param_name, default, is_required)
         }
 
         try:
@@ -179,6 +179,10 @@ class SpecialTypeParser:
                 files = (await self.request.files()).get(param_name)
                 if not files and default is not None and default is not ...:
                     return default
+                if not files and is_required:
+                    raise BadRequestException(
+                        details={"message": f"Missing required parameter: {param_name}"}
+                    )
                 files = files if isinstance(files, Sequence) else [files]
                 if not all(isinstance(file, UploadFile) for file in files):
                     raise BadRequestException(
@@ -193,12 +197,15 @@ class SpecialTypeParser:
                 details={"message": f"Invalid value for parameter {param_name}: {str(e)}"}
             )
 
-    async def _get_file(self, param_name: str, default: Any) -> Any:
+    async def _get_file(self, param_name: str, default: Any, is_required: bool) -> Any:
         files = (await self.request.files()).get(param_name)
         if not files and default is not None and default is not ...:
             return default
+        if not files and is_required:
+            raise BadRequestException(
+                details={"message": f"Missing required parameter: {param_name}"}
+            )
         return files[0] if files else None
-
 class AnnotatedParser:
     def __init__(
         self,
@@ -217,7 +224,7 @@ class AnnotatedParser:
             File: "file_data",
         }
 
-    async def parse(self, param_name: str, annotation: Any, default: Any = None) -> Any:
+    async def parse(self, param_name: str, annotation: Any, default: Any = None, is_required: bool = False) -> Any:
         if get_origin(annotation) is not Annotated:
             return None
 
@@ -232,9 +239,6 @@ class AnnotatedParser:
         )
         if not param_metadata:
             return None
-        # Bypass Provide metadata
-        # Provide is used for dependency injection
-        # and should not be parsed as a parameter
         if isinstance(param_metadata, Provide):
             return param_metadata
 
@@ -248,6 +252,7 @@ class AnnotatedParser:
         effective_default = (
             metadata_default if metadata_default is not None else default
         )
+
         # Handle Optional or Union with None
         is_optional = get_origin(base_type) in (Union, Optional) and type(
             None
@@ -259,6 +264,8 @@ class AnnotatedParser:
         data = await self.param_parser.parse_data(param_type)
         if not data and effective_default is not None and effective_default is not ...:
             return effective_default
+        if not data and is_required:
+            raise BadRequestException(details={"message": f"Missing required parameter: {param_name}"})
 
         # Handle dict
         if base_type is dict:
@@ -272,13 +279,15 @@ class AnnotatedParser:
                 values = [values]
             if not values and effective_default is not None:
                 return effective_default
+            if not values and is_required:
+                raise BadRequestException(details={"message": f"Missing required parameter: {param_name}"})
             if isinstance(item_type, type) and issubclass(item_type, BaseModel):
                 return await self.model_parser.parse(
-                    param_name, base_type, param_type, effective_default
+                    param_name, base_type, param_type, effective_default, is_required
                 )
             elif item_type in (int, float, str, bool, bytes):
                 return await self.primitive_parser.parse(
-                    param_name, base_type, param_type, effective_default
+                    param_name, base_type, param_type, effective_default, is_required
                 )
             else:
                 raise BadRequestException(
@@ -288,13 +297,13 @@ class AnnotatedParser:
         # Handle BaseModel
         if isinstance(base_type, type) and issubclass(base_type, BaseModel):
             return await self.model_parser.parse(
-                param_name, base_type, param_type, effective_default
+                param_name, base_type, param_type, effective_default, is_required
             )
 
         # Handle primitive types
         if base_type in (int, float, str, bool, bytes):
             return await self.primitive_parser.parse(
-                param_name, base_type, param_type, effective_default
+                param_name, base_type, param_type, effective_default, is_required
             )
 
         # Fallback for custom types
@@ -304,7 +313,6 @@ class AnnotatedParser:
         raise BadRequestException(
             details={"message": f"Unsupported Annotated type: {base_type}"}
         )
-
 
 class InputHandler:
     def __init__(self, request: Request):
@@ -325,15 +333,16 @@ class InputHandler:
             default = (
                 param.default if param.default is not inspect.Parameter.empty else None
             )
+            is_required = default is None and param.default is inspect.Parameter.empty
 
             # Try special types
-            value = await self.special_parser.parse(name, annotation, default)
+            value = await self.special_parser.parse(name, annotation, default, is_required)
             if value is not None:
                 kwargs[name] = value
                 continue
 
             # Try annotated types
-            value = await self.annotated_parser.parse(name, annotation, default)
+            value = await self.annotated_parser.parse(name, annotation, default, is_required)
             if value is not None:
                 kwargs[name] = value
                 continue
@@ -346,7 +355,7 @@ class InputHandler:
                     else "json_body"
                 )
                 kwargs[name] = await self.model_parser.parse(
-                    name, annotation, param_type, default
+                    name, annotation, param_type, default, is_required
                 )
                 continue
 
@@ -362,7 +371,7 @@ class InputHandler:
                     else "json_body"
                 )
                 kwargs[name] = await self.model_parser.parse(
-                    name, annotation, param_type, default
+                    name, annotation, param_type, default, is_required
                 )
                 continue
 
@@ -374,7 +383,7 @@ class InputHandler:
                     else "path_params"
                 )
                 kwargs[name] = await self.primitive_parser.parse(
-                    name, annotation, param_type, default
+                    name, annotation, param_type, default, is_required
                 )
                 continue
 
@@ -391,11 +400,16 @@ class InputHandler:
                     else "path_params"
                 )
                 kwargs[name] = await self.primitive_parser.parse(
-                    name, annotation, param_type, default
+                    name, annotation, param_type, default, is_required
                 )
                 continue
 
-            # Use default if provided
+            # Handle inspect._empty annotation
+            if annotation is inspect._empty:
+                if is_required:
+                    raise BadRequestException(
+                        details={"message": f"Missing required parameter: {name} with no type annotation"}
+                    )
             if default is not None and default is not ...:
                 kwargs[name] = default
                 continue
