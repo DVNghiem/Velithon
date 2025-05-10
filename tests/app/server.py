@@ -14,6 +14,7 @@ from ..app.params_inject import (
 from .container import container
 from .endpoint import TestEndpoint
 from .validate import TestValidate
+from .di import TestAsyncFactoryProvider, TestFactoryProvider, TestSingletonProvider
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,15 @@ router.add_route("/inject/path/{name}", InjectPathEndpoint, methods=["GET"])
 router.add_route("/inject/body", InjectBodyEndpoint, methods=["POST"])
 router.add_route("/inject/headers", InjectHeadersEndpoint, methods=["GET"])
 router.add_route("/inject/request", InjectRequestEndpoint, methods=["GET"])
-
+router.add_route(
+    "/di/singleton", TestSingletonProvider, methods=["GET"]
+)
+router.add_route(
+    "/di/factory", TestFactoryProvider, methods=["GET"]
+)
+router.add_route(
+    "/di/async-factory", TestAsyncFactoryProvider, methods=["GET"]
+)
 
 app = Velithon(routes=router.routes)
 app.register_container(container)

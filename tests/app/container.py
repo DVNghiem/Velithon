@@ -1,4 +1,4 @@
-from velithon.di import ServiceContainer, AsyncFactoryProvider
+from velithon.di import ServiceContainer, AsyncFactoryProvider, SingletonProvider, FactoryProvider
 
 class MockDatabase:
     async def query(self, q: str):
@@ -23,8 +23,8 @@ async def create_user_service(user_repository: MockUserRepository, api_key: str 
     return MockUserService(user_repository, api_key)
 
 class Container(ServiceContainer):
-    db = AsyncFactoryProvider(MockDatabase)
-    user_repository = AsyncFactoryProvider(MockUserRepository, db=db)
+    db = SingletonProvider(MockDatabase)
+    user_repository = FactoryProvider(MockUserRepository, db=db)
     user_service = AsyncFactoryProvider(create_user_service, user_repository=user_repository, api_key="xyz")
 
 container = Container()
