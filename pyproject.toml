@@ -19,7 +19,10 @@ dependencies = [
 [tool.poetry.scripts]
 velithon = "velithon.cli:cli"
 
-[tool.poetry.group.test.dependencies]
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.dev.dependencies]
 pytest = "^8.3.5"
 
 [build-system]
