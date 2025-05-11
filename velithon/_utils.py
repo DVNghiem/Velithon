@@ -1,45 +1,44 @@
 # -*- coding: utf-8 -*-
 import typing
 import functools
-import inspect
 import asyncio
-import anyio
+import concurrent.futures
 
 T = typing.TypeVar("T")
 
-def is_async_callable(obj: typing.Any) -> typing.Any:
-    while isinstance(obj, functools.partial):
-        obj = obj.func
+# Allows configuring the maximum number of threads, suitable for application needs. 
+# Reuse threadpool, reducing overhead when creating new ones.
+_thread_pool = None
 
-    return inspect.iscoroutinefunction(obj) or (callable(obj) and inspect.iscoroutinefunction(obj.__call__))
+def set_thread_pool(max_workers: int = None):
+    global _thread_pool
+    _thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=max_workers)
+
+def is_async_callable(obj: typing.Any) -> bool:
+    if isinstance(obj, functools.partial):
+        obj = obj.func
+    return asyncio.iscoroutinefunction(obj) or (
+        callable(obj) and asyncio.iscoroutinefunction(getattr(obj, '__call__', None))
+    )
 
 async def run_in_threadpool(func: typing.Callable, *args, **kwargs):
-    if kwargs:  # pragma: no cover
-        # run_sync doesn't accept 'kwargs', so bind them in here
-        func = functools.partial(func, **kwargs)
-    return await asyncio.to_thread(func, *args)
+    global _thread_pool
+    if _thread_pool is None:
+        set_thread_pool()
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(_thread_pool, lambda: func(*args, **kwargs))
 
-
-class _StopIteration(Exception):
-    pass
-
-
-def _next(iterator: typing.Iterator[T]) -> T:
-    # We can't raise `StopIteration` from within the threadpool iterator
-    # and catch it outside that context, so we coerce them into a different
-    # exception type.
-    try:
-        return next(iterator)
-    except StopIteration:
-        raise _StopIteration
-
-
-async def iterate_in_threadpool(
-    iterator: typing.Iterable[T],
-) -> typing.AsyncIterator[T]:
+async def iterate_in_threadpool(iterator: typing.Iterable[T]) -> typing.AsyncIterator[T]:
     as_iterator = iter(iterator)
-    while True:
+    
+    def next_item() -> typing.Tuple[bool, typing.Optional[T]]:
         try:
-            yield await anyio.to_thread.run_sync(_next, as_iterator)
-        except _StopIteration:
+            return True, next(as_iterator)
+        except StopIteration:
+            return False, None
+    
+    while True:
+        has_next, item = await asyncio.to_thread(next_item)
+        if not has_next:
             break
+        yield item
