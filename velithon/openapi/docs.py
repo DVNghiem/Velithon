@@ -11,21 +11,15 @@ from typing import (
     get_args,
     get_origin,
 )
-
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefined
-
-from velithon.params.params import Body, File, Form, Path, Query
+from velithon.params.params import Body, File, Form, Path, Query, Header
 from velithon.requests import Request
 from velithon.responses import PlainTextResponse
+from velithon.datastructures import UploadFile, FormData, Headers
 from velithon.di import Provide
 from .constants import REF_TEMPLATE
-
-
-def get_field_type(field):
-    return field.outer_type_
-
 
 def join_url_paths(*parts):
     first = parts[0]
@@ -36,23 +30,19 @@ def join_url_paths(*parts):
         joined = "/" + joined
     return joined
 
-
 def pydantic_to_swagger(model: type[BaseModel] | dict) -> Dict[str, Any]:
     if isinstance(model, dict):
         schema = {}
         for name, field_type in model.items():
-            schema[name] = _process_field(name, field_type, {})
+            schema[name] = SchemaProcessor._process_field(name, field_type, {})
         return schema
 
     schema = {"type": "object", "properties": {}, "required": []}
-
     for name, field in model.model_fields.items():
-        schema["properties"][name] = _process_field(name, field, {})
+        schema["properties"][name] = SchemaProcessor._process_field(name, field, {})
         if field.is_required():
             schema["required"].append(name)
-
     return schema
-
 
 class SchemaProcessor:
     @staticmethod
@@ -101,6 +91,24 @@ class SchemaProcessor:
                 )
         return schema
 
+    @staticmethod
+    def process_file(annotation: type, schemas: Dict[str, Any]) -> Dict[str, Any]:
+        if annotation is UploadFile:
+            return {"type": "string", "format": "binary"}
+        return {"type": "object"}  # Fallback for unsupported file types
+
+    @staticmethod
+    def process_form_data(annotation: type, schemas: Dict[str, Any]) -> Dict[str, Any]:
+        if annotation is FormData:
+            return {"type": "object", "additionalProperties": True}
+        return SchemaProcessor._process_field("", annotation, schemas)
+
+    @staticmethod
+    def process_headers(annotation: type, schemas: Dict[str, Any]) -> Dict[str, Any]:
+        if annotation is Headers:
+            return {"type": "object", "additionalProperties": {"type": "string"}}
+        return {"type": "object"}
+
     @classmethod
     def _process_field(
         cls, name: str, field: Any, schemas: Dict[str, Any]
@@ -124,13 +132,10 @@ class SchemaProcessor:
             base_type, *metadata = get_args(annotation)
             schema = cls._process_annotation(base_type, schemas)
             for meta in metadata:
-                if isinstance(meta, (Query, Body, Form, Path, File)):
+                if isinstance(meta, (Query, Body, Form, Path, File, Header)):
                     if meta.description:
                         schema["description"] = meta.description
-                    if (
-                        meta.default is not None
-                        and meta.default is not PydanticUndefined
-                    ):
+                    if meta.default is not None and meta.default is not PydanticUndefined:
                         schema["default"] = meta.default
             return schema
 
@@ -149,6 +154,15 @@ class SchemaProcessor:
         if isinstance(annotation, dict) or origin is dict:
             return cls.process_dict(annotation, schemas)
 
+        if annotation is UploadFile:
+            return cls.process_file(annotation, schemas)
+
+        if annotation is FormData:
+            return cls.process_form_data(annotation, schemas)
+
+        if annotation is Headers:
+            return cls.process_headers(annotation, schemas)
+
         if isinstance(annotation, type) and issubclass(annotation, BaseModel):
             schemas[annotation.__name__] = pydantic_to_swagger(annotation)
             return {"$ref": REF_TEMPLATE.format(model=annotation.__name__)}
@@ -157,11 +171,6 @@ class SchemaProcessor:
             return {"type": "string"}
 
         return {"type": "object"}
-
-
-def _process_field(name: str, field: Any, schemas: Dict[str, Any]) -> Dict[str, Any]:
-    return SchemaProcessor._process_field(name, field, schemas)
-
 
 def process_model_params(
     param: inspect.Parameter,
@@ -183,17 +192,14 @@ def process_model_params(
     if get_origin(annotation) is Annotated:
         base_type, *metadata = get_args(annotation)
         param_metadata = next(
-            (m for m in metadata if isinstance(m, (Query, Path, Body, Form, File))),
+            (m for m in metadata if isinstance(m, (Query, Path, Body, Form, File, Header))),
             None,
         )
         if param_metadata:
-            schema = _process_field(name, base_type, schemas)
+            schema = SchemaProcessor._process_field(name, base_type, schemas)
             if param_metadata.description:
                 schema["description"] = param_metadata.description
-            if (
-                param_metadata.default is not None
-                and param_metadata.default is not PydanticUndefined
-            ):
+            if param_metadata.default is not None and param_metadata.default is not PydanticUndefined:
                 schema["default"] = param_metadata.default
 
             param_type = type(param_metadata)
@@ -202,12 +208,21 @@ def process_model_params(
                     {"name": name, "in": "path", "required": True, "schema": schema}
                 )
                 if f"{{{name}}}" not in path:
-                    path = path.replace(name, f"{{{name}}}")
+                    path = path.rstrip("/") + f"/{{{name}}}"
             elif param_type is Query:
                 docs.setdefault("parameters", []).append(
                     {
                         "name": name,
                         "in": "query",
+                        "required": param_metadata.default is PydanticUndefined,
+                        "schema": schema,
+                    }
+                )
+            elif param_type is Header:
+                docs.setdefault("parameters", []).append(
+                    {
+                        "name": name,
+                        "in": "header",
                         "required": param_metadata.default is PydanticUndefined,
                         "schema": schema,
                     }
@@ -226,6 +241,7 @@ def process_model_params(
                 }
             elif param_type is File:
                 media_type = param_metadata.media_type or "multipart/form-data"
+                schema = SchemaProcessor.process_file(base_type, schemas)
                 docs["requestBody"] = {
                     "content": {media_type: {"schema": schema}},
                     "required": param_metadata.default is PydanticUndefined,
@@ -234,8 +250,8 @@ def process_model_params(
         annotation = base_type
 
     # Handle default metadata
-    if isinstance(default, (Query, Path, Body, Form, File)):
-        schema = _process_field(name, annotation, schemas)
+    if isinstance(default, (Query, Path, Body, Form, File, Header)):
+        schema = SchemaProcessor._process_field(name, annotation, schemas)
         if default.description:
             schema["description"] = default.description
         if default.default is not None and default.default is not PydanticUndefined:
@@ -246,12 +262,21 @@ def process_model_params(
                 {"name": name, "in": "path", "required": True, "schema": schema}
             )
             if f"{{{name}}}" not in path:
-                path = path.replace(name, f"{{{name}}}")
+                path = path.rstrip("/") + f"/{{{name}}}"
         elif isinstance(default, Query):
             docs.setdefault("parameters", []).append(
                 {
                     "name": name,
                     "in": "query",
+                    "required": default.default is PydanticUndefined,
+                    "schema": schema,
+                }
+            )
+        elif isinstance(default, Header):
+            docs.setdefault("parameters", []).append(
+                {
+                    "name": name,
+                    "in": "header",
                     "required": default.default is PydanticUndefined,
                     "schema": schema,
                 }
@@ -270,6 +295,7 @@ def process_model_params(
             }
         elif isinstance(default, File):
             media_type = default.media_type or "multipart/form-data"
+            schema = SchemaProcessor.process_file(annotation, schemas)
             docs["requestBody"] = {
                 "content": {media_type: {"schema": schema}},
                 "required": default.default is PydanticUndefined,
@@ -280,7 +306,7 @@ def process_model_params(
     if isinstance(annotation, type) and issubclass(annotation, BaseModel):
         if request_method.lower() == "get":
             for field_name, field in annotation.model_fields.items():
-                schema = _process_field(field_name, field, schemas)
+                schema = SchemaProcessor._process_field(field_name, field, schemas)
                 docs.setdefault("parameters", []).append(
                     {
                         "name": field_name,
@@ -293,28 +319,56 @@ def process_model_params(
             docs["requestBody"] = {
                 "content": {
                     "application/json": {
-                        "schema": _process_field(name, annotation, schemas)
+                        "schema": SchemaProcessor._process_field(name, annotation, schemas)
                     }
                 },
-                "required": default is inspect.Parameter.empty
-                or default is PydanticUndefined,
+                "required": default is inspect.Parameter.empty or default is PydanticUndefined,
             }
+        return path
+
+    # Handle UploadFile explicitly
+    if annotation is UploadFile:
+        schema = SchemaProcessor.process_file(annotation, schemas)
+        docs["requestBody"] = {
+            "content": {"multipart/form-data": {"schema": schema}},
+            "required": default is inspect.Parameter.empty or default is PydanticUndefined,
+        }
+        return path
+
+    # Handle FormData explicitly
+    if annotation is FormData:
+        schema = SchemaProcessor.process_form_data(annotation, schemas)
+        docs["requestBody"] = {
+            "content": {"multipart/form-data": {"schema": schema}},
+            "required": default is inspect.Parameter.empty or default is PydanticUndefined,
+        }
+        return path
+
+    # Handle Headers explicitly
+    if annotation is Headers:
+        schema = SchemaProcessor.process_headers(annotation, schemas)
+        docs.setdefault("parameters", []).append(
+            {
+                "name": name,
+                "in": "header",
+                "required": default is inspect.Parameter.empty or default is PydanticUndefined,
+                "schema": schema,
+            }
+        )
         return path
 
     # Handle primitive types as query parameters (only if not a path parameter)
     if annotation in (int, float, str, bool) and f"{{{name}}}" not in path:
-        schema = _process_field(name, annotation, schemas)
+        schema = SchemaProcessor._process_field(name, annotation, schemas)
         docs.setdefault("parameters", []).append(
             {
                 "name": name,
                 "in": "query",
-                "required": default is inspect.Parameter.empty
-                or default is PydanticUndefined,
+                "required": default is inspect.Parameter.empty or default is PydanticUndefined,
                 "schema": schema,
             }
         )
     return path
-
 
 def process_response(response_type: type, docs: Dict, schemas: Dict[str, Any]) -> None:
     if isinstance(response_type, type) and issubclass(response_type, PlainTextResponse):
@@ -325,14 +379,13 @@ def process_response(response_type: type, docs: Dict, schemas: Dict[str, Any]) -
             }
         }
     else:
-        schema = _process_field("response", response_type, schemas)
+        schema = SchemaProcessor._process_field("response", response_type, schemas)
         docs["responses"] = {
             "200": {
                 "description": "Successful response",
                 "content": {"application/json": {"schema": schema}},
             }
         }
-
 
 def swagger_generate(
     func: callable, request_method: str, endpoint_path: str = "/"
