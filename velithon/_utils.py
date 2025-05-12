@@ -10,9 +10,9 @@ T = typing.TypeVar("T")
 # Reuse threadpool, reducing overhead when creating new ones.
 _thread_pool = None
 
-def set_thread_pool(max_workers: int = None):
+def set_thread_pool():
     global _thread_pool
-    _thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=max_workers)
+    _thread_pool = concurrent.futures.ThreadPoolExecutor()
 
 def is_async_callable(obj: typing.Any) -> bool:
     if isinstance(obj, functools.partial):
