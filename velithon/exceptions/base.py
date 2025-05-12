@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
-from http import HTTPStatus
 from typing import Any, Dict, Optional
+from velithon.status import HTTP_400_BAD_REQUEST
 
 
 class ResponseFormatter(ABC):
@@ -45,7 +45,7 @@ class HTTPException(Exception):
 
     def __init__(
         self,
-        status_code: int = HTTPStatus.BAD_REQUEST,
+        status_code: int = HTTP_400_BAD_REQUEST,
         error: Optional[VelithonError] = None,
         details: Optional[Dict[str, Any]] = None,
         headers: Optional[Dict[str, str]] = None,
