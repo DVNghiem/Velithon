@@ -74,3 +74,33 @@ class RateLimitException(HTTPException):
             headers={"Retry-After": str(retry_after)},
             formatter=formatter,
         )
+
+class InvalidMediaTypeException(HTTPException):
+    def __init__(
+        self,
+        error: Optional[VelithonError] = ErrorDefinitions.INVALID_MEDIA_TYPE,
+        details: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, str]] = None,
+        formatter: Optional[ResponseFormatter] = None,
+    ):
+        super().__init__(status_code=HTTPStatus.UNSUPPORTED_MEDIA_TYPE, error=error, details=details, headers=headers, formatter=formatter)
+
+class UnsupportParameterException(HTTPException):
+    def __init__(
+        self,
+        error: Optional[VelithonError] = ErrorDefinitions.UNSUPPORT_PARAMETER_TYPE,
+        details: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, str]] = None,
+        formatter: Optional[ResponseFormatter] = None,
+    ):
+        super().__init__(status_code=HTTPStatus.BAD_REQUEST, error=error, details=details, headers=headers, formatter=formatter)
+
+class MultiPartException(HTTPException):
+    def __init__(
+        self,
+        error: Optional[VelithonError] = ErrorDefinitions.SUBMIT_MULTIPART_ERROR,
+        details: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, str]] = None,
+        formatter: Optional[ResponseFormatter] = None,
+    ):
+        super().__init__(status_code=HTTPStatus.BAD_REQUEST, error=error, details=details, headers=headers, formatter=formatter)

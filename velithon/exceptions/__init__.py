@@ -14,6 +14,9 @@ from .http import (
     RateLimitException,
     UnauthorizedException,
     ValidationException,
+    InvalidMediaTypeException,
+    UnsupportParameterException,
+    MultiPartException
 )
 
 __all__ = [
@@ -34,4 +37,7 @@ __all__ = [
     "DBFieldValidationError",
     "InvalidPortNumber",
     "OutOfScopeApplicationException",
+    "InvalidMediaTypeException",
+    "UnsupportParameterException",
+    "MultiPartException"
 ]

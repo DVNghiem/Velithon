@@ -7,6 +7,7 @@ from tempfile import SpooledTemporaryFile
 from urllib.parse import unquote_plus
 
 from velithon.datastructures import FormData, Headers, UploadFile
+from velithon.exceptions import MultiPartException
 
 if typing.TYPE_CHECKING:
     import python_multipart as multipart
@@ -46,12 +47,6 @@ def _user_safe_decode(src: bytes | bytearray, codec: str) -> str:
         return src.decode(codec)
     except (UnicodeDecodeError, LookupError):
         return src.decode("latin-1")
-
-
-class MultiPartException(Exception):
-    def __init__(self, message: str) -> None:
-        self.message = message
-
 
 class FormParser:
     def __init__(self, headers: Headers, stream: typing.AsyncGenerator[bytes, None]) -> None:
@@ -160,7 +155,10 @@ class MultiPartParser:
         message_bytes = data[start:end]
         if self._current_part.file is None:
             if len(self._current_part.data) + len(message_bytes) > self.max_part_size:
-                raise MultiPartException(f"Part exceeded maximum size of {int(self.max_part_size / 1024)}KB.")
+                raise MultiPartException(details={
+                    "message": "The part size exceeds the maximum size.",
+                    "max_part_size": self.max_part_size,
+                })
             self._current_part.data.extend(message_bytes)
         else:
             self._file_parts_to_write.append((self._current_part, message_bytes))
@@ -199,11 +197,15 @@ class MultiPartParser:
         try:
             self._current_part.field_name = _user_safe_decode(options[b"name"], self._charset)
         except KeyError:
-            raise MultiPartException('The Content-Disposition header field "name" must be provided.')
+            raise MultiPartException(details={
+                "message": 'The Content-Disposition header field "name" must be provided.',
+            })
         if b"filename" in options:
             self._current_files += 1
             if self._current_files > self.max_files:
-                raise MultiPartException(f"Too many files. Maximum number of files is {self.max_files}.")
+                raise MultiPartException(details={
+                    "message": f"Too many files. Maximum number of files is {self.max_files}.",
+                })
             filename = _user_safe_decode(options[b"filename"], self._charset)
             tempfile = SpooledTemporaryFile(max_size=self.spool_max_size)
             self._files_to_close_on_error.append(tempfile)
@@ -216,7 +218,9 @@ class MultiPartParser:
         else:
             self._current_fields += 1
             if self._current_fields > self.max_fields:
-                raise MultiPartException(f"Too many fields. Maximum number of fields is {self.max_fields}.")
+                raise MultiPartException(details={
+                    "message": f"Too many fields. Maximum number of fields is {self.max_fields}.",
+                })
             self._current_part.file = None
 
     def on_end(self) -> None:
@@ -232,7 +236,11 @@ class MultiPartParser:
         try:
             boundary = params[b"boundary"]
         except KeyError:
-            raise MultiPartException("Missing boundary in multipart.")
+            raise MultiPartException(
+                details={
+                    "message": "Missing boundary in multipart.",
+                }
+            )
 
         # Callbacks dictionary.
         callbacks: MultipartCallbacks = {
