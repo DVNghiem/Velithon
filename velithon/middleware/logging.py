@@ -15,7 +15,7 @@ class LoggingMiddleware:
 
     async def __call__(self, scope: Scope, protocol: Protocol):
         start_time = time.time()
-        request_id = scope.request_id
+        request_id = scope._request_id
         client_ip = scope.client
         method = scope.method
         path = scope.path

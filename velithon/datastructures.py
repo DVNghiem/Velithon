@@ -13,14 +13,14 @@ class Scope:
     __slots__ = (
         "_scope",
         "_path_params",
-        "request_id",
+        "_request_id",
         "_di_context",
     )
     def __init__(self, scope: RSGIScope) -> None:
         self._scope = scope
         # extend the scope with additional properties
         self._path_params = {}
-        self.request_id = str(uuid.uuid4())
+        self._request_id = str(uuid.uuid4())
         self._di_context = {}
 
     @property

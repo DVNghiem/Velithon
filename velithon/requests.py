@@ -152,7 +152,7 @@ class Request(HTTPConnection):
     
     @property
     def request_id(self) -> str:
-        return self.scope.request_id
+        return self.scope._request_id
 
     @property
     def method(self) -> str:
@@ -161,10 +161,8 @@ class Request(HTTPConnection):
     async def stream(self) -> typing.AsyncGenerator[bytes, None]:
         if hasattr(self, "_body"):
             yield self._body
-            yield b""
             return
         yield await self.protocol()
-        yield b""
 
     async def body(self) -> bytes:
         if not hasattr(self, "_body"):
