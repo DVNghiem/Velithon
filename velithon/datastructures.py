@@ -62,6 +62,12 @@ class Scope:
 
 class Protocol:
 
+    __slots__ = (
+        "_protocol",
+        "_status_code",
+        "_headers",
+    )
+
     def __init__(self, protocol: HTTPProtocol) -> None:
         self._protocol = protocol
         self._status_code = 200
