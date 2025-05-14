@@ -14,7 +14,7 @@ class Scope:
     __slots__ = (
         "_scope",
         "_path_params",
-        "request_id",
+        "_request_id",
         "_di_context",
     )
     def __init__(self, scope: RSGIScope) -> None:
@@ -62,6 +62,12 @@ class Scope:
         return self._path_params
 
 class Protocol:
+
+    __slots__ = (
+        "_protocol",
+        "_status_code",
+        "_headers",
+    )
 
     def __init__(self, protocol: HTTPProtocol) -> None:
         self._protocol = protocol

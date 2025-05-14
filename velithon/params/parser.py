@@ -12,7 +12,7 @@ from pydash import get
 
 from velithon.datastructures import FormData, Headers, QueryParams, UploadFile
 from velithon.di import Provide
-from velithon.exceptions import BadRequestException, ValidationException
+from velithon.exceptions import BadRequestException, ValidationException, InvalidMediaTypeException, UnsupportParameterException
 from velithon.params.params import Body, File, Form, Path, Query
 from velithon.requests import Request
 
@@ -274,21 +274,37 @@ class ParameterResolver:
                 ),
                 None,
             )
-            if param_metadata:
-                if isinstance(param_metadata, Provide):
-                    return base_type, "provide", param_metadata, is_required
-                param_type = self.param_types.get(type(param_metadata), "query_params")
-                metadata_default = (
-                    param_metadata.default
-                    if hasattr(param_metadata, "default")
-                    and param_metadata.default is not PydanticUndefined
-                    else None
+            if not param_metadata:
+                raise InvalidMediaTypeException(
+                    details={
+                        "message": f"Unsupported parameter metadata for {param.name}: {annotation}"
+                    }
                 )
-                default = metadata_default if metadata_default is not None else default
-                annotation = base_type
-                # If Form() is used, ensure param_type remains form_data even for BaseModel
-                if isinstance(param_metadata, Form):
-                    return annotation, "form_data", default, is_required
+            
+            if hasattr(param_metadata, "media_type"):
+                if param_metadata.media_type != self.request.headers.get(
+                    "Content-Type", ""
+                ):
+                    raise InvalidMediaTypeException(
+                        details={
+                            "message": f"Invalid media type for parameter: {param.name}"
+                        }
+                    )
+            
+            if isinstance(param_metadata, Provide):
+                return base_type, "provide", param_metadata, is_required
+            param_type = self.param_types.get(type(param_metadata), "query_params")
+            metadata_default = (
+                param_metadata.default
+                if hasattr(param_metadata, "default")
+                and param_metadata.default is not PydanticUndefined
+                else None
+            )
+            default = metadata_default if metadata_default is not None else default
+            annotation = base_type
+            # If Form() is used, ensure param_type remains form_data even for BaseModel
+            if isinstance(param_metadata, Form):
+                return annotation, "form_data", default, is_required
 
         if annotation is inspect._empty:
             param_type = (
@@ -329,7 +345,7 @@ class ParameterResolver:
             if param_type == "provide":
                 kwargs[name] = default  # Provide dependency injection
                 continue
-
+            
             type_key = self._get_type_key(annotation)
             # Special handling for BaseModel subclasses
             handler = self.type_handlers.get(type_key)
@@ -343,12 +359,11 @@ class ParameterResolver:
                 if default is not None and default is not ...:
                     kwargs[name] = default
                     continue
-                raise BadRequestException(
+                raise UnsupportParameterException(
                     details={
                         "message": f"Unsupported parameter type for {name}: {annotation}"
                     }
                 )
-
             data = await self._fetch_data(param_type)
             kwargs[name] = await handler(name, annotation, data, default, is_required)
 
