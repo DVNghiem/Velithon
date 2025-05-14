@@ -1,10 +1,11 @@
 #  @copyright (c) 2025 Starlette
 from __future__ import annotations
-import uuid
 import typing
 from urllib.parse import SplitResult, parse_qsl, urlencode, urlsplit
 from granian.rsgi import HTTPProtocol, Scope as RSGIScope
-from velithon._utils import run_in_threadpool
+from velithon._utils import run_in_threadpool, RequestIDGenerator
+
+request_id_generator = RequestIDGenerator()
 
 class Scope:
     """
@@ -20,7 +21,7 @@ class Scope:
         self._scope = scope
         # extend the scope with additional properties
         self._path_params = {}
-        self.request_id = str(uuid.uuid4())
+        self.request_id = request_id_generator.generate()
         self._di_context = {}
 
     @property

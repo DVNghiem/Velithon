@@ -19,7 +19,7 @@ class LoggingMiddleware:
         client_ip = scope.client
         method = scope.method
         path = scope.path
-        headers = scope.headers.items()
+        user_agent = scope.headers.get("user-agent", "")
         status_code = 200
         message = "Processed %s %s"
 
@@ -52,7 +52,7 @@ class LoggingMiddleware:
             extra={
                 "request_id": request_id,
                 "method": method,
-                "headers": headers,
+                "user_agent": user_agent,
                 "path": path,
                 "client_ip": client_ip,
                 "duration_ms": round(duration_ms, 5),

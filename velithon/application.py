@@ -23,6 +23,9 @@ from velithon.requests import Request
 from velithon.responses import HTMLResponse, JSONResponse, Response
 from velithon.routing import BaseRoute, Router
 from velithon.types import RSGIApp
+import granian
+import granian.http
+from velithon.logging import configure_logger
 
 AppType = TypeVar("AppType", bound="Velithon")
 
@@ -298,7 +301,7 @@ class Velithon:
     def register_container(self, container: ServiceContainer):
         """
         Register a ServiceContainer for dependency injection.
-        
+
         Args:
             container: The ServiceContainer instance containing providers.
         """
@@ -417,3 +420,124 @@ class Velithon:
             description=description,
             tags=tags,
         )
+
+    def _serve(
+        self,
+        app,
+        host,
+        port,
+        workers,
+        log_file,
+        log_level,
+        log_format,
+        log_to_file,
+        max_bytes,
+        backup_count,
+        reload,
+        blocking_threads,
+        blocking_threads_idle_timeout,
+        runtime_threads,
+        runtime_blocking_threads,
+        runtime_mode,
+        loop,
+        task_impl,
+        http,
+        http1_buffer_size,
+        http1_header_read_timeout,
+        http1_keep_alive,
+        http1_pipeline_flush,
+        http2_adaptive_window,
+        http2_initial_connection_window_size,
+        http2_initial_stream_window_size,
+        http2_keep_alive_interval,
+        http2_keep_alive_timeout,
+        http2_max_concurrent_streams,
+        http2_max_frame_size,
+        http2_max_headers_size,
+        http2_max_send_buffer_size,
+        ssl_certificate,
+        ssl_keyfile,
+        ssl_keyfile_password,
+        backpressure,
+    ) -> None:
+        configure_logger(
+            log_file=log_file,
+            level=log_level,
+            format_type=log_format,
+            log_to_file=log_to_file,
+            max_bytes=max_bytes,
+            backup_count=backup_count,
+        )
+        # Configure Granian server
+        server = granian.Granian(
+            target=app,  # Velithon application instance
+            address=host,
+            port=port,
+            interface="rsgi",  # Use RSGI interface
+            workers=workers,
+            reload=reload,
+            log_enabled=False,
+            blocking_threads=blocking_threads,
+            blocking_threads_idle_timeout=blocking_threads_idle_timeout,
+            runtime_threads=runtime_threads,
+            runtime_blocking_threads=runtime_blocking_threads,
+            runtime_mode=runtime_mode,
+            loop=loop,
+            task_impl=task_impl,
+            http=http,
+            ssl_cert=ssl_certificate,
+            ssl_key=ssl_keyfile,
+            ssl_key_password=ssl_keyfile_password,
+            backpressure=backpressure,
+            http1_settings=granian.http.HTTP1Settings(
+                header_read_timeout=http1_header_read_timeout,
+                keep_alive=http1_keep_alive,
+                max_buffer_size=http1_buffer_size,
+                pipeline_flush=http1_pipeline_flush,
+            ),
+            http2_settings=granian.http.HTTP2Settings(
+                adaptive_window=http2_adaptive_window,
+                initial_connection_window_size=http2_initial_connection_window_size,
+                initial_stream_window_size=http2_initial_stream_window_size,
+                keep_alive_interval=http2_keep_alive_interval,
+                keep_alive_timeout=http2_keep_alive_timeout,
+                max_concurrent_streams=http2_max_concurrent_streams,
+                max_frame_size=http2_max_frame_size,
+                max_headers_size=http2_max_headers_size,
+                max_send_buffer_size=http2_max_send_buffer_size,
+            ),
+        )
+        # check log level is debug then log all the parameters
+        if log_level == "DEBUG":
+            logger.debug(
+                f"\n App: {app} \n Host: {host} \n Port: {port} \n Workers: {workers} \n "
+                f"Log File: {log_file} \n Log Level: {log_level} \n Log Format: {log_format} \n "
+                f"Log to File: {log_to_file} \n Max Bytes: {max_bytes} \n Backup Count: {backup_count} \n "
+                f"Blocking Threads: {blocking_threads} \n Blocking Threads Idle Timeout: {blocking_threads_idle_timeout} \n "
+                f"Runtime Threads: {runtime_threads} \n Runtime Blocking Threads: {runtime_blocking_threads} \n "
+                f"Runtime Mode: {runtime_mode} \n Loop: {loop} \n Task Impl: {task_impl} \n "
+                f"HTTP: {http} \n HTTP1 Buffer Size: {http1_buffer_size} \n "
+                f"HTTP1 Header Read Timeout: {http1_header_read_timeout} \n "
+                f"HTTP1 Keep Alive: {http1_keep_alive} \n HTTP1 Pipeline Flush: {http1_pipeline_flush} \n "
+                f"HTTP2 Adaptive Window: {http2_adaptive_window} \n "
+                f"HTTP2 Initial Connection Window Size: {http2_initial_connection_window_size} \n "
+                f"HTTP2 Initial Stream Window Size: {http2_initial_stream_window_size} \n "
+                f"HTTP2 Keep Alive Interval: {http2_keep_alive_interval} \n "
+                f"HTTP2 Keep Alive Timeout: {http2_keep_alive_timeout} \n "
+                f"HTTP2 Max Concurrent Streams: {http2_max_concurrent_streams} \n "
+                f"HTTP2 Max Frame Size: {http2_max_frame_size} \n "
+                f"HTTP2 Max Headers Size: {http2_max_headers_size} \n "
+                f"HTTP2 Max Send Buffer Size: {http2_max_send_buffer_size} \n "
+                "SSL Certificate: {ssl_certificate} \n SSL Keyfile: {ssl_keyfile} \n "
+                f"SSL Keyfile Password: {'*' * len(ssl_keyfile_password) if ssl_keyfile_password else None} \n "
+                f"Backpressure: {backpressure}"
+            )
+
+        logger.info(
+            f"Starting Velithon server at http://{host}:{port} with {workers} workers..."
+        )
+        if reload:
+            logger.debug("Auto-reload enabled.")
+
+        # Run the server
+        server.serve()

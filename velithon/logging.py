@@ -14,52 +14,42 @@ class VelithonFilter(logging.Filter):
 
 
 class TextFormatter(logging.Formatter):
+    EXTRA_FIELDS = frozenset([
+        "request_id",
+        "method",
+        "path",
+        "client_ip",
+        "user_agent",
+        "duration_ms",
+        "status",
+    ])
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._time_fmt = "%Y-%m-%d %H:%M:%S"
+        
     def format(self, record):
-        """Format log records with custom formatting.
+        """Format log records with custom formatting."""
+        asctime = self.formatTime(record, self._time_fmt)
+        
+        msg = f"{asctime}.{int(record.msecs):03d} | {record.levelname:<8} | {record.name}:{record.lineno} - {record.getMessage()}"
 
-        This method formats log records with a standardized format that includes:
-        - Timestamp with millisecond precision (YYYY-MM-DD HH:MM:SS.mmm)
-        - Log level with fixed width (8 characters, left-aligned)
-        - Logger name and line number
-        - Log message
-        - Optional HTTP request fields when present (request_id, method, path, etc.)
-
-        Extra HTTP request fields that will be included when available:
-        - request_id: Unique identifier for the request
-        - method: HTTP method (GET, POST, etc.)
-        - path: Request path
-        - client_ip: Client's IP address
-        - query_params: URL query parameters
-        - headers: HTTP headers
-        - duration_ms: Request processing duration in milliseconds
-        - status: HTTP response status code
-
-        Returns:
-            str: The formatted log message
-        """
-        asctime = self.formatTime(record, "%Y-%m-%d %H:%M:%S")
-        microsecond = record.msecs / 1000
-        asctime = f"{asctime}.{int(microsecond * 1000):03d}"
-        msg = f"{asctime} | {record.levelname:<8} | {record.name}:{record.lineno} - {record.getMessage()}"
-
-        extra_fields = {
-            k: v
-            for k, v in record.__dict__.items()
-            if k
-            in [
-                "request_id",
-                "method",
-                "path",
-                "client_ip",
-                "headers",
-                "duration_ms",
-                "status",
-            ]
-        }
-        if extra_fields:
-            extra_str = ", ".join(f"{k}={str(v)}" for k, v in extra_fields.items())
-            if extra_str:
-                msg += f" | {extra_str}"
+        # check if any of the extra fields are present in the record
+        # and only then create the extra_parts list
+        has_extra = any(hasattr(record, field) for field in self.EXTRA_FIELDS)
+        if has_extra:
+            # create a list of extra fields to include in the log message
+            extra_parts = []
+            for field in self.EXTRA_FIELDS:
+                if hasattr(record, field):
+                    value = getattr(record, field)
+                    if value is not None:
+                        extra_parts.append(f"{field}={value}")
+            
+            # Only include extra_parts if they are not empty
+            if extra_parts:
+                msg = f"{msg} | {', '.join(extra_parts)}"
+                
         return msg
 
 
@@ -135,22 +125,12 @@ def configure_logger(
     logger.handlers.clear()
     logger.propagate = True
 
-    # remove all handlers from the root logger
-    root_logger = logging.getLogger("")
-    root_logger.handlers.clear()
-    root_logger.setLevel(logging.CRITICAL + 1)  # prevent root logger from logging
-
-    # remove all handlers from the granian logger
-    granian_logger = logging.getLogger("granian")
-    granian_logger.handlers.clear()
-    granian_logger.propagate = False
-    granian_logger.setLevel(logging.CRITICAL + 1)
-
-    # remove all handlers from the granian.access logger
-    granian_access_logger = logging.getLogger("granian.access")
-    granian_access_logger.handlers.clear()
-    granian_access_logger.propagate = False
-    granian_access_logger.setLevel(logging.CRITICAL + 1)
+    # disable all logging from the velithon package
+    for name in ["", "granian", "granian.access"]:
+        velithon_logger = logging.getLogger(name)
+        velithon_logger.handlers.clear()
+        velithon_logger.propagate = False
+        velithon_logger.setLevel(logging.CRITICAL + 1)
 
     # Formatter
     text_formatter = TextFormatter()

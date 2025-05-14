@@ -88,7 +88,7 @@ class Response:
                 content_type += "; charset=" + self.charset
             raw_headers.append(("content-type", content_type))
 
-        self.raw_headers = raw_headers
+        self.raw_headers = (*raw_headers, ("server", "velithon"))
 
     @property
     def headers(self) -> Headers:

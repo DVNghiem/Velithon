@@ -3,6 +3,10 @@ import typing
 import functools
 import asyncio
 import concurrent.futures
+import time
+import random
+import threading
+
 
 T = typing.TypeVar("T")
 
@@ -42,3 +46,22 @@ async def iterate_in_threadpool(iterator: typing.Iterable[T]) -> typing.AsyncIte
         if not has_next:
             break
         yield item
+
+
+class RequestIDGenerator:
+    """Efficient request ID generator with much less overhead than UUID."""
+    
+    def __init__(self):
+        self._prefix = f"{random.randint(100, 999)}"
+        self._counter = 0
+        self._lock = threading.Lock()
+    
+    def generate(self):
+        """Generate a unique request ID with format: prefix-timestamp-counter."""
+        timestamp = int(time.time() * 1000)  # Timestamp in milliseconds
+        
+        with self._lock:
+            self._counter = (self._counter + 1) % 100000
+            request_id = f"{self._prefix}-{timestamp}-{self._counter:05d}"
+        
+        return request_id
