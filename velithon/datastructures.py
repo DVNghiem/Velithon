@@ -97,38 +97,42 @@ class Protocol:
     async def client_disconnect(self) -> None:
         await self._protocol.client_disconnect()
 
+    def update_headers(self, headers: typing.List[tuple[str, str]]) -> None:
+        # extend the existing headers with new ones
+        self._headers.extend(headers)
+
     def response_empty(self, status: int, headers: typing.Tuple[str, str]) -> None:
         self._status_code = status
-        self._headers = headers
-        self._protocol.response_empty(status, headers)
+        self._headers.extend(headers)
+        self._protocol.response_empty(status, self._headers)
 
     def response_str(
         self, status: int, headers: typing.Tuple[str, str], body: str
     ) -> None:
         self._status_code = status
-        self._headers = headers
-        self._protocol.response_str(status, headers, body)
+        self._headers.extend(headers)
+        self._protocol.response_str(status, self._headers, body)
 
     def response_bytes(
         self, status: int, headers: typing.Tuple[str, str], body: bytes
     ) -> None:
         self._status_code = status
-        self._headers = headers
-        self._protocol.response_bytes(status, headers, body)
+        self._headers.extend(headers)
+        self._protocol.response_bytes(status, self._headers, body)
 
     def response_file(
         self, status: int, headers: typing.Tuple[str, str], file: typing.Any
     ) -> None:
         self._status_code = status
-        self._headers = headers
-        self._protocol.response_file(status, headers, file)
+        self._headers.extend(headers)
+        self._protocol.response_file(status, self._headers, file)
 
     def response_stream(
         self, status: int, headers: typing.Tuple[str, str]
     ) -> typing.Any:
         self._status_code = status
-        self._headers = headers
-        return self._protocol.response_stream(status, headers)
+        self._headers.extend(headers)
+        return self._protocol.response_stream(status, self._headers)
 
 
 class Address(typing.NamedTuple):
