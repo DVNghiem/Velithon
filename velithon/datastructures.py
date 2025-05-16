@@ -7,16 +7,19 @@ from velithon._utils import run_in_threadpool, RequestIDGenerator
 
 request_id_generator = RequestIDGenerator()
 
+
 class Scope:
     """
     Wrapper for the RSGI scope object.
     """
+
     __slots__ = (
         "_scope",
         "_path_params",
         "_request_id",
         "_di_context",
     )
+
     def __init__(self, scope: RSGIScope) -> None:
         self._scope = scope
         # extend the scope with additional properties
@@ -27,42 +30,53 @@ class Scope:
     @property
     def proto(self) -> typing.Literal["http", "websocket"]:
         return self._scope.proto
+
     @property
     def rsgi_version(self) -> str:
         return self._scope.rsgi_version
+
     @property
     def http_version(self) -> str:
         return self._scope.http_version
+
     @property
     def server(self) -> str:
         return self._scope.server
+
     @property
     def client(self) -> str:
         return self._scope.client
+
     @property
     def scheme(self) -> str:
         return self._scope.scheme
+
     @property
     def method(self) -> str:
         return self._scope.method
+
     @property
     def path(self) -> str:
         return self._scope.path
+
     @property
     def query_string(self) -> str:
         return self._scope.query_string
+
     @property
     def headers(self) -> typing.MutableMapping[str, str]:
         return self._scope.headers
+
     @property
     def authority(self) -> typing.Optional[str]:
         return self._scope.authority
+
     @property
     def path_params(self) -> typing.Mapping[str, str]:
         return self._path_params
 
-class Protocol:
 
+class Protocol:
     __slots__ = (
         "_protocol",
         "_status_code",
@@ -76,38 +90,47 @@ class Protocol:
 
     async def __call__(self, *args, **kwds) -> bytes:
         return await self._protocol(*args, **kwds)
+
     async def __aiter__(self) -> typing.AsyncIterator[bytes]:
         return await self._protocol.__aiter__()
+
     async def client_disconnect(self) -> None:
         await self._protocol.client_disconnect()
+
     def response_empty(self, status: int, headers: typing.Tuple[str, str]) -> None:
         self._status_code = status
         self._headers = headers
         self._protocol.response_empty(status, headers)
+
     def response_str(
         self, status: int, headers: typing.Tuple[str, str], body: str
     ) -> None:
         self._status_code = status
         self._headers = headers
         self._protocol.response_str(status, headers, body)
+
     def response_bytes(
         self, status: int, headers: typing.Tuple[str, str], body: bytes
     ) -> None:
         self._status_code = status
         self._headers = headers
         self._protocol.response_bytes(status, headers, body)
+
     def response_file(
         self, status: int, headers: typing.Tuple[str, str], file: typing.Any
     ) -> None:
         self._status_code = status
         self._headers = headers
         self._protocol.response_file(status, headers, file)
+
     def response_stream(
         self, status: int, headers: typing.Tuple[str, str]
-    ) -> typing.Any: 
+    ) -> typing.Any:
         self._status_code = status
         self._headers = headers
         return self._protocol.response_stream(status, headers)
+
+
 class Address(typing.NamedTuple):
     host: str
     port: int
@@ -208,7 +231,12 @@ class URL:
         return self.scheme in ("https", "wss")
 
     def replace(self, **kwargs: typing.Any) -> URL:
-        if "username" in kwargs or "password" in kwargs or "hostname" in kwargs or "port" in kwargs:
+        if (
+            "username" in kwargs
+            or "password" in kwargs
+            or "hostname" in kwargs
+            or "port" in kwargs
+        ):
             hostname = kwargs.pop("hostname", None)
             port = kwargs.pop("port", self.port)
             username = kwargs.pop("username", self.username)
@@ -277,6 +305,7 @@ class URLPath(str):
         path = base_url.path.rstrip("/") + str(self)
         return URL(scheme=scheme, netloc=netloc, path=path)
 
+
 class ImmutableMultiDict(typing.Mapping[_KeyType, _CovariantValueType]):
     _dict: dict[_KeyType, _CovariantValueType]
 
@@ -291,12 +320,17 @@ class ImmutableMultiDict(typing.Mapping[_KeyType, _CovariantValueType]):
 
         value: typing.Any = args[0] if args else []
         if kwargs:
-            value = ImmutableMultiDict(value).multi_items() + ImmutableMultiDict(kwargs).multi_items()
+            value = (
+                ImmutableMultiDict(value).multi_items()
+                + ImmutableMultiDict(kwargs).multi_items()
+            )
 
         if not value:
             _items: list[tuple[typing.Any, typing.Any]] = []
         elif hasattr(value, "multi_items"):
-            value = typing.cast(ImmutableMultiDict[_KeyType, _CovariantValueType], value)
+            value = typing.cast(
+                ImmutableMultiDict[_KeyType, _CovariantValueType], value
+            )
             _items = list(value.multi_items())
         elif hasattr(value, "items"):
             value = typing.cast(typing.Mapping[_KeyType, _CovariantValueType], value)
@@ -393,7 +427,9 @@ class MultiDict(ImmutableMultiDict[typing.Any, typing.Any]):
 
     def update(
         self,
-        *args: MultiDict | typing.Mapping[typing.Any, typing.Any] | list[tuple[typing.Any, typing.Any]],
+        *args: MultiDict
+        | typing.Mapping[typing.Any, typing.Any]
+        | list[tuple[typing.Any, typing.Any]],
         **kwargs: typing.Any,
     ) -> None:
         value = MultiDict(*args, **kwargs)
@@ -423,7 +459,9 @@ class QueryParams(ImmutableMultiDict[str, str]):
         if isinstance(value, str):
             super().__init__(parse_qsl(value, keep_blank_values=True), **kwargs)
         elif isinstance(value, bytes):
-            super().__init__(parse_qsl(value.decode("latin-1"), keep_blank_values=True), **kwargs)
+            super().__init__(
+                parse_qsl(value.decode("latin-1"), keep_blank_values=True), **kwargs
+            )
         else:
             super().__init__(*args, **kwargs)  # type: ignore[arg-type]
         self._list = [(str(k), str(v)) for k, v in self._list]
@@ -503,7 +541,9 @@ class FormData(ImmutableMultiDict[str, typing.Union[UploadFile, str]]):
 
     def __init__(
         self,
-        *args: FormData | typing.Mapping[str, str | UploadFile] | list[tuple[str, str | UploadFile]],
+        *args: FormData
+        | typing.Mapping[str, str | UploadFile]
+        | list[tuple[str, str | UploadFile]],
         **kwargs: str | UploadFile,
     ) -> None:
         super().__init__(*args, **kwargs)
@@ -560,10 +600,10 @@ class Headers(typing.Mapping[str, str]):
 
     def __iter__(self) -> typing.Iterator[typing.Any]:
         return iter(self.keys())
-    
+
     def __len__(self) -> int:
         return len(self._list)
-    
+
     def __setitem__(self, key: str, value: str) -> None:
         """
         Set the header `key` to `value`, removing any duplicate entries.
@@ -586,3 +626,68 @@ class Headers(typing.Mapping[str, str]):
             self._list.append((key, value))
 
 
+class FunctionInfo:
+    def __init__(
+        self,
+        func: typing.Callable[..., typing.Any],
+        args: typing.Tuple[typing.Any, ...] | None = None,
+        kwargs: typing.Dict[str, typing.Any] | None = None,
+        is_async: bool = False,
+        priority: int = 0,
+    ):
+        self.func = func
+        self.args = args or ()
+        self.kwargs = kwargs or {}
+        self.is_async = is_async
+        self.priority = priority
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(func={self.func}, args={self.args}, kwargs={self.kwargs}, is_async={self.is_async}, priority={self.priority})"
+
+    def __hash__(self) -> int:
+        return hash(
+            (
+                self.func,
+                self.args,
+                frozenset(self.kwargs.items()),
+                self.is_async,
+                self.priority,
+            )
+        )
+    
+    def __eq__(self, other: FunctionInfo) -> bool:
+        if not isinstance(other, self.__class__):
+            return False
+        # check from __hash__ method
+        return self.__hash__() == other.__hash__()
+        
+    def __lt__(self, other: FunctionInfo) -> bool:
+        if not isinstance(other, FunctionInfo):
+            return NotImplemented
+        return self.priority < other.priority
+
+    def __le__(self, other: FunctionInfo) -> bool:
+        if not isinstance(other, FunctionInfo):
+            return NotImplemented
+        return self.priority <= other.priority
+
+    def __gt__(self, other: FunctionInfo) -> bool:
+        if not isinstance(other, FunctionInfo):
+            return NotImplemented
+        return self.priority > other.priority
+
+    def __ge__(self, other: FunctionInfo) -> bool:
+        if not isinstance(other, FunctionInfo):
+            return NotImplemented
+        return self.priority >= other.priority
+
+    def __ne__(self, other: typing.Any) -> bool:
+        if not isinstance(other, self.__class__):
+            return True
+        return not self == other
+
+    def __call__(self):
+        if self.is_async:
+            return self.func(*self.args, **self.kwargs)
+        else:
+            return run_in_threadpool(self.func, *self.args, **self.kwargs)

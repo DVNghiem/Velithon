@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from typing import (
     Annotated,
@@ -10,10 +11,14 @@ from typing import (
     TypeVar,
 )
 
+import granian
+import granian.http
 from typing_extensions import Doc
 
-from velithon.datastructures import Protocol, Scope
+from velithon._utils import is_async_callable
+from velithon.datastructures import FunctionInfo, Protocol, Scope
 from velithon.di import ServiceContainer
+from velithon.logging import configure_logger
 from velithon.middleware import Middleware
 from velithon.middleware.di import DIMiddleware
 from velithon.middleware.logging import LoggingMiddleware
@@ -23,9 +28,6 @@ from velithon.requests import Request
 from velithon.responses import HTMLResponse, JSONResponse, Response
 from velithon.routing import BaseRoute, Router
 from velithon.types import RSGIApp
-import granian
-import granian.http
-from velithon.logging import configure_logger
 
 AppType = TypeVar("AppType", bound="Velithon")
 
@@ -295,6 +297,8 @@ class Velithon:
         self.contact = contact
         self.license_info = license_info
         self.tags = tags or []
+        self.startup_functions: List[FunctionInfo] = []
+        self.shutdown_functions: List[FunctionInfo] = []
 
         self.setup()
 
@@ -420,6 +424,87 @@ class Velithon:
             description=description,
             tags=tags,
         )
+
+    def on_startup(self, priority: int = 0) -> None:
+        """
+        This decorator is used to register a function to be called on startup.
+        The function can be either synchronous or asynchronous.
+        The function will be called with the application instance as the first
+        argument.
+        The function will be called in the order of priority, with lower
+        priority functions being called first.
+        Args:
+            priority: The priority of the function. Lower numbers are called first.
+        """
+
+        def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+            is_async = is_async_callable(func)
+            function_info = FunctionInfo(
+                func=func,
+                is_async=is_async,
+                priority=priority,
+            )
+            self.startup_functions.append(function_info)
+            self.startup_functions.sort()
+
+        return decorator
+
+    def on_shutdown(self, priority: int = 0) -> None:
+        """
+        This decorator is used to register a function to be called on shutdown.
+        The function can be either synchronous or asynchronous.
+        The function will be called with the application instance as the first
+        argument.
+        The function will be called in the order of priority, with lower
+        priority functions being called first.
+
+        Args:
+            priority: The priority of the function. Lower numbers are called first.
+
+        """
+
+        def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+            is_async = is_async_callable(func)
+            function_info = FunctionInfo(
+                func=func,
+                is_async=is_async,
+                priority=priority,
+            )
+            self.shutdown_functions.append(function_info)
+            self.shutdown_functions.sort()
+
+        return decorator
+
+    def __rsgi_init__(self, loop: asyncio.AbstractEventLoop) -> None:
+        """
+        This method is called when the server is initialized.
+        It is used to set up the server and perform any necessary
+        Arg:
+            loop: The event loop to be used by the server.
+
+        ```python
+        some_sync_init_task()
+        loop.run_until_complete(some_async_init_task())
+        ```
+        """
+        for function_info in self.startup_functions:
+            loop.run_until_complete(function_info())
+        # freeze the memory
+        del self.startup_functions
+
+    def __rsgi_del__(self, loop: asyncio.AbstractEventLoop) -> None:
+        """
+        This method is called when the server is shutting down.
+        It is used to clean up the server and perform any necessary
+        Arg:
+            loop: The event loop to be used by the server.
+        ```python
+        some_sync_init_task()
+        loop.run_until_complete(some_async_init_task())
+        ```
+        """
+        for function_info in self.shutdown_functions:
+            loop.run_until_complete(function_info())
 
     def _serve(
         self,
