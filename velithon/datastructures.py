@@ -24,7 +24,7 @@ class Scope:
         self._scope = scope
         # extend the scope with additional properties
         self._path_params = {}
-        self.request_id = request_id_generator.generate()
+        self._request_id = request_id_generator.generate()
         self._di_context = {}
 
     @property
