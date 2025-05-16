@@ -276,7 +276,6 @@ def run(
             raise ImportFromStringError(
                 f"'{app}' is not a callable application instance."
             )
-        print(app_instance)
         app_instance._serve(
             app,
             host,
