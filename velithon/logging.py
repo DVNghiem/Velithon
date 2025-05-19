@@ -36,19 +36,14 @@ class TextFormatter(logging.Formatter):
 
         # check if any of the extra fields are present in the record
         # and only then create the extra_parts list
-        has_extra = any(hasattr(record, field) for field in self.EXTRA_FIELDS)
-        if has_extra:
-            # create a list of extra fields to include in the log message
-            extra_parts = []
-            for field in self.EXTRA_FIELDS:
-                if hasattr(record, field):
-                    value = getattr(record, field)
-                    if value is not None:
-                        extra_parts.append(f"{field}={value}")
-            
-            # Only include extra_parts if they are not empty
-            if extra_parts:
-                msg = f"{msg} | {', '.join(extra_parts)}"
+        extra_parts = (
+            f"{field}={value}"
+            for field in self.EXTRA_FIELDS
+            if (value := getattr(record, field, None)) is not None
+        )
+
+        if extra_parts:
+            msg = f"{msg} | {', '.join(extra_parts)}"
                 
         return msg
 
