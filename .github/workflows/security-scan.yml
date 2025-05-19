@@ -52,8 +52,6 @@ jobs:
       # GitGuardian - Scan for secrets
       - name: GitGuardian scan
         uses: GitGuardian/ggshield/actions/secret@v1.39.0
-        with:
-          fetch-depth: 0
         env:
           GITHUB_PUSH_BEFORE: ${{ github.event.before }}
           GITHUB_PUSH_BASE_SHA: ${{ github.event.base }}
