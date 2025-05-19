@@ -27,7 +27,7 @@ class LoggingMiddleware:
             await self.app(scope, protocol)
             duration_ms = (time.time() - start_time) * 1000
         except Exception as e:
-            if logger.level == logging.DEBUG:
+            if  logger.getEffectiveLevel() == logging.DEBUG:
                 traceback.print_exc()
             duration_ms = (time.time() - start_time) * 1000
             error_msg = ""

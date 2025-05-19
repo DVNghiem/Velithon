@@ -1,9 +1,4 @@
 from .base import HTTPException, ResponseFormatter, VelithonError
-from .common import (
-    DBFieldValidationError,
-    InvalidPortNumber,
-    OutOfScopeApplicationException,
-)
 from .errors import ErrorDefinitions
 from .formatters import DetailedFormatter, LocalizedFormatter, SimpleFormatter
 from .http import (
@@ -34,9 +29,6 @@ __all__ = [
     "ValidationException",
     "InternalServerException",
     "RateLimitException",
-    "DBFieldValidationError",
-    "InvalidPortNumber",
-    "OutOfScopeApplicationException",
     "InvalidMediaTypeException",
     "UnsupportParameterException",
     "MultiPartException"
