@@ -1,6 +1,7 @@
 import logging
 import time
 import traceback
+from typing import Optional
 
 from velithon.datastructures import Protocol, Scope
 from velithon.exceptions import HTTPException
@@ -10,27 +11,24 @@ logger = logging.getLogger(__name__)
 
 
 class LoggingMiddleware:
-    def __init__(self, app):
+    def __init__(self, app, enable_performance_logging: bool = True):
         self.app = app
+        self.enable_performance_logging = enable_performance_logging
+        self.is_debug = logger.isEnabledFor(logging.DEBUG)
 
     async def __call__(self, scope: Scope, protocol: Protocol):
-        start_time = time.time()
-        request_id = scope._request_id
-        client_ip = scope.client
-        method = scope.method
-        path = scope.path
-        user_agent = scope.headers.get("user-agent", "")
+        # Only measure time if performance logging is enabled
+        start_time = time.perf_counter() if self.enable_performance_logging else 0
         status_code = 200
-        message = "Processed %s %s"
+        error_msg: Optional[dict] = None
 
         try:
             await self.app(scope, protocol)
-            duration_ms = (time.time() - start_time) * 1000
         except Exception as e:
-            if  logger.getEffectiveLevel() == logging.DEBUG:
+            # Only print traceback in debug mode (check once at init for better performance)
+            if self.is_debug:
                 traceback.print_exc()
-            duration_ms = (time.time() - start_time) * 1000
-            error_msg = ""
+            
             status_code = 500
             if isinstance(e, HTTPException):
                 error_msg = e.to_dict()
@@ -40,22 +38,29 @@ class LoggingMiddleware:
                     "message": str(e),
                     "error_code": "INTERNAL_SERVER_ERROR",
                 }
+            
             response = JSONResponse(
                 content=error_msg,
-                status_code=500,
+                status_code=status_code,  # Use correct status code
             )
             await response(scope, protocol)
-        logger.info(
-            message,
-            method,
-            path,
-            extra={
-                "request_id": request_id,
-                "method": method,
-                "user_agent": user_agent,
-                "path": path,
-                "client_ip": client_ip,
-                "duration_ms": round(duration_ms, 5),
-                "status": status_code,
-            },
-        )
+
+        # Fast path: only log if performance logging is enabled
+        if self.enable_performance_logging:
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            
+            # Use format strings for better performance
+            logger.info(
+                "Processed %s %s",
+                scope.method,
+                scope.path,
+                extra={
+                    "request_id": scope._request_id,
+                    "method": scope.method,
+                    "user_agent": scope.headers.get("user-agent", ""),
+                    "path": scope.path,
+                    "client_ip": scope.client,
+                    "duration_ms": round(duration_ms, 3),  # Less precision for better performance
+                    "status": status_code,
+                },
+            )
