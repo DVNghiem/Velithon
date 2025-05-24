@@ -9,8 +9,7 @@ if sys.version_info >= (3, 10):  # pragma: no cover
 else:  # pragma: no cover
     from typing_extensions import ParamSpec
 
-if typing.TYPE_CHECKING:  # pragma: no cover
-    from velithon._utils import is_async_callable, run_in_threadpool
+from velithon._utils import is_async_callable, run_in_threadpool
 
 P = ParamSpec("P")
 
