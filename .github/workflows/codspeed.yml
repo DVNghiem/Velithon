@@ -37,4 +37,4 @@ jobs:
           token: ${{ secrets.CODSPEED_TOKEN }}
           run: |
             cd $GITHUB_WORKSPACE
-            poetry run pytest tests/test_benchmark_codspeed.py --codspeed
+            poetry run pytest --codspeed
