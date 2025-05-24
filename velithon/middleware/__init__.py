@@ -12,7 +12,20 @@ else:  # pragma: no cover
 
 from velithon.types import RSGIApp
 
+# Import middleware classes for easier discovery
+from velithon.middleware.compression import CompressionMiddleware, CompressionLevel
+from velithon.middleware.cors import CORSMiddleware
+from velithon.middleware.logging import LoggingMiddleware
+
 P = ParamSpec("P")
+
+__all__ = [
+    "Middleware",
+    "CompressionMiddleware", 
+    "CompressionLevel",
+    "CORSMiddleware",
+    "LoggingMiddleware",
+]
 
 
 class _MiddlewareFactory(Protocol[P]):
