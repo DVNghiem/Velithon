@@ -316,9 +316,9 @@ def run(
         )
 
     except ValueError as e:
-        logging.error(f"Error: {str(e)}", err=True)
+        logging.error(f"Error: {str(e)}")
     except Exception as e:
-        logging.error(f"Failed to start server: {str(e)}", err=True)
+        logging.error(f"Failed to start server: {str(e)}")
 
 
 if __name__ == "__main__":
