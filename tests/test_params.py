@@ -29,7 +29,7 @@ def test_inject_query_item_success(session):
 @pytest.mark.benchmark
 def test_inject_query_item_fail(session):
     res = get("/inject/query/item?description=test")
-    assert 500 == res.status_code
+    assert 400 == res.status_code
 
 # InjectPathEndpoint
 @pytest.mark.benchmark
