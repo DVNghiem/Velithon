@@ -18,6 +18,7 @@ class Scope:
         "_path_params",
         "_request_id",
         "_di_context",
+        "_session",
     )
 
     def __init__(self, scope: RSGIScope) -> None:
@@ -26,6 +27,7 @@ class Scope:
         self._path_params = {}
         self._request_id = request_id_generator.generate()
         self._di_context = {}
+        self._session = None
 
     @property
     def proto(self) -> typing.Literal["http", "websocket"]:

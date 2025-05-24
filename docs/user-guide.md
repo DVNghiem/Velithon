@@ -33,7 +33,8 @@ Velithon is a lightweight, high-performance, asynchronous web framework for Pyth
 - **File Uploads**: Comprehensive file upload and form parsing with configurable limits
 - **Background Tasks**: Execute tasks asynchronously after response with concurrency control
 - **WebSocket Support**: Full WebSocket support with connection management and routing integration
-- **Middleware**: Built-in middleware for logging, CORS, compression, and custom middleware support
+- **Middleware**: Built-in middleware for logging, CORS, compression, sessions, and custom middleware support
+- **Session Support**: Multiple session backends (memory, signed cookies) with secure HMAC signing
 - **Lifecycle Management**: Application startup and shutdown hooks
 - **Command Line Interface**: Flexible CLI for running applications
 - **OpenAPI Support**: Automatic API documentation generation
@@ -823,6 +824,127 @@ The compression middleware will:
 - `CompressionLevel.FASTEST` (1): Fastest compression, larger file size
 - `CompressionLevel.BALANCED` (6): Balanced speed and compression ratio (default)
 - `CompressionLevel.BEST` (9): Best compression, slower speed
+
+#### Session Middleware
+
+Provides session support with multiple backend options for storing session data:
+
+```python
+from velithon.middleware.session import SessionMiddleware
+
+# Memory-based sessions (default)
+app = Velithon(
+    middleware=[
+        Middleware(
+            SessionMiddleware,
+            secret_key="your-secret-key"  # Required for signed cookies
+        )
+    ]
+)
+
+# Cookie-based sessions (signed with HMAC)
+app = Velithon(
+    middleware=[
+        Middleware(
+            SessionMiddleware,
+            secret_key="your-secret-key",
+            session_interface="cookie",  # Use signed cookies
+            max_age=3600,  # Session expires in 1 hour
+            cookie_name="session",  # Custom cookie name
+            cookie_path="/",  # Cookie path
+            cookie_domain=None,  # Cookie domain
+            cookie_secure=False,  # HTTPS only
+            cookie_httponly=True,  # HTTP only (no JavaScript access)
+            cookie_samesite="lax"  # SameSite policy
+        )
+    ]
+)
+```
+
+**Using sessions in your endpoints:**
+
+```python
+@app.get("/login")
+async def login(request: Request):
+    # Access session through request.session
+    session = request.session
+    
+    # Set session data
+    session["user_id"] = 123
+    session["username"] = "alice"
+    
+    return JSONResponse({"message": "Logged in"})
+
+@app.get("/profile")
+async def profile(request: Request):
+    # Read session data
+    user_id = request.session.get("user_id")
+    
+    if not user_id:
+        return JSONResponse({"error": "Not logged in"}, status_code=401)
+    
+    return JSONResponse({
+        "user_id": user_id,
+        "username": request.session.get("username")
+    })
+
+@app.post("/logout")
+async def logout(request: Request):
+    # Clear session data
+    request.session.clear()
+    return JSONResponse({"message": "Logged out"})
+```
+
+**Session backends:**
+
+- **Memory**: Fast in-memory storage (default). Data is lost when the server restarts.
+- **Signed Cookie**: Stores session data in browser cookies, signed with HMAC for security. Limited by browser cookie size (~4KB).
+
+**Custom session interface:**
+
+```python
+from velithon.middleware.session import SessionInterface, Session
+
+class RedisSessionInterface(SessionInterface):
+    def __init__(self, redis_client):
+        self.redis = redis_client
+    
+    async def load_session(self, session_id: str) -> Session:
+        data = await self.redis.get(f"session:{session_id}")
+        if data:
+            import json
+            return Session(json.loads(data), session_id=session_id)
+        return Session(session_id=session_id)
+    
+    async def save_session(self, session: Session) -> None:
+        if session.modified:
+            import json
+            await self.redis.setex(
+                f"session:{session.session_id}",
+                3600,  # 1 hour expiry
+                json.dumps(dict(session))
+            )
+
+# Use custom interface
+app = Velithon(
+    middleware=[
+        Middleware(
+            SessionMiddleware,
+            secret_key="your-secret-key",
+            session_interface=RedisSessionInterface(redis_client)
+        )
+    ]
+)
+```
+
+**Session features:**
+- Automatic session creation and management
+- Secure HMAC signing for cookie-based sessions
+- Configurable cookie settings (secure, httponly, samesite)
+- Session expiration support
+- Modification tracking (only saves when data changes)
+- Thread-safe memory storage
+- Easy access via `request.session`
 
 ### Custom Middleware
 
