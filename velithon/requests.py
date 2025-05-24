@@ -158,6 +158,15 @@ class Request(HTTPConnection):
     def method(self) -> str:
         return self.scope.method
 
+    @property
+    def session(self):
+        """Access session data. Returns empty dict if session middleware not enabled."""
+        if hasattr(self.scope, '_session'):
+            return self.scope._session
+        # Return empty dict-like object if session middleware is not enabled
+        from velithon.middleware.session import Session
+        return Session()
+
     async def stream(self) -> typing.AsyncGenerator[bytes, None]:
         if hasattr(self, "_body"):
             yield self._body
