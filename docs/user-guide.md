@@ -33,7 +33,7 @@ Velithon is a lightweight, high-performance, asynchronous web framework for Pyth
 - **File Uploads**: Comprehensive file upload and form parsing with configurable limits
 - **Background Tasks**: Execute tasks asynchronously after response with concurrency control
 - **WebSocket Support**: Full WebSocket support with connection management and routing integration
-- **Middleware**: Built-in middleware for logging, CORS, and custom middleware support
+- **Middleware**: Built-in middleware for logging, CORS, compression, and custom middleware support
 - **Lifecycle Management**: Application startup and shutdown hooks
 - **Command Line Interface**: Flexible CLI for running applications
 - **OpenAPI Support**: Automatic API documentation generation
@@ -787,6 +787,42 @@ app = Velithon(
     ]
 )
 ```
+
+#### Compression Middleware
+
+Automatically compress HTTP responses using gzip compression:
+
+```python
+from velithon.middleware.compression import CompressionMiddleware, CompressionLevel
+
+app = Velithon(
+    middleware=[
+        Middleware(
+            CompressionMiddleware,
+            minimum_size=500,  # Only compress responses >= 500 bytes
+            compression_level=CompressionLevel.BALANCED,  # Compression level
+            compressible_types={  # Custom content types to compress
+                "application/json",
+                "text/html", 
+                "text/css",
+                "application/javascript"
+            }
+        )
+    ]
+)
+```
+
+The compression middleware will:
+- Only compress responses for clients that accept gzip encoding
+- Only compress responses above the minimum size threshold (default: 500 bytes)
+- Only compress responses with compressible content types
+- Add appropriate `Content-Encoding` and `Vary` headers
+- Automatically update the `Content-Length` header
+
+**Compression levels:**
+- `CompressionLevel.FASTEST` (1): Fastest compression, larger file size
+- `CompressionLevel.BALANCED` (6): Balanced speed and compression ratio (default)
+- `CompressionLevel.BEST` (9): Best compression, slower speed
 
 ### Custom Middleware
 
