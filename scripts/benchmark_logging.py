@@ -21,7 +21,11 @@ class MockScope:
 
 class MockProtocol:
     def __init__(self):
-        pass
+        self.responses = []
+        
+    def response_bytes(self, status: int, headers: tuple, body: bytes) -> None:
+        """Mock response_bytes method"""
+        self.responses.append({"status": status, "headers": headers, "body": body})
 
 @dataclass
 class BenchmarkResult:
