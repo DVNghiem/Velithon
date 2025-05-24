@@ -2,7 +2,7 @@ import inspect
 import functools
 import re
 from enum import Enum
-from typing import Annotated, Any, Callable, Dict, Pattern, Sequence, Tuple, TypeVar, Awaitable, Type
+from typing import Annotated, Any, Callable, Dict, Pattern, Sequence, Tuple, TypeVar, Awaitable, Type, TYPE_CHECKING
 
 from typing_extensions import Doc
 
@@ -15,6 +15,9 @@ from velithon.requests import Request
 from velithon.datastructures import Protocol, Scope
 from velithon.types import RSGIApp
 from velithon.params.dispatcher import dispatch
+
+if TYPE_CHECKING:
+    from velithon.websocket import WebSocket, WebSocketEndpoint
 
 T = TypeVar("T")
 # Match parameters in URL paths, eg. '{param}', and '{param:int}'
@@ -636,3 +639,35 @@ class Router:
             include_in_schema=include_in_schema,
             summary=summary,
         )
+    
+    def add_websocket_route(
+        self,
+        path: str,
+        endpoint: Any,
+        name: str | None = None,
+    ) -> None:
+        """Add a WebSocket route to the router."""
+        from velithon.websocket import WebSocketRoute
+        route = WebSocketRoute(path, endpoint, name)
+        self.routes.append(route)
+
+    def websocket(
+        self,
+        path: str,
+        *,
+        name: str | None = None,
+    ) -> Callable[[Any], Any]:
+        """
+        Decorator to add a WebSocket route.
+        
+        Args:
+            path: The WebSocket path pattern
+            name: Optional name for the route
+            
+        Returns:
+            Decorator function
+        """
+        def decorator(func: Any) -> Any:
+            self.add_websocket_route(path, func, name)
+            return func
+        return decorator

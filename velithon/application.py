@@ -425,6 +425,33 @@ class Velithon:
             tags=tags,
         )
 
+    def add_websocket_route(
+        self,
+        path: str,
+        endpoint: Any,
+        name: str | None = None,
+    ) -> None:
+        """Add a WebSocket route to the application."""
+        self.router.add_websocket_route(path, endpoint, name)
+
+    def websocket(
+        self,
+        path: str,
+        *,
+        name: str | None = None,
+    ) -> Callable[[Any], Any]:
+        """
+        Decorator to add a WebSocket route to the application.
+
+        Args:
+            path: The WebSocket path pattern
+            name: Optional name for the route
+
+        Returns:
+            Decorator function
+        """
+        return self.router.websocket(path, name=name)
+
     def on_startup(self, priority: int = 0) -> None:
         """
         This decorator is used to register a function to be called on startup.
