@@ -27,6 +27,7 @@ class TextFormatter(logging.Formatter):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._time_fmt = "%Y-%m-%d %H:%M:%S"
+        self._cache = {}
         
     def format(self, record):
         """Format log records with custom formatting."""
@@ -34,14 +35,22 @@ class TextFormatter(logging.Formatter):
         
         msg = f"{asctime}.{int(record.msecs):03d} | {record.levelname:<8} | {record.name}:{record.lineno} - {record.getMessage()}"
 
-        # check if any of the extra fields are present in the record
-        # and only then create the extra_parts list
-        extra_parts = (
-            f"{field}={value}"
-            for field in self.EXTRA_FIELDS
-            if (value := getattr(record, field, None)) is not None
-        )
-
+        # Use record.__dict__ directly for faster attribute access
+        # and cache the extra fields that exist in the record
+        if record.name not in self._cache:
+            self._cache[record.name] = [field for field in self.EXTRA_FIELDS if hasattr(record, field)]
+        
+        extra_fields = self._cache[record.name]
+        if not extra_fields:
+            return msg
+            
+        # Pre-allocate the extra parts for better performance
+        extra_parts = []
+        for field in extra_fields:
+            value = getattr(record, field, None)
+            if value is not None:
+                extra_parts.append(f"{field}={value}")
+                
         if extra_parts:
             msg = f"{msg} | {', '.join(extra_parts)}"
                 
@@ -49,7 +58,25 @@ class TextFormatter(logging.Formatter):
 
 
 class JsonFormatter(logging.Formatter):
+    # Pre-define the fields we want to extract to avoid checking the whole __dict__
+    EXTRA_FIELDS = [
+        "request_id",
+        "method",
+        "path",
+        "client_ip",
+        "query_params",
+        "headers",
+        "duration_ms",
+        "status",
+        "response_headers",
+    ]
+    
+    def __init__(self):
+        super().__init__()
+        self._cache = {}
+    
     def format(self, record):
+        # Base structure that's always included
         log_entry = {
             "timestamp": datetime.fromtimestamp(
                 record.created, tz=timezone.utc
@@ -59,23 +86,17 @@ class JsonFormatter(logging.Formatter):
             "module": record.name,
             "line": record.lineno,
         }
-        extra_fields = {
-            k: v
-            for k, v in record.__dict__.items()
-            if k
-            in [
-                "request_id",
-                "method",
-                "path",
-                "client_ip",
-                "query_params",
-                "headers",
-                "duration_ms",
-                "status",
-                "response_headers",
-            ]
-        }
-        log_entry.update(extra_fields)
+        
+        # Cache which fields exist for each record name to avoid repeatedly checking
+        if record.name not in self._cache:
+            self._cache[record.name] = [field for field in self.EXTRA_FIELDS if hasattr(record, field)]
+            
+        # Add only the fields that exist in this record type
+        for field in self._cache[record.name]:
+            value = getattr(record, field, None)
+            if value is not None:
+                log_entry[field] = value
+                
         return orjson.dumps(log_entry).decode("utf-8")
 
 
@@ -113,40 +134,44 @@ def configure_logger(
     max_bytes: int = 10 * 1024 * 1024,
     backup_count: int = 7,
 ):
-    level = getattr(logging, level, logging.INFO)
+    # Convert string level to numeric level once
+    level_value = getattr(logging, level, logging.INFO)
 
+    # Configure the main logger
     logger = logging.getLogger("velithon")
-    logger.setLevel(level)
+    logger.setLevel(level_value)
     logger.handlers.clear()
-    logger.propagate = True
+    
+    # Only propagate if we're not at the root level
+    logger.propagate = logger.name != ""
 
-    # disable all logging from the velithon package
+    # Disable unnecessary loggers
     for name in ["", "granian", "granian.access"]:
         velithon_logger = logging.getLogger(name)
         velithon_logger.handlers.clear()
         velithon_logger.propagate = False
+        # Set to critical+1 to effectively disable
         velithon_logger.setLevel(logging.CRITICAL + 1)
 
-    # Formatter
-    text_formatter = TextFormatter()
-    json_formatter = JsonFormatter()
+    # Create formatters - lazily instantiate based on format_type
+    formatter = TextFormatter() if format_type == "text" else JsonFormatter()
 
     # Console handler
     console_handler = logging.StreamHandler(sys.stderr)
-    console_handler.setLevel(level)
+    console_handler.setLevel(level_value)
     console_handler.addFilter(VelithonFilter())
-    console_handler.setFormatter(
-        text_formatter if format_type == "text" else json_formatter
-    )
+    console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
 
-    # File handler
+    # File handler - only create if needed
     if log_to_file:
         file_handler = ZipRotatingFileHandler(
             log_file, maxBytes=max_bytes, backupCount=backup_count
         )
-        file_handler.setLevel(level)
+        file_handler.setLevel(level_value)
         file_handler.addFilter(VelithonFilter())
-        file_handler.setFormatter(json_formatter)
-    else:
-        file_handler = None
+        # Always use JSON for file logging
+        file_handler.setFormatter(JsonFormatter())
+        logger.addHandler(file_handler)
+        
+    return logger
