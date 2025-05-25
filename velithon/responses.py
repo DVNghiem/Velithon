@@ -15,9 +15,34 @@ import anyio
 
 from velithon.background import BackgroundTask
 from velithon._utils import iterate_in_threadpool
+
+# Try importing selective optimizations
+try:
+    from .selective_optimizations import optimized_json_response
+    HAS_SELECTIVE_OPTIMIZATIONS = True
+except ImportError:
+    HAS_SELECTIVE_OPTIMIZATIONS = False
+
+# Try importing advanced optimizations (fallback)
+try:
+    from .advanced_optimizations import get_json_encoder, get_response_cache
+    _optimized_json_encoder = get_json_encoder()
+    _response_cache = get_response_cache()
+    HAS_OPTIMIZATIONS = True
+except ImportError:
+    HAS_OPTIMIZATIONS = False
 from velithon.datastructures import URL, Headers
 from velithon.datastructures import Scope, Protocol 
 from contextlib import contextmanager
+
+# Import advanced optimizations
+try:
+    from velithon.advanced_optimizations import get_json_encoder, get_response_cache
+    _optimized_json_encoder = get_json_encoder()
+    _response_cache = get_response_cache()
+    HAS_OPTIMIZATIONS = True
+except ImportError:
+    HAS_OPTIMIZATIONS = False
 
 import sys
 
@@ -191,10 +216,27 @@ class JSONResponse(Response):
         super().__init__(content, status_code, headers, media_type, background)
 
     def render(self, content: typing.Any) -> bytes:
-        return orjson.dumps(
-            content,
-            option=orjson.OPT_NON_STR_KEYS | orjson.OPT_SERIALIZE_NUMPY
-        )
+        # Use selective optimizations if available (preferred)
+        if HAS_SELECTIVE_OPTIMIZATIONS:
+            return optimized_json_response(content)
+        # Fallback to advanced optimizations
+        elif HAS_OPTIMIZATIONS:
+            # Create cache key for response caching
+            cache_key = str(hash(str(content)))
+            cached_response = _response_cache.get(cache_key)
+            if cached_response is not None:
+                return cached_response
+            
+            # Use optimized encoder
+            result = _optimized_json_encoder.encode(content)
+            _response_cache.put(cache_key, result)
+            return result
+        else:
+            # Final fallback to orjson
+            return orjson.dumps(
+                content,
+                option=orjson.OPT_NON_STR_KEYS | orjson.OPT_SERIALIZE_NUMPY
+            )
 
 
 class RedirectResponse(Response):

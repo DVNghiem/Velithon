@@ -1,4 +1,5 @@
 import logging
+import threading
 from asyncio import Lock
 from contextvars import ContextVar
 from functools import wraps
@@ -14,12 +15,21 @@ current_scope: ContextVar[Optional[Scope]] = ContextVar("current_scope", default
 
 # Cache for storing signatures to avoid repeated inspect.signature calls
 _signature_cache: Dict[Callable, Any] = {}
-
+_signature_cache_lock = threading.Lock()
 
 def cached_signature(func: Callable) -> Any:
-    """Cache the signature of a function or class to avoid repeated inspection."""
+    """Cache the signature of a function or class to avoid repeated inspection - OPTIMIZED."""
+    # Use double-checked locking pattern for thread safety
     if func not in _signature_cache:
-        _signature_cache[func] = signature(func)
+        with _signature_cache_lock:
+            if func not in _signature_cache:
+                _signature_cache[func] = signature(func)
+                # Prevent unbounded cache growth
+                if len(_signature_cache) > 1000:
+                    # Remove oldest 20% of entries
+                    keys_to_remove = list(_signature_cache.keys())[:200]
+                    for key in keys_to_remove:
+                        _signature_cache.pop(key, None)
     return _signature_cache[func]
 
 

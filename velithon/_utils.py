@@ -6,17 +6,25 @@ import concurrent.futures
 import time
 import random
 import threading
+import os
 
 
 T = typing.TypeVar("T")
 
-# Allows configuring the maximum number of threads, suitable for application needs. 
-# Reuse threadpool, reducing overhead when creating new ones.
+# OPTIMIZED: Better configured thread pool with optimal sizing
 _thread_pool = None
+_pool_lock = threading.Lock()
 
 def set_thread_pool():
     global _thread_pool
-    _thread_pool = concurrent.futures.ThreadPoolExecutor()
+    with _pool_lock:
+        if _thread_pool is None:
+            # Optimal thread count: CPU cores + 4 (for I/O bound tasks)
+            max_workers = min(32, (os.cpu_count() or 1) + 4)
+            _thread_pool = concurrent.futures.ThreadPoolExecutor(
+                max_workers=max_workers,
+                thread_name_prefix="velithon_optimized"
+            )
 
 def is_async_callable(obj: typing.Any) -> bool:
     if isinstance(obj, functools.partial):

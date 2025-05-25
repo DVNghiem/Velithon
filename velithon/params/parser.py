@@ -10,6 +10,15 @@ from pydantic import BaseModel, ValidationError
 from pydantic_core import PydanticUndefined
 from pydash import get
 
+# Performance optimization: Pre-compiled type converters
+_TYPE_CONVERTERS = {
+    int: int,
+    float: float,
+    str: str,
+    bool: lambda v: str(v).lower() in ("true", "1", "yes", "on"),
+    bytes: lambda v: v.encode() if isinstance(v, str) else v,
+}
+
 from velithon.datastructures import FormData, Headers, QueryParams, UploadFile
 from velithon.di import Provide
 from velithon.exceptions import BadRequestException, ValidationException, InvalidMediaTypeException, UnsupportParameterException
@@ -98,7 +107,7 @@ class ParameterResolver:
         default: Any,
         is_required: bool,
     ) -> Any:
-        """Parse primitive types (int, float, str, bool, bytes)."""
+        """Parse primitive types (int, float, str, bool, bytes) - OPTIMIZED."""
         value = data.get(param_name)
         if value is None:
             if default is not None and default is not ...:
@@ -109,14 +118,15 @@ class ParameterResolver:
                 )
 
         try:
-            type_map = {
-                int: int,
-                float: float,
-                bool: lambda v: v.lower() in ("true", "1", "yes"),
-                str: str,
-                bytes: lambda v: v[0] if isinstance(v, tuple) else v,
-            }
-            return type_map[annotation](value)
+            # Use optimized type converters
+            converter = _TYPE_CONVERTERS.get(annotation)
+            if converter:
+                return converter(value)
+            
+            # Fallback for bytes type
+            if annotation is bytes:
+                return value[0] if isinstance(value, tuple) else value
+            return annotation(value)
         except (ValueError, TypeError) as e:
             raise ValidationException(
                 details={
