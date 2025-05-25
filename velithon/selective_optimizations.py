@@ -1,10 +1,4 @@
-#!/usr/bin/env python3
-"""
-Selective Performance Optimizations for Velithon.
-Applies optimizations only where they provide net benefit.
-"""
 
-import functools
 import time
 import threading
 from typing import Any, Dict, Optional, Callable

@@ -329,20 +329,20 @@ class Velithon:
         middleware += self.user_middleware
         
         # Optimize middleware stack if optimizations are available
-        if HAS_MIDDLEWARE_OPTIMIZATIONS:
-            # Extract middleware classes for optimization
-            middleware_classes = [m.cls for m in middleware]
-            optimized_classes = _middleware_optimizer.optimize_middleware_stack(middleware_classes)
+        # if HAS_MIDDLEWARE_OPTIMIZATIONS:
+        #     # Extract middleware classes for optimization
+        #     middleware_classes = [m.cls for m in middleware]
+        #     optimized_classes = _middleware_optimizer.optimize_middleware_stack(middleware_classes)
             
-            # Rebuild middleware list with optimized order
-            optimized_middleware = []
-            for cls in optimized_classes:
-                # Find corresponding middleware with args/kwargs
-                for m in middleware:
-                    if m.cls == cls:
-                        optimized_middleware.append(m)
-                        break
-            middleware = optimized_middleware
+        #     # Rebuild middleware list with optimized order
+        #     optimized_middleware = []
+        #     for cls in optimized_classes:
+        #         # Find corresponding middleware with args/kwargs
+        #         for m in middleware:
+        #             if m.cls == cls:
+        #                 optimized_middleware.append(m)
+        #                 break
+        #     middleware = optimized_middleware
         
         app = self.router
         for cls, args, kwargs in reversed(middleware):

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import inspect
 import typing
+from functools import lru_cache
 
 from pydantic import BaseModel
 
@@ -13,29 +14,51 @@ from velithon.responses import JSONResponse, Response
 
 from .parser import InputHandler
 
+# Cache for function signatures to avoid repeated inspection
+@lru_cache(maxsize=256)
+def _get_cached_signature(func: typing.Any) -> inspect.Signature:
+    """Get cached function signature."""
+    return inspect.signature(func)
+
+# Cache for class-based endpoint method lookups
+@lru_cache(maxsize=128)
+def _get_method_lookup_cache(handler_class: type, method_name: str) -> typing.Any:
+    """Cache method lookups for class-based endpoints."""
+    return getattr(handler_class, method_name, None)
+
 async def dispatch(handler: typing.Any, request: Request) -> Response:
+    """OPTIMIZED request dispatcher with caching and reduced overhead."""
     is_class_based = not (inspect.isfunction(handler) or inspect.iscoroutinefunction(handler))
+    
     if is_class_based:
         method_name = request.scope.method.lower()
-        endpoint_instance = handler()
-        handler_method = getattr(endpoint_instance, method_name, None)
+        # Use cached method lookup
+        handler_method = _get_method_lookup_cache(handler, method_name)
         if not handler_method:
             raise HTTPException(405, "Method Not Allowed", "METHOD_NOT_ALLOWED")
-        handler = handler_method
-        signature = inspect.signature(handler)
+        
+        # Create instance only when needed
+        endpoint_instance = handler()
+        handler = getattr(endpoint_instance, method_name)
+        signature = _get_cached_signature(handler)
     else:
-        signature = inspect.signature(handler)
+        signature = _get_cached_signature(handler)
 
+    # Pre-check if handler is async to avoid repeated calls
     is_async = is_async_callable(handler)
+    
+    # Optimize input handling
     input_handler = InputHandler(request)
     _response_type = signature.return_annotation
     _kwargs = await input_handler.get_input(signature)
 
+    # Execute handler
     if is_async:
         response = await handler(**_kwargs)
     else:
         response = await run_in_threadpool(handler, **_kwargs)
 
+    # Fast response handling
     if not isinstance(response, Response):
         if isinstance(_response_type, type) and issubclass(_response_type, BaseModel):
             response = _response_type.model_validate(response).model_dump(mode="json")

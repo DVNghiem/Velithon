@@ -1,9 +1,3 @@
-#!/usr/bin/env python3
-"""
-Advanced Performance Optimizations for Velithon.
-Additional optimizations to reach target performance of 110k+ req/s.
-"""
-
 import asyncio
 import json
 import threading
