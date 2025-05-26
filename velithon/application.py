@@ -607,7 +607,7 @@ class Velithon:
             interface="rsgi",  # Use RSGI interface
             workers=workers,
             reload=reload,
-            log_enabled=True,
+            log_enabled=False,
             blocking_threads=blocking_threads,
             blocking_threads_idle_timeout=blocking_threads_idle_timeout,
             runtime_threads=runtime_threads,
