@@ -1,10 +1,6 @@
-"""
-WebSocket endpoint implementation for Velithon framework.
-"""
 from __future__ import annotations
 
 import typing
-import asyncio
 
 from velithon.datastructures import Protocol, Scope
 from velithon.websocket.connection import WebSocket, WebSocketDisconnect

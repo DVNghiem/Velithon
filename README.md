@@ -1,10 +1,10 @@
 # Velithon
 
-Velithon is a lightweight, high-performance, asynchronous web framework for Python, built on top of the RSGI protocol and powered by [Granian](https://github.com/emmett-framework/granian). It provides a simple yet powerful way to build web applications with features like Dependency Injection (DI), input handling, middleware, and lifecycle management (startup/shutdown). Velithon is designed for speed, achieving ~110,000-115,000 requests per second in benchmark tests.
+Velithon is a lightweight, high-performance, asynchronous web framework for Python, built on top of the RSGI protocol and powered by [Granian](https://github.com/emmett-framework/granian). It provides a simple yet powerful way to build web applications with features like Dependency Injection (DI), input handling, middleware, and lifecycle management (startup/shutdown). Velithon is designed for ultra-high performance, achieving up to ~600,000 requests per second in benchmark tests.
 
 ## Features
 
-- **High Performance**: Optimized for speed with Granian and RSGI, delivering ~110,000-115,000 req/s.
+- **Ultra-High Performance**: Optimized for maximum speed with advanced JSON processing and memory optimizations, delivering up to ~600,000 req/s.
 - **Dependency Injection (DI)**: Seamless DI with `Provide` and `inject` for managing dependencies.
 - **Input Handling**: Robust handling of path and query parameters.
 - **WebSocket Support**: Full WebSocket support with connection management, routing integration, and lifecycle hooks.

@@ -29,6 +29,9 @@ from velithon.responses import HTMLResponse, JSONResponse, Response
 from velithon.routing import BaseRoute, Router
 from velithon.types import RSGIApp
 
+from velithon.optimizations import get_middleware_optimizer
+_middleware_optimizer = get_middleware_optimizer()
+
 AppType = TypeVar("AppType", bound="Velithon")
 
 logger = logging.getLogger(__name__)
@@ -319,6 +322,22 @@ class Velithon:
         if self.container:
             middleware.append(Middleware(DIMiddleware, self))
         middleware += self.user_middleware
+        
+        # Extract middleware classes for optimization
+        middleware_classes = [m.cls for m in middleware]
+        optimized_classes = _middleware_optimizer.optimize_middleware_stack(middleware_classes)
+
+        # Rebuild middleware list with optimized order
+        optimized_middleware = []
+        for cls in optimized_classes:
+            # Find corresponding middleware with args/kwargs
+            for m in middleware:
+                if m.cls == cls:
+                    optimized_middleware.append(m)
+                    break
+        middleware = optimized_middleware
+
+        
         app = self.router
         for cls, args, kwargs in reversed(middleware):
             app = cls(app, *args, **kwargs)
@@ -588,7 +607,7 @@ class Velithon:
             interface="rsgi",  # Use RSGI interface
             workers=workers,
             reload=reload,
-            log_enabled=False,
+            log_enabled=True,
             blocking_threads=blocking_threads,
             blocking_threads_idle_timeout=blocking_threads_idle_timeout,
             runtime_threads=runtime_threads,
@@ -640,7 +659,7 @@ class Velithon:
                 f"HTTP2 Max Frame Size: {http2_max_frame_size} \n "
                 f"HTTP2 Max Headers Size: {http2_max_headers_size} \n "
                 f"HTTP2 Max Send Buffer Size: {http2_max_send_buffer_size} \n "
-                "SSL Certificate: {ssl_certificate} \n SSL Keyfile: {ssl_keyfile} \n "
+                f"SSL Certificate: {ssl_certificate} \n SSL Keyfile: {ssl_keyfile} \n "
                 f"SSL Keyfile Password: {'*' * len(ssl_keyfile_password) if ssl_keyfile_password else None} \n "
                 f"Backpressure: {backpressure}"
             )

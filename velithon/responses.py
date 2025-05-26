@@ -1,30 +1,33 @@
 from __future__ import annotations
 
 import http.cookies
-import orjson
-import typing
-import stat
 import mimetypes
+import stat
+import sys
+import typing
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from email.utils import format_datetime
 from functools import partial
-from urllib.parse import quote
 from pathlib import Path
+from urllib.parse import quote
 
 import anyio
 
-from velithon.background import BackgroundTask
 from velithon._utils import iterate_in_threadpool
-from velithon.datastructures import URL, Headers
-from velithon.datastructures import Scope, Protocol 
-from contextlib import contextmanager
+from velithon.background import BackgroundTask
+from velithon.datastructures import URL, Headers, Protocol, Scope
+from velithon.optimizations import get_json_encoder, get_response_cache
 
-import sys
+_optimized_json_encoder = get_json_encoder()
+_response_cache = get_response_cache()
 
 has_exceptiongroups = True
 if sys.version_info < (3, 11):  # pragma: no cover
     try:
-        from exceptiongroup import BaseExceptionGroup  # type: ignore[unused-ignore,import-not-found]
+        from exceptiongroup import (
+            BaseExceptionGroup,  # type: ignore[unused-ignore,import-not-found]
+        )
     except ImportError:
         has_exceptiongroups = False
 
@@ -191,10 +194,16 @@ class JSONResponse(Response):
         super().__init__(content, status_code, headers, media_type, background)
 
     def render(self, content: typing.Any) -> bytes:
-        return orjson.dumps(
-            content,
-            option=orjson.OPT_NON_STR_KEYS | orjson.OPT_SERIALIZE_NUMPY
-        )
+        # Create cache key for response caching
+        cache_key = str(hash(str(content)))
+        cached_response = _response_cache.get(cache_key)
+        if cached_response is not None:
+            return cached_response
+        
+        # Use optimized encoder
+        result = _optimized_json_encoder.encode(content)
+        _response_cache.put(cache_key, result)
+        return result
 
 
 class RedirectResponse(Response):
