@@ -1,21 +1,10 @@
-"""
-WebSocket connection implementation for Velithon framework.
-"""
 from __future__ import annotations
 
 import typing
 from enum import IntEnum
 
 from velithon.datastructures import Headers, Protocol, Scope
-from velithon.status import (
-    WS_1000_NORMAL_CLOSURE,
-    WS_1001_GOING_AWAY,
-    WS_1002_PROTOCOL_ERROR,
-    WS_1003_UNSUPPORTED_DATA,
-    WS_1008_POLICY_VIOLATION,
-    WS_1009_MESSAGE_TOO_BIG,
-    WS_1011_INTERNAL_ERROR,
-)
+from velithon.status import WS_1000_NORMAL_CLOSURE
 
 
 class WebSocketState(IntEnum):

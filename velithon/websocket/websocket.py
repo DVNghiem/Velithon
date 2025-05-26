@@ -1,10 +1,6 @@
-"""
-WebSocket utilities and helpers for Velithon framework.
-"""
 from __future__ import annotations
 
 import typing
-from typing import Any, Callable, Sequence
 
 from velithon.datastructures import Protocol, Scope
 from velithon.routing import BaseRoute, Match
@@ -61,11 +57,11 @@ class WebSocketRoute(BaseRoute):
         """Handle the WebSocket connection."""
         await self.app(scope, protocol)
 
-    async def openapi(self) -> tuple[dict[str, Any], dict[str, Any]]:
+    async def openapi(self) -> tuple[dict[str, typing.Any], dict[str, typing.Any]]:
         """WebSocket routes don't generate OpenAPI docs."""
         return {}, {}
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: typing.Any) -> bool:
         return (
             isinstance(other, WebSocketRoute)
             and self.path == other.path

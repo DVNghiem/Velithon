@@ -1,14 +1,7 @@
-#!/usr/bin/env python3
-"""
-Advanced Performance Benchmark Suite for Optimized Velithon.
-Tests the impact of new optimizations on performance.
-"""
-
 import asyncio
 import json
 import time
 import tracemalloc
-from typing import Dict, Any, List
 from unittest.mock import MagicMock
 
 # Velithon imports
@@ -19,7 +12,7 @@ from velithon.datastructures import Scope, Protocol
 
 # Try importing optimizations
 try:
-    from velithon.advanced_optimizations import (
+    from velithon.optimizations import (
         get_json_encoder, get_response_cache, get_async_optimizer,
         get_profiler, get_dict_from_pool, return_dict_to_pool
     )
