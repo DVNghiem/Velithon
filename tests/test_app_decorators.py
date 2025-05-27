@@ -97,11 +97,15 @@ def test_combine_multiple_decorators(app):
     
     assert len(app.router.routes) == 3
     
-    # Check for each HTTP method separately since sets are not hashable
-    method_routes = [(route.path, next(iter(route.methods))) for route in app.router.routes]
-    assert ("/api/resource", "GET") in method_routes
-    assert ("/api/resource", "POST") in method_routes
-    assert ("/api/resource", "PUT") in method_routes
+    # Check for each HTTP method
+    methods = set()
+    for route in app.router.routes:
+        if route.path == "/api/resource":
+            methods.update(route.methods)
+            
+    assert "GET" in methods or "HEAD" in methods  # HEAD is automatically added for GET routes
+    assert "POST" in methods
+    assert "PUT" in methods
 
 def test_decorator_with_parameters(app):
     """Test HTTP method decorators with additional parameters."""

@@ -478,7 +478,7 @@ class Velithon:
         return self.router.get(
             path=path,
             tags=tags,
-            sunmmary=summary,  # Router uses 'sunmmary' parameter name
+            summary=summary,  # Fixed parameter name
             description=description,
             name=name,
             include_in_schema=include_in_schema,
