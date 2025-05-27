@@ -3,21 +3,67 @@ import os
 import sys
 import zipfile
 from datetime import datetime, timezone
-from logging.handlers import RotatingFileHandler
-
+from logging.handlers import RotatingFileHandler, QueueHandler, QueueListener
+import threading
 import orjson
+import queue
+import time
 
 
 class VelithonFilter(logging.Filter):
     def filter(self, record):
         return record.name.startswith("velithon")
+    
+class LocalQueueHandler(QueueHandler):
 
+    def emit(self, record):
+        return super().emit(record)
+
+class ThreadTrace(threading.Thread): 
+    def __init__(self, *args, **keywords): 
+        threading.Thread.__init__(self, *args, **keywords) 
+
+    def run(self):
+        try:
+            time.sleep(0.1)
+        except Exception as e:
+            logging.error(f"Error in thread run loop: {e}")
+        super().run()
+
+    def join(self, timeout = None):
+        return super().join(timeout)
+
+class LocalQueueListener(QueueListener):
+
+    def dequeue(self, block):
+        return self.queue.get(block)
+    def start(self):
+        self._thread = t = ThreadTrace(target=self._monitor)
+        t.daemon = True
+        t.start()
+    def stop(self):
+        super().stop()
+    def _monitor(self):
+        q = self.queue
+        has_task_done = hasattr(q, 'task_done')
+        while True:
+            try:
+                record = self.dequeue(True)
+                if record is self._sentinel:
+                    if has_task_done:
+                        q.task_done()
+                    break
+                self.handle(record)
+                if has_task_done:
+                    q.task_done()
+            except queue.Empty:
+                break
+    def handle(self, record):
+        super().handle(record)
 
 class TextFormatter(logging.Formatter):
     EXTRA_FIELDS = frozenset([
         "request_id",
-        "method",
-        "path",
         "client_ip",
         "user_agent",
         "duration_ms",
@@ -62,13 +108,10 @@ class JsonFormatter(logging.Formatter):
     EXTRA_FIELDS = [
         "request_id",
         "method",
-        "path",
         "client_ip",
-        "query_params",
-        "headers",
         "duration_ms",
         "status",
-        "response_headers",
+        "user_agent",
     ]
     
     def __init__(self):
@@ -129,16 +172,17 @@ class ZipRotatingFileHandler(RotatingFileHandler):
 def configure_logger(
     log_file: str = "velithon.log",
     level: str = "INFO",
-    format_type: str = "text",
+    log_format: str = "text",
     log_to_file: bool = False,
     max_bytes: int = 10 * 1024 * 1024,
     backup_count: int = 7,
 ):
+    log_queue = queue.Queue(-1)  # No limit on queue size
+
     # Convert string level to numeric level once
     level_value = getattr(logging, level, logging.INFO)
-
-    # Configure the main logger
     logger = logging.getLogger("velithon")
+    # Configure the main logger
     logger.setLevel(level_value)
     logger.handlers.clear()
     
@@ -146,22 +190,28 @@ def configure_logger(
     logger.propagate = logger.name != ""
 
     # Disable unnecessary loggers
-    for name in ["", "granian", "granian.access"]:
+    for name in ["", "_granian", "granian.access"]:
         velithon_logger = logging.getLogger(name)
         velithon_logger.handlers.clear()
         velithon_logger.propagate = False
         # Set to critical+1 to effectively disable
         velithon_logger.setLevel(logging.CRITICAL + 1)
 
-    # Create formatters - lazily instantiate based on format_type
-    formatter = TextFormatter() if format_type == "text" else JsonFormatter()
+    # Create formatters - lazily instantiate based on log_format
+    formatter = TextFormatter() if log_format == "text" else JsonFormatter()
+
+    # queue handler for async logging
+    queue_handler = LocalQueueHandler(log_queue)
+    queue_handler.setLevel(level_value)
+    logger.addHandler(queue_handler)
 
     # Console handler
     console_handler = logging.StreamHandler(sys.stderr)
     console_handler.setLevel(level_value)
     console_handler.addFilter(VelithonFilter())
     console_handler.setFormatter(formatter)
-    logger.addHandler(console_handler)
+
+    listener = LocalQueueListener(log_queue, console_handler)
 
     # File handler - only create if needed
     if log_to_file:
@@ -173,5 +223,13 @@ def configure_logger(
         # Always use JSON for file logging
         file_handler.setFormatter(JsonFormatter())
         logger.addHandler(file_handler)
+        listener = QueueListener(
+            log_queue, console_handler, file_handler
+        )
         
-    return logger
+    listener.start()
+
+    import atexit
+
+    # Ensure the listener is stopped on exit
+    atexit.register(listener.stop)

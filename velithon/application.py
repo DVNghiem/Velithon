@@ -10,7 +10,6 @@ from typing import (
     Sequence,
     TypeVar,
 )
-
 import granian
 import granian.http
 from typing_extensions import Doc
@@ -28,7 +27,6 @@ from velithon.requests import Request
 from velithon.responses import HTMLResponse, JSONResponse, Response
 from velithon.routing import BaseRoute, Router
 from velithon.types import RSGIApp
-
 from velithon.optimizations import get_middleware_optimizer
 _middleware_optimizer = get_middleware_optimizer()
 
@@ -520,6 +518,16 @@ class Velithon:
             self.shutdown_functions.sort()
 
         return decorator
+    
+    def config_logger(self):
+        configure_logger(
+            log_file=self.log_file,
+            level=self.log_level,
+            log_format=self.log_format,
+            log_to_file=self.log_to_file,
+            max_bytes=self.max_bytes,
+            backup_count=self.backup_count,
+        )
 
     def __rsgi_init__(self, loop: asyncio.AbstractEventLoop) -> None:
         """
@@ -533,6 +541,8 @@ class Velithon:
         loop.run_until_complete(some_async_init_task())
         ```
         """
+        # configure the logger
+        self.config_logger()
         for function_info in self.startup_functions:
             loop.run_until_complete(function_info())
         # freeze the memory
@@ -591,14 +601,16 @@ class Velithon:
         ssl_keyfile_password,
         backpressure,
     ) -> None:
-        configure_logger(
-            log_file=log_file,
-            level=log_level,
-            format_type=log_format,
-            log_to_file=log_to_file,
-            max_bytes=max_bytes,
-            backup_count=backup_count,
-        )
+        # Set up logging configuration
+        self.log_file = log_file
+        self.log_level = log_level
+        self.log_format = log_format
+        self.log_to_file = log_to_file
+        self.max_bytes = max_bytes
+        self.backup_count = backup_count
+
+        self.config_logger()
+
         # Configure Granian server
         server = granian.Granian(
             target=app,  # Velithon application instance
@@ -670,5 +682,4 @@ class Velithon:
         if reload:
             logger.debug("Auto-reload enabled.")
 
-        # Run the server
         server.serve()
