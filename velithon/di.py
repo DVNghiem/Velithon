@@ -18,19 +18,23 @@ _signature_cache: Dict[Callable, Any] = {}
 _signature_cache_lock = threading.Lock()
 
 def cached_signature(func: Callable) -> Any:
-    """Cache the signature of a function or class to avoid repeated inspection - OPTIMIZED."""
-    # Use double-checked locking pattern for thread safety
-    if func not in _signature_cache:
+    """Cache the signature of a function or class to avoid repeated inspection - ULTRA OPTIMIZED."""
+    # Fast path: direct dictionary access
+    try:
+        return _signature_cache[func]
+    except KeyError:
+        # Slow path: get the signature and cache it
         with _signature_cache_lock:
+            # Check again inside lock to avoid race conditions
             if func not in _signature_cache:
                 _signature_cache[func] = signature(func)
-                # Prevent unbounded cache growth
-                if len(_signature_cache) > 1000:
-                    # Remove oldest 20% of entries
-                    keys_to_remove = list(_signature_cache.keys())[:200]
+                # Prevent unbounded cache growth - but do it less frequently
+                if len(_signature_cache) > 2000:
+                    # Remove oldest entries when cache gets too big
+                    keys_to_remove = list(_signature_cache.keys())[:500]
                     for key in keys_to_remove:
                         _signature_cache.pop(key, None)
-    return _signature_cache[func]
+            return _signature_cache[func]
 
 
 class Provide:
@@ -325,7 +329,7 @@ def inject(func: Callable) -> Callable:
     sig = cached_signature(func)  # Cache signature at decoration time
     param_deps = []  # List of (name, Provide) for parameters with dependencies
 
-    # Precompute dependency mappings
+    # Precompute dependency mappings - use original approach for maximum compatibility
     for name, param in sig.parameters.items():
         provide = None
         if hasattr(param.annotation, "__metadata__"):

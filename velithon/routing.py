@@ -212,16 +212,44 @@ class Route(BaseRoute):
     def matches(self, scope: Scope) -> tuple[Match, Scope]:
         if scope.proto == "http":
             route_path = scope.path
+            
+            # Check if we have this path in the path cache
+            path_key = f"{route_path}:{scope.method}"
+            path_cache = getattr(self, "_path_cache", {})
+            
+            cached_result = path_cache.get(path_key)
+            if cached_result is not None:
+                match_type, params = cached_result
+                if params:
+                    setattr(scope, "_path_params", params.copy())
+                return match_type, scope
+            
+            # No cache hit, do the regex matching
             match = self.path_regex.match(route_path)
             if match:
                 matched_params = match.groupdict()
                 for key, value in matched_params.items():
                     matched_params[key] = self.param_convertors[key].convert(value)
                 setattr(scope, "_path_params", matched_params)
+                
+                # Determine match type
                 if self.methods and scope.method not in self.methods:
-                    return Match.PARTIAL
+                    match_type = Match.PARTIAL
                 else:
-                    return Match.FULL
+                    match_type = Match.FULL
+                
+                # Cache the result - limit cache size to prevent memory leaks
+                if not hasattr(self, "_path_cache"):
+                    self._path_cache = {}
+                if len(self._path_cache) >= 1000:  # Limit cache size
+                    # Clear 20% of the cache when it gets too big
+                    keys_to_remove = list(self._path_cache.keys())[:200]
+                    for key in keys_to_remove:
+                        self._path_cache.pop(key, None)
+                
+                self._path_cache[path_key] = (match_type, matched_params.copy() if matched_params else None)
+                return match_type, scope
+                
         return Match.NONE, {}
 
     async def handle(self, scope: Scope, protocol: Protocol) -> None:
@@ -321,20 +349,60 @@ class Router:
 
     async def app(self, scope: Scope, protocol: Protocol) -> None:
         assert scope.proto in ("http", "websocket")
+        
+        # Check if we have a route lookup table
+        if not hasattr(self, "_route_lookup"):
+            self._route_lookup = {}
+            self._exact_routes = {}
+        
+        # Try to match an exact path first for common routes
+        route_key = f"{scope.path}:{scope.method}"
+        exact_route = self._exact_routes.get(route_key)
+        if exact_route is not None:
+            await exact_route.handle(scope, protocol)
+            return
+        
+        # Then check the route lookup cache
+        cached_route = self._route_lookup.get(route_key)
+        if cached_route is not None:
+            if cached_route == "default":
+                await self.default(scope, protocol)
+            elif cached_route == "not_found":
+                await self.default(scope, protocol)
+            else:
+                await cached_route.handle(scope, protocol)
+            return
+        
+        # Fall back to checking all routes
         partial = None
         for route in self.routes:
             # Determine if any route matches the incoming scope,
             # and hand over to the matching route if found.
-            match = route.matches(scope)
+            match, updated_scope = route.matches(scope)
             if match == Match.FULL:
+                # Cache this result for future lookups
+                # Don't cache parameterized routes to avoid memory issues
+                if not scope._path_params:
+                    self._exact_routes[route_key] = route
+                elif len(self._route_lookup) < 1000:  # Limit cache size
+                    self._route_lookup[route_key] = route
+                
                 await route.handle(scope, protocol)
                 return
             elif match == Match.PARTIAL and partial is None:
                 partial = route
 
+        # Cache the result for future lookups
+        if len(self._route_lookup) < 1000:  # Limit cache size
+            if partial is not None:
+                self._route_lookup[route_key] = partial
+            else:
+                self._route_lookup[route_key] = "not_found"
+
         if partial is not None:
             await partial.handle(scope, protocol)
             return
+            
         await self.default(scope, protocol)
 
     async def __call__(self, scope: Scope, protocol: Protocol) -> None:
@@ -471,7 +539,7 @@ class Router:
         path: str,
         *,
         tags: Sequence[str] | None = None,
-        sunmmary: str | None = None,
+        summary: str | None = None,
         description: str | None = None,
         name: str | None = None,
         include_in_schema: bool = True,
@@ -491,7 +559,7 @@ class Router:
         return self.api_route(
             path=path,
             tags=tags,
-            summary=sunmmary,
+            summary=summary,
             description=description,
             methods=["GET"],
             name=name,
