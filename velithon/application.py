@@ -451,6 +451,206 @@ class Velithon:
         """Add a WebSocket route to the application."""
         self.router.add_websocket_route(path, endpoint, name)
 
+    def get(
+        self,
+        path: str,
+        *,
+        tags: Sequence[str] | None = None,
+        summary: str | None = None,
+        description: str | None = None,
+        name: str | None = None,
+        include_in_schema: bool = True,
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+        """
+        Decorator to add a GET route to the application.
+
+        Args:
+            path: The path pattern
+            tags: Optional tags for documentation
+            summary: Optional summary for documentation
+            description: Optional description for documentation
+            name: Optional name for the route
+            include_in_schema: Whether to include in OpenAPI schema
+
+        Returns:
+            Decorator function
+        """
+        return self.router.get(
+            path=path,
+            tags=tags,
+            sunmmary=summary,  # Router uses 'sunmmary' parameter name
+            description=description,
+            name=name,
+            include_in_schema=include_in_schema,
+        )
+    
+    def post(
+        self,
+        path: str,
+        *,
+        tags: Sequence[str] | None = None,
+        summary: str | None = None,
+        description: str | None = None,
+        name: str | None = None,
+        include_in_schema: bool = True,
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+        """
+        Decorator to add a POST route to the application.
+
+        Args:
+            path: The path pattern
+            tags: Optional tags for documentation
+            summary: Optional summary for documentation
+            description: Optional description for documentation
+            name: Optional name for the route
+            include_in_schema: Whether to include in OpenAPI schema
+
+        Returns:
+            Decorator function
+        """
+        return self.router.post(
+            path=path,
+            tags=tags,
+            summary=summary,
+            description=description,
+            name=name,
+            include_in_schema=include_in_schema,
+        )
+    
+    def put(
+        self,
+        path: str,
+        *,
+        tags: Sequence[str] | None = None,
+        summary: str | None = None,
+        description: str | None = None,
+        name: str | None = None,
+        include_in_schema: bool = True,
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+        """
+        Decorator to add a PUT route to the application.
+
+        Args:
+            path: The path pattern
+            tags: Optional tags for documentation
+            summary: Optional summary for documentation
+            description: Optional description for documentation
+            name: Optional name for the route
+            include_in_schema: Whether to include in OpenAPI schema
+
+        Returns:
+            Decorator function
+        """
+        return self.router.put(
+            path=path,
+            tags=tags,
+            summary=summary,
+            description=description,
+            name=name,
+            include_in_schema=include_in_schema,
+        )
+    
+    def delete(
+        self,
+        path: str,
+        *,
+        tags: Sequence[str] | None = None,
+        summary: str | None = None,
+        description: str | None = None,
+        name: str | None = None,
+        include_in_schema: bool = True,
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+        """
+        Decorator to add a DELETE route to the application.
+
+        Args:
+            path: The path pattern
+            tags: Optional tags for documentation
+            summary: Optional summary for documentation
+            description: Optional description for documentation
+            name: Optional name for the route
+            include_in_schema: Whether to include in OpenAPI schema
+
+        Returns:
+            Decorator function
+        """
+        return self.router.delete(
+            path=path,
+            tags=tags,
+            summary=summary,
+            description=description,
+            name=name,
+            include_in_schema=include_in_schema,
+        )
+    
+    def patch(
+        self,
+        path: str,
+        *,
+        tags: Sequence[str] | None = None,
+        summary: str | None = None,
+        description: str | None = None,
+        name: str | None = None,
+        include_in_schema: bool = True,
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+        """
+        Decorator to add a PATCH route to the application.
+
+        Args:
+            path: The path pattern
+            tags: Optional tags for documentation
+            summary: Optional summary for documentation
+            description: Optional description for documentation
+            name: Optional name for the route
+            include_in_schema: Whether to include in OpenAPI schema
+
+        Returns:
+            Decorator function
+        """
+        return self.router.patch(
+            path=path,
+            tags=tags,
+            summary=summary,
+            description=description,
+            name=name,
+            include_in_schema=include_in_schema,
+        )
+    
+    def options(
+        self,
+        path: str,
+        *,
+        tags: Sequence[str] | None = None,
+        summary: str | None = None,
+        description: str | None = None,
+        name: str | None = None,
+        include_in_schema: bool = True,
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+        """
+        Decorator to add an OPTIONS route to the application.
+
+        Args:
+            path: The path pattern
+            tags: Optional tags for documentation
+            summary: Optional summary for documentation
+            description: Optional description for documentation
+            name: Optional name for the route
+            include_in_schema: Whether to include in OpenAPI schema
+
+        Returns:
+            Decorator function
+        """
+        # Using api_route directly with OPTIONS method to avoid the singular/plural issue
+        return self.router.api_route(
+            path=path,
+            tags=tags,
+            summary=summary,
+            description=description,
+            methods=["OPTIONS"],
+            name=name,
+            include_in_schema=include_in_schema,
+        )
+    
     def websocket(
         self,
         path: str,

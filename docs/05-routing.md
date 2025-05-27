@@ -20,6 +20,42 @@ async def update_user(user_id: int):
 @app.delete("/users/{user_id}")
 async def delete_user(user_id: int):
     return JSONResponse({"message": "User deleted"})
+
+@app.patch("/users/{user_id}")
+async def patch_user(user_id: int):
+    return JSONResponse({"user_id": user_id, "message": "Patched"})
+
+@app.options("/users")
+async def options_users():
+    return PlainTextResponse("", headers={"Allow": "GET, POST, PUT, DELETE, PATCH, OPTIONS"})
+```
+
+### Decorator Parameters
+
+All HTTP method decorators support the following parameters:
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `path` | `str` | URL path pattern (required) |
+| `tags` | `List[str]` | Tags for OpenAPI documentation |
+| `summary` | `str` | Summary for OpenAPI documentation |
+| `description` | `str` | Description for OpenAPI documentation |
+| `name` | `str` | Name for the route |
+| `include_in_schema` | `bool` | Whether to include in OpenAPI schema (default: `True`) |
+
+Example with parameters:
+
+```python
+@app.get(
+    "/users",
+    tags=["users"],
+    summary="List all users",
+    description="Get a list of all users in the system",
+    name="get_users",
+    include_in_schema=True,
+)
+async def get_users():
+    return JSONResponse({"users": []})
 ```
 
 ## Path Parameters
