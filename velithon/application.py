@@ -13,7 +13,7 @@ from typing import (
 import granian
 import granian.http
 from typing_extensions import Doc
-from velithon.vsp import vsp_mesh
+from velithon.vsp import VSPManager
 from velithon._utils import is_async_callable
 from velithon.datastructures import FunctionInfo, Protocol, Scope
 from velithon.di import ServiceContainer
@@ -309,6 +309,15 @@ class Velithon:
             container: The ServiceContainer instance containing providers.
         """
         self.container = container
+
+    def register_vps(self, vsp_manager: VSPManager):
+        """
+        Register a VSPManager for managing VSP services.
+
+        Args:
+            vsp_manager: The VSPManager instance to be used by the application.
+        """
+        self.vsp_manager = vsp_manager
 
     def build_middleware_stack(self) -> RSGIApp:
         middleware = [
@@ -742,7 +751,7 @@ class Velithon:
         # configure the logger
         self.config_logger()
         # internal server startup
-        loop.create_task(vsp_mesh.start_server(self.vsp_host, self.vsp_port, loop=loop))
+        loop.create_task(self.vsp_manager.start_server(self.vsp_host, self.vsp_port, loop=loop))
         
         # run all the startup functions from user setup
         for function_info in self.startup_functions:
