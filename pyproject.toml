@@ -13,8 +13,13 @@ dependencies = [
     "python-multipart (>=0.0.20,<0.0.21)",
     "orjson (>=3.10.16,<4.0.0)",
     "pydantic (>=2.11.4,<3.0.0)",
-    "pydash (>=8.0.5,<9.0.0)"
+    "pydash (>=8.0.5,<9.0.0)",
+    "msgpack (>=1.1.0,<2.0.0)",
+    "zeroconf (>=0.147.0,<0.148.0)",
+    "python-consul (>=1.1.0,<2.0.0)"
 ]
+[tool.poetry.dependencies]
+python = ">=3.10,<4.0"
 
 [tool.poetry.scripts]
 velithon = "velithon.cli:cli"

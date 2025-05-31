@@ -8,12 +8,12 @@ from typing import (
     Dict,
     List,
     Sequence,
-    TypeVar,
 )
+
 import granian
 import granian.http
 from typing_extensions import Doc
-
+from velithon.vsp import VSPManager
 from velithon._utils import is_async_callable
 from velithon.datastructures import FunctionInfo, Protocol, Scope
 from velithon.di import ServiceContainer
@@ -23,21 +23,20 @@ from velithon.middleware.di import DIMiddleware
 from velithon.middleware.logging import LoggingMiddleware
 from velithon.middleware.wrapped import WrappedRSGITypeMiddleware
 from velithon.openapi.ui import get_swagger_ui_html
+from velithon.optimizations import get_middleware_optimizer
 from velithon.requests import Request
 from velithon.responses import HTMLResponse, JSONResponse, Response
 from velithon.routing import BaseRoute, Router
 from velithon.types import RSGIApp
-from velithon.optimizations import get_middleware_optimizer
-_middleware_optimizer = get_middleware_optimizer()
 
-AppType = TypeVar("AppType", bound="Velithon")
+_middleware_optimizer = get_middleware_optimizer()
 
 logger = logging.getLogger(__name__)
 
 
 class Velithon:
     def __init__(
-        self: AppType,
+        self: RSGIApp,
         *,
         routes: Annotated[
             Sequence[BaseRoute] | None,
@@ -300,7 +299,6 @@ class Velithon:
         self.tags = tags or []
         self.startup_functions: List[FunctionInfo] = []
         self.shutdown_functions: List[FunctionInfo] = []
-
         self.setup()
 
     def register_container(self, container: ServiceContainer):
@@ -311,6 +309,15 @@ class Velithon:
             container: The ServiceContainer instance containing providers.
         """
         self.container = container
+
+    def register_vps(self, vsp_manager: VSPManager):
+        """
+        Register a VSPManager for managing VSP services.
+
+        Args:
+            vsp_manager: The VSPManager instance to be used by the application.
+        """
+        self.vsp_manager = vsp_manager
 
     def build_middleware_stack(self) -> RSGIApp:
         middleware = [
@@ -388,7 +395,7 @@ class Velithon:
             )
 
     def get_openapi(
-        self: AppType,
+        self: RSGIApp,
     ) -> Dict[str, Any]:
         main_docs = {
             "openapi": self.openapi_version,
@@ -743,8 +750,15 @@ class Velithon:
         """
         # configure the logger
         self.config_logger()
+        
+        # internal server startup
+        if hasattr(self, "vsp_manager"):
+            loop.create_task(self.vsp_manager.start_server(self.vsp_host, self.vsp_port, loop=loop))
+        
+        # run all the startup functions from user setup
         for function_info in self.startup_functions:
             loop.run_until_complete(function_info())
+
         # freeze the memory
         del self.startup_functions
 
@@ -800,6 +814,8 @@ class Velithon:
         ssl_keyfile,
         ssl_keyfile_password,
         backpressure,
+        vsp_host,
+        vsp_port,
     ) -> None:
         # Set up logging configuration
         self.log_file = log_file
@@ -808,8 +824,10 @@ class Velithon:
         self.log_to_file = log_to_file
         self.max_bytes = max_bytes
         self.backup_count = backup_count
-
         self.config_logger()
+
+        self.vsp_host = vsp_host
+        self.vsp_port = vsp_port
 
         # Configure Granian server
         server = granian.Granian(
@@ -881,5 +899,4 @@ class Velithon:
         )
         if reload:
             logger.debug("Auto-reload enabled.")
-
         server.serve()
