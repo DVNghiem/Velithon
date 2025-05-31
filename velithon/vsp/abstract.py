@@ -3,8 +3,10 @@ from typing import List
 
 from .service import ServiceInfo
 
+
 class Transport(ABC):
     """Abstract Transport interface for VSP communication."""
+
     @abstractmethod
     async def connect(self, host: str, port: str) -> None:
         """Connect to the specified host and port."""
@@ -26,9 +28,9 @@ class Transport(ABC):
         pass
 
 
-
 class Discovery(ABC):
     """Abstract Service Discovery interface."""
+
     @abstractmethod
     def register(self, service: ServiceInfo) -> None:
         """Register a service."""
@@ -44,8 +46,10 @@ class Discovery(ABC):
         """Close discovery resources."""
         pass
 
+
 class LoadBalancer(ABC):
     """Abstract Load Balancer interface."""
+
     @abstractmethod
     def select(self, instances: List[ServiceInfo]) -> ServiceInfo:
         """Select a service instance."""

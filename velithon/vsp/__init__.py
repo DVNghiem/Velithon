@@ -1,9 +1,13 @@
+from .abstract import Discovery, LoadBalancer, Transport
 from .client import VSPClient
+from .discovery import ConsulDiscovery, DiscoveryType, MDNSDiscovery, StaticDiscovery
+from .load_balancer import RoundRobinBalancer, WeightedBalancer
 from .manager import VSPManager, WorkerType
 from .mesh import ServiceMesh
-from .service import ServiceInfo
 from .message import VSPMessage
 from .protocol import VSPProtocol
+from .service import ServiceInfo
+from .transport import TCPTransport
 
 __all__ = [
     "VSPMessage",
@@ -13,4 +17,14 @@ __all__ = [
     "ServiceInfo",
     "ServiceMesh",
     "WorkerType",
+    "DiscoveryType",
+    "ConsulDiscovery",
+    "MDNSDiscovery",
+    "StaticDiscovery",
+    "LoadBalancer",
+    "RoundRobinBalancer",
+    "WeightedBalancer",
+    "Transport",
+    "Discovery",
+    "TCPTransport",
 ]

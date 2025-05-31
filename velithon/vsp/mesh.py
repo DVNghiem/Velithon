@@ -1,18 +1,24 @@
 import logging
 from typing import Optional
+
+from .discovery import ConsulDiscovery, DiscoveryType, MDNSDiscovery, StaticDiscovery
 from .load_balancer import LoadBalancer, RoundRobinBalancer
-from .discovery import StaticDiscovery, MDNSDiscovery, ConsulDiscovery
 from .service import ServiceInfo
 
 logger = logging.getLogger(__name__)
 
 
 class ServiceMesh:
-    def __init__(self, discovery_type: str = "static", load_balancer: Optional[LoadBalancer] = None, **discovery_args):
+    def __init__(
+        self,
+        discovery_type: DiscoveryType = DiscoveryType.STATIC,
+        load_balancer: Optional[LoadBalancer] = None,
+        **discovery_args,
+    ):
         self.load_balancer = load_balancer or RoundRobinBalancer()
-        if discovery_type == "mdns":
+        if discovery_type == DiscoveryType.MDNS:
             self.discovery = MDNSDiscovery()
-        elif discovery_type == "consul":
+        elif discovery_type == DiscoveryType.CONSUL:
             self.discovery = ConsulDiscovery(**discovery_args)
         else:
             self.discovery = StaticDiscovery()
@@ -29,7 +35,9 @@ class ServiceMesh:
             logger.debug(f"No healthy instances for {service_name}")
             return None
         selected = self.load_balancer.select(healthy_instances)
-        logger.debug(f"Queried {service_name}: selected {selected.host}:{selected.port}")
+        logger.debug(
+            f"Queried {service_name}: selected {selected.host}:{selected.port}"
+        )
         return selected
 
     def close(self) -> None:

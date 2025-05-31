@@ -1,14 +1,16 @@
 import asyncio
 import logging
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
+
 if TYPE_CHECKING:
     from .manager import VSPManager
 from .message import VSPError, VSPMessage
 
 logger = logging.getLogger(__name__)
 
+
 class VSPProtocol(asyncio.Protocol):
-    def __init__(self, manager: 'VSPManager'):
+    def __init__(self, manager: "VSPManager"):
         self.manager = manager
         self.transport: Optional[asyncio.Transport] = None
         self.buffer = bytearray()
@@ -28,8 +30,8 @@ class VSPProtocol(asyncio.Protocol):
             length = int.from_bytes(self.buffer[:4], "big")
             if len(self.buffer) < 4:
                 break
-            message_data = self.buffer[4:4 + length]
-            self.buffer = self.buffer[4 + length:]
+            message_data = self.buffer[4 : 4 + length]
+            self.buffer = self.buffer[4 + length :]
             try:
                 message = VSPMessage.from_bytes(message_data)
                 asyncio.create_task(self.manager.enqueue_message(message, self))
@@ -38,13 +40,15 @@ class VSPProtocol(asyncio.Protocol):
 
     async def handle_message(self, message: VSPMessage) -> None:
         try:
-            response = await self.manager.handle_vsp_endpoint(message.header["endpoint"], message.body)
+            response = await self.manager.handle_vsp_endpoint(
+                message.header["endpoint"], message.body
+            )
             response_msg = VSPMessage(
                 message.header["request_id"],
                 message.header["service"],
                 message.header["endpoint"],
                 response,
-                is_response=True
+                is_response=True,
             )
             self.send_message(response_msg)
         except VSPError as e:
@@ -54,7 +58,7 @@ class VSPProtocol(asyncio.Protocol):
                 message.header["service"],
                 message.header["endpoint"],
                 {"error": str(e)},
-                is_response=True
+                is_response=True,
             )
             self.send_message(error_msg)
 

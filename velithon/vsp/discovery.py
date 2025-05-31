@@ -1,4 +1,5 @@
 import logging
+import enum
 from typing import List
 from .service import ServiceInfo
 from .abstract import Discovery
@@ -12,6 +13,12 @@ except ImportError:
     consul = None
 
 logger = logging.getLogger(__name__)
+
+class DiscoveryType(str, enum.Enum):
+    """Enumeration of discovery types."""
+    STATIC = "static"
+    MDNS = "mdns"
+    CONSUL = "consul"
 
 class StaticDiscovery(Discovery):
     """Static discovery using pre-configured services."""

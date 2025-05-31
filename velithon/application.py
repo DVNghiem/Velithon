@@ -754,7 +754,7 @@ class Velithon:
         # internal server startup
         if hasattr(self, "vsp_manager"):
             loop.create_task(self.vsp_manager.start_server(self.vsp_host, self.vsp_port, loop=loop))
-        
+            
         # run all the startup functions from user setup
         for function_info in self.startup_functions:
             loop.run_until_complete(function_info())

@@ -1,18 +1,20 @@
 import asyncio
 import logging
-from typing import Optional, TYPE_CHECKING
-from .protocol import VSPProtocol
+from typing import TYPE_CHECKING, Optional
+
 from .abstract import Transport
+from .protocol import VSPProtocol
 
 if TYPE_CHECKING:
     from .manager import VSPManager
 
 logger = logging.getLogger(__name__)
 
+
 class TCPTransport(Transport):
     """TCP implementation of Transport."""
-    def __init__(self, 
-                manager: 'VSPManager'):
+
+    def __init__(self, manager: "VSPManager"):
         self.transport: Optional[asyncio.Transport] = None
         self.protocol: Optional[VSPProtocol] = None
         self.manager = manager
@@ -32,7 +34,7 @@ class TCPTransport(Transport):
         if self.transport is None or self.transport.is_closing():
             logger.error("Cannot send: TCP transport is closed or not connected")
             raise RuntimeError("Transport closed")
-        
+
         self.transport.write(data)
         logger.debug(f"TCP sent data of length {len(data)}")
 

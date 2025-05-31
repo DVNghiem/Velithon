@@ -50,7 +50,6 @@ class VSPMessage:
         except Exception as e:
             logger.error(f"Failed to deserialize message: {e}")
             raise VSPError(f"Message deserialization failed: {e}")
-        
 
     def __repr__(self) -> str:
         return (
