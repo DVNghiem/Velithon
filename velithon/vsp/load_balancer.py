@@ -1,17 +1,12 @@
 import logging
 import random
-from abc import ABC, abstractmethod
 from typing import List
-from .mesh import ServiceInfo
+
+from .service import ServiceInfo
+from .abstract import LoadBalancer
 
 logger = logging.getLogger(__name__)
 
-class LoadBalancer(ABC):
-    """Abstract Load Balancer interface."""
-    @abstractmethod
-    def select(self, instances: List[ServiceInfo]) -> ServiceInfo:
-        """Select a service instance."""
-        pass
 
 class RoundRobinBalancer(LoadBalancer):
     """Round-Robin Load Balancer."""

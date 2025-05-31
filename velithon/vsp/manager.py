@@ -1,12 +1,13 @@
 import asyncio
-import logging
 import inspect
-from enum import IntEnum
-from typing import Dict, Any, Optional, Callable, Tuple, List
+import logging
 from concurrent.futures import ProcessPoolExecutor
-from .message import VSPMessage, VSPError
+from enum import IntEnum
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
 from .client import VSPClient
 from .mesh import ServiceMesh
+from .message import VSPError, VSPMessage
 from .protocol import VSPProtocol
 from .transport import TCPTransport
 
@@ -30,7 +31,7 @@ class VSPManager:
         self.service_mesh = service_mesh or ServiceMesh(discovery_type="static")
         self.client = VSPClient(
             self.service_mesh,
-            transport_factory=lambda: TCPTransport(self),
+            transport_factory=lambda manager: TCPTransport(manager),
             max_transports=max_transports
         )
         self.endpoints: Dict[str, Callable[..., Dict[str, Any]]] = {}
@@ -42,12 +43,10 @@ class VSPManager:
         self.executor: Optional[ProcessPoolExecutor] = None
         if self.worker_type == WorkerType.MULTICORE:
             self.executor = ProcessPoolExecutor(max_workers=self.num_workers)
-        logger.info(f"Initialized VSPManager for {name} with {self.num_workers} {self.worker_type.name.lower()} workers, queue size {max_queue_size}")
 
     def vsp_service(self, endpoint: str) -> Callable:
         def decorator(func: Callable[..., Dict[str, Any]]) -> Callable:
             self.endpoints[endpoint] = func
-            logger.debug(f"Registered endpoint {endpoint} for {self.name}")
             return func
         return decorator
 
@@ -60,20 +59,13 @@ class VSPManager:
             return wrapper
         return decorator
 
-    async def register_service(self, host: str, port: int) -> None:
-        from .mesh import ServiceInfo
-        service_info = ServiceInfo(self.name, host, port)
-        self.service_mesh.register(service_info)
-        logger.info(f"Registered {self.name} at {host}:{port}")
-        self.workers = [asyncio.create_task(self.worker(i)) for i in range(self.num_workers)]
-        await self.start_server(host, port)
-
     async def start_server(self, host: str, port: int, loop: Optional[asyncio.AbstractEventLoop] = None) -> None:
         if loop is None:
             loop = asyncio.get_event_loop()
         server = await loop.create_server(
             lambda: VSPProtocol(self), host, port
         )
+        self.workers = [asyncio.create_task(self.worker(i)) for i in range(self.num_workers)]
         async with server:
             logger.info(f"VSP server started on {host}:{port}")
             __serving_forever_fut = loop.create_future()
@@ -101,12 +93,30 @@ class VSPManager:
             )
             protocol.send_message(error_msg)
             raise VSPError("Message queue full")
+        
+    async def proccess_response_and_health_message(self, message: VSPMessage, protocol: VSPProtocol) -> bool:
+        if message.header["is_response"]:
+            await self.handle_response(message)
+            return True
+        elif message.header["endpoint"] == "health":
+            response_msg = VSPMessage(
+                message.header["request_id"],
+                message.header["service"],
+                "health",
+                {"status": "healthy"},
+                is_response=True
+            )
+            protocol.send_message(response_msg)
+            return True
+        return False
 
     async def worker(self, worker_id: int) -> None:
-        logger.info(f"Worker {worker_id} ({self.worker_type.name.lower()}) started for {self.name}")
+        logger.info(f"Worker {worker_id} ({self.worker_type.lower()}) started for {self.name}")
         while True:
             try:
                 message, protocol = await self.message_queue.get()
+                if await self.proccess_response_and_health_message(message=message, protocol=protocol):
+                    continue
                 try:
                     if self.worker_type == WorkerType.ASYNCIO:
                         await self.process_message(message, protocol)
@@ -115,8 +125,7 @@ class VSPManager:
                         response = await loop.run_in_executor(
                             self.executor,
                             self._process_message_sync,
-                            message.header["endpoint"],
-                            message.body,
+                            message,
                             self.endpoints
                         )
                         response_msg = VSPMessage(
@@ -147,7 +156,9 @@ class VSPManager:
                 await asyncio.sleep(1)
 
     @staticmethod
-    def _process_message_sync(endpoint: str, body: Dict[str, Any], endpoints: Dict[str, Callable]) -> Dict[str, Any]:
+    def _process_message_sync(message: VSPMessage, endpoints: Dict[str, Callable]) -> Dict[str, Any]:
+        endpoint = message.header["endpoint"]
+        body = message.body
         handler = endpoints.get(endpoint)
         if not handler:
             raise VSPError(f"Endpoint {endpoint} not found")
@@ -182,7 +193,6 @@ class VSPManager:
         await self.client.handle_response(message)
 
     async def handle_vsp_endpoint(self, endpoint: str, body: Dict[str, Any]) -> Dict[str, Any]:
-        logger.debug(f"Handling VSP endpoint: {endpoint} with body: {body}")
         handler = self.endpoints.get(endpoint)
         if not handler:
             logger.error(f"Endpoint {endpoint} not found")

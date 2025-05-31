@@ -1,8 +1,7 @@
 import logging
-import asyncio
-from abc import ABC, abstractmethod
-from typing import List, Optional
-from .mesh import ServiceInfo
+from typing import List
+from .service import ServiceInfo
+from .abstract import Discovery
 try:
     from zeroconf import Zeroconf, ServiceInfo as ZeroconfServiceInfo
 except ImportError:
@@ -13,23 +12,6 @@ except ImportError:
     consul = None
 
 logger = logging.getLogger(__name__)
-
-class Discovery(ABC):
-    """Abstract Service Discovery interface."""
-    @abstractmethod
-    def register(self, service: ServiceInfo) -> None:
-        """Register a service."""
-        pass
-
-    @abstractmethod
-    async def query(self, service_name: str) -> List[ServiceInfo]:
-        """Query service instances."""
-        pass
-
-    @abstractmethod
-    def close(self) -> None:
-        """Close discovery resources."""
-        pass
 
 class StaticDiscovery(Discovery):
     """Static discovery using pre-configured services."""

@@ -50,3 +50,12 @@ class VSPMessage:
         except Exception as e:
             logger.error(f"Failed to deserialize message: {e}")
             raise VSPError(f"Message deserialization failed: {e}")
+        
+
+    def __repr__(self) -> str:
+        return (
+            f"VSPMessage(request_id={self.header['request_id']}, "
+            f"service={self.header['service']}, "
+            f"endpoint={self.header['endpoint']}, "
+            f"is_response={self.header['is_response']})"
+        )

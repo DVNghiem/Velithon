@@ -2,18 +2,18 @@ import asyncio
 import logging
 import random
 import uuid
-from typing import Dict, Any, Optional, Tuple, List, Callable
+from typing import Dict, Any, Optional, Tuple, List, Callable, TYPE_CHECKING
 from collections import defaultdict
 from .message import VSPMessage, VSPError
-from .protocol import VSPProtocol
 from .mesh import ServiceMesh
-from .manager import VSPManager
-from .transport import Transport, TCPTransport
+if TYPE_CHECKING:
+    from .manager import VSPManager
+from .abstract import Transport
 
 logger = logging.getLogger(__name__)
 
 class VSPClient:
-    def __init__(self, service_mesh: ServiceMesh, transport_factory: Callable[[], Transport], max_transports: int = 5):
+    def __init__(self, service_mesh: ServiceMesh, transport_factory: Callable[..., Transport], max_transports: int = 5):
         self.service_mesh = service_mesh
         self.transport_factory = transport_factory
         self.max_transports = max_transports
@@ -77,20 +77,6 @@ class VSPClient:
                 for s in await self.service_mesh.discovery.query(service_name):
                     s.mark_unhealthy()
             await asyncio.sleep(5)
-
-    async def send_heartbeat(self, connection_key: str) -> None:
-        while connection_key in self.transports and any(not t.is_closed() for t in self.transports[connection_key]):
-            try:
-                await self.call("ping_service", "ping", {}, connection_key=connection_key)
-                await asyncio.sleep(10)
-            except VSPError as e:
-                logger.error(f"Heartbeat failed for {connection_key}: {e}")
-                for transport in self.transports[connection_key][:]:
-                    if not transport.is_closed():
-                        transport.close()
-                self.transports[connection_key].clear()
-                self.connection_events[connection_key].clear()
-                break
 
     async def call(self, service_name: str, endpoint: str, data: Dict[str, Any], connection_key: Optional[str] = None) -> Dict[str, Any]:
         if not connection_key:

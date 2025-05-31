@@ -1,33 +1,13 @@
-import logging
 import asyncio
-from abc import ABC, abstractmethod
-from typing import Optional
-from .manager import VSPManager
+import logging
+from typing import Optional, TYPE_CHECKING
 from .protocol import VSPProtocol
+from .abstract import Transport
+
+if TYPE_CHECKING:
+    from .manager import VSPManager
 
 logger = logging.getLogger(__name__)
-
-class Transport(ABC):
-    """Abstract Transport interface for VSP communication."""
-    @abstractmethod
-    async def connect(self, host: str, port: str) -> None:
-        """Connect to the specified host and port."""
-        pass
-
-    @abstractmethod
-    def send(self, message: bytes) -> None:
-        """Send a VSP message."""
-        pass
-
-    @abstractmethod
-    def close(self) -> None:
-        """Close the transport."""
-        pass
-
-    @abstractmethod
-    def is_closed(self) -> bool:
-        """Check if the transport is closed."""
-        pass
 
 class TCPTransport(Transport):
     """TCP implementation of Transport."""
@@ -52,6 +32,7 @@ class TCPTransport(Transport):
         if self.transport is None or self.transport.is_closing():
             logger.error("Cannot send: TCP transport is closed or not connected")
             raise RuntimeError("Transport closed")
+        
         self.transport.write(data)
         logger.debug(f"TCP sent data of length {len(data)}")
 
