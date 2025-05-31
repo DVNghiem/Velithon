@@ -23,11 +23,16 @@ class VSPManager:
         service_mesh: Optional[ServiceMesh] = None,
         num_workers: int = 4,
         worker_type: WorkerType = WorkerType.ASYNCIO,
-        max_queue_size: int = 1000
+        max_queue_size: int = 1000,
+        max_transports: int = 5
     ):
         self.name = name
-        self.service_mesh = service_mesh or ServiceMesh()
-        self.client = VSPClient(self.service_mesh, transport_factory=lambda: TCPTransport(self))
+        self.service_mesh = service_mesh or ServiceMesh(discovery_type="static")
+        self.client = VSPClient(
+            self.service_mesh,
+            transport_factory=lambda: TCPTransport(self),
+            max_transports=max_transports
+        )
         self.endpoints: Dict[str, Callable[..., Dict[str, Any]]] = {}
         self.client.manager = self
         self.num_workers = max(1, num_workers)
@@ -171,6 +176,7 @@ class VSPManager:
         for task in self.client.health_check_tasks.values():
             task.cancel()
         self.client.health_check_tasks.clear()
+        self.service_mesh.close()
 
     async def handle_response(self, message: VSPMessage) -> None:
         await self.client.handle_response(message)
@@ -179,8 +185,8 @@ class VSPManager:
         logger.debug(f"Handling VSP endpoint: {endpoint} with body: {body}")
         handler = self.endpoints.get(endpoint)
         if not handler:
-            logger.error(f"Endpoint {endpoint} for {body}")
-            raise VSPError(f"Endpoint {endpoint} for {body}")
+            logger.error(f"Endpoint {endpoint} not found")
+            raise VSPError(f"Endpoint {endpoint} not found")
         try:
             response = handler(**body)
             if inspect.isawaitable(response):

@@ -1,7 +1,8 @@
 import logging
 import time
 from typing import Dict, Optional, List
-from .loadbalancer import LoadBalancer, RoundRobinBalancer
+from .load_balancer import LoadBalancer, RoundRobinBalancer
+from .discovery import Discovery, StaticDiscovery, MDNSDiscovery, ConsulDiscovery
 
 logger = logging.getLogger(__name__)
 
@@ -10,7 +11,7 @@ class ServiceInfo:
         self.name = name
         self.host = host
         self.port = port
-        self.weight = weight  # For weighted load balancing
+        self.weight = weight
         self.is_healthy: bool = True
         self.last_health_check: float = time.time()
 
@@ -25,23 +26,30 @@ class ServiceInfo:
         self.last_health_check = time.time()
 
 class ServiceMesh:
-    def __init__(self, load_balancer: Optional[LoadBalancer] = None):
-        self.services: Dict[str, List[ServiceInfo]] = {}
+    def __init__(self, discovery_type: str = "static", load_balancer: Optional[LoadBalancer] = None, **discovery_args):
         self.load_balancer = load_balancer or RoundRobinBalancer()
+        if discovery_type == "mdns":
+            self.discovery = MDNSDiscovery()
+        elif discovery_type == "consul":
+            self.discovery = ConsulDiscovery(**discovery_args)
+        else:
+            self.discovery = StaticDiscovery()
+        logger.debug(f"Initialized ServiceMesh with {discovery_type} discovery")
 
     def register(self, service: ServiceInfo) -> None:
-        logger.debug(f"Registering service: {service.name} at {service.host}:{service.port}")
-        if service.name not in self.services:
-            self.services[service.name] = []
-        if not any(s.host == service.host and s.port == service.port for s in self.services[service.name]):
-            self.services[service.name].append(service)
-            logger.info(f"Registered {service.name} at {service.host}:{service.port}")
+        self.discovery.register(service)
+        logger.info(f"Registered {service.name} at {service.host}:{service.port}")
 
     async def query(self, service_name: str) -> Optional[ServiceInfo]:
-        instances = [s for s in self.services.get(service_name, []) if s.is_healthy]
-        if not instances:
+        instances = await self.discovery.query(service_name)
+        healthy_instances = [s for s in instances if s.is_healthy]
+        if not healthy_instances:
             logger.debug(f"No healthy instances for {service_name}")
             return None
-        selected = self.load_balancer.select(instances)
+        selected = self.load_balancer.select(healthy_instances)
         logger.debug(f"Queried {service_name}: selected {selected.host}:{selected.port}")
         return selected
+
+    def close(self) -> None:
+        self.discovery.close()
+        logger.debug("ServiceMesh closed")

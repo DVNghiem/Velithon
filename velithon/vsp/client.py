@@ -5,6 +5,7 @@ import uuid
 from typing import Dict, Any, Optional, Tuple, List, Callable
 from collections import defaultdict
 from .message import VSPMessage, VSPError
+from .protocol import VSPProtocol
 from .mesh import ServiceMesh
 from .manager import VSPManager
 from .transport import Transport, TCPTransport
@@ -12,7 +13,7 @@ from .transport import Transport, TCPTransport
 logger = logging.getLogger(__name__)
 
 class VSPClient:
-    def __init__(self, service_mesh: ServiceMesh, transport_factory: Callable[[], Transport] = TCPTransport, max_transports: int = 5):
+    def __init__(self, service_mesh: ServiceMesh, transport_factory: Callable[[], Transport], max_transports: int = 5):
         self.service_mesh = service_mesh
         self.transport_factory = transport_factory
         self.max_transports = max_transports
@@ -38,14 +39,14 @@ class VSPClient:
         active_transports = [t for t in self.transports[connection_key] if not t.is_closed()]
         while len(active_transports) < self.max_transports:
             try:
-                transport = self.transport_factory()
-                await transport.connect(service['host'], service['port'], self.manager)
+                transport = self.transport_factory(self.manager)
+                await transport.connect(service['host'], service['port'])
                 self.transports[connection_key].append(transport)
                 active_transports.append(transport)
                 logger.debug(f"Added transport to {connection_key}, total: {len(active_transports)}")
             except (ConnectionRefusedError, OSError) as e:
                 logger.warning(f"Transport connection failed to {service_name}: {e}")
-                for s in self.service_mesh.services[service_name]:
+                for s in await self.service_mesh.discovery.query(service_name):
                     if s.host == service['host'] and s.port == service['port']:
                         s.mark_unhealthy()
                 raise VSPError(f"Failed to connect to {service_name}: {e}")
@@ -69,11 +70,11 @@ class VSPClient:
         while True:
             try:
                 await self.call(service_name, "health", {})
-                for s in self.service_mesh.services.get(service_name, []):
+                for s in await self.service_mesh.discovery.query(service_name):
                     s.mark_healthy()
             except VSPError as e:
                 logger.warning(f"Health check failed for {service_name}: {e}")
-                for s in self.service_mesh.services.get(service_name, []):
+                for s in await self.service_mesh.discovery.query(service_name):
                     s.mark_unhealthy()
             await asyncio.sleep(5)
 
