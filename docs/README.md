@@ -23,6 +23,8 @@ Welcome to the Velithon framework documentation. This comprehensive guide is org
 17. [Performance & Best Practices](17-performance-best-practices.md) - Optimization and best practices
 18. [Examples](18-examples.md) - Complete working examples
 19. [Quick Reference](19-quick-reference.md) - Handy reference tables
+20. [VSP Service Protocol](20-vsp-service-protocol.md) - Distributed service communication
+21. [VSP Examples](21-vsp-examples.md) - VSP microservice examples
 
 ## Getting Started
 
@@ -49,6 +51,7 @@ Velithon is a high-performance, asynchronous web framework for Python with:
 - **Background Tasks**: Asynchronous task execution with concurrency control
 - **WebSocket Support**: Full WebSocket support with routing integration
 - **Middleware**: Built-in middleware for common tasks (CORS, logging, compression, sessions)
+- **VSP Protocol**: Distributed microservice communication with service discovery and load balancing
 - **OpenAPI**: Automatic API documentation generation
 - **Type Safety**: Full type hints and Pydantic integration
 
