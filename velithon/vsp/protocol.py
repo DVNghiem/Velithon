@@ -28,15 +28,19 @@ class VSPProtocol(asyncio.Protocol):
         self.buffer.extend(data)
         while len(self.buffer) >= 4:
             length = int.from_bytes(self.buffer[:4], "big")
-            if len(self.buffer) < 4:
-                break
+            # Check if we have enough data for the complete message
+            if len(self.buffer) < 4 + length:
+                break  # Wait for more data
+            
             message_data = self.buffer[4 : 4 + length]
             self.buffer = self.buffer[4 + length :]
             try:
                 message = VSPMessage.from_bytes(message_data)
+                # Create task but don't await to avoid blocking the protocol
                 asyncio.create_task(self.manager.enqueue_message(message, self))
             except VSPError as e:
                 logger.error(f"Failed to process message: {e}")
+                # Continue processing other messages even if one fails
 
     async def handle_message(self, message: VSPMessage) -> None:
         try:

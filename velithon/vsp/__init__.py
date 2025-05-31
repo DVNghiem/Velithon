@@ -1,5 +1,6 @@
 from .abstract import Discovery, LoadBalancer, Transport
 from .client import VSPClient
+from .connection_pool import ConnectionPool
 from .discovery import ConsulDiscovery, DiscoveryType, MDNSDiscovery, StaticDiscovery
 from .load_balancer import RoundRobinBalancer, WeightedBalancer
 from .manager import VSPManager, WorkerType
@@ -27,4 +28,5 @@ __all__ = [
     "Transport",
     "Discovery",
     "TCPTransport",
+    "ConnectionPool",
 ]

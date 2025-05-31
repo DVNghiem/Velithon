@@ -92,7 +92,7 @@ class VSPClient:
                 logger.warning(f"Health check failed for {service_name}: {e}")
                 for s in await self.service_mesh.discovery.query(service_name):
                     s.mark_unhealthy()
-            await asyncio.sleep(5)
+            await asyncio.sleep(10)  # Reduced health check frequency
 
     async def call(
         self,
@@ -120,20 +120,18 @@ class VSPClient:
 
         try:
             response = await asyncio.wait_for(
-                self.response_queues[request_id].get(), timeout=10
+                self.response_queues[request_id].get(), timeout=30  # Increased timeout
             )
             del self.response_queues[request_id]
             if "error" in response:
                 raise VSPError(response["error"])
             return response
         except asyncio.TimeoutError:
-            del self.response_queues[request_id]
-            for t in self.transports[connection_key][:]:
-                if not t.is_closed():
-                    t.close()
-            self.transports[connection_key].clear()
-            self.connection_events[connection_key].clear()
-            logger.error(f"Request {request_id} timed out")
+            # Clean up on timeout
+            if request_id in self.response_queues:
+                del self.response_queues[request_id]
+            # Don't immediately close all transports - they might be used by other requests
+            logger.error(f"Request {request_id} timed out after 30 seconds")
             raise VSPError("Request timed out")
 
     async def handle_response(self, message: VSPMessage) -> None:
