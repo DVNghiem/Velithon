@@ -8,11 +8,16 @@ license = "BSD-3-Clause"
 readme = "README.md"
 
 [lib]
-name = "_granian"
+name = "_velithon"
 crate-type = ["cdylib"]
 
 [dependencies]
 pyo3 = { version = "=0.25", features = ["anyhow", "extension-module", "generate-import-lib"] }
+regex = "1.10"
+uuid = { version = "1.8", features = ["v4", "serde"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+mimalloc = { version = "0.1", optional = true }
 
 
 [target.'cfg(not(any(target_env = "musl", target_os = "freebsd", target_os = "openbsd", target_os = "windows")))'.dependencies]
