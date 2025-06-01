@@ -23,7 +23,7 @@ from velithon.middleware.di import DIMiddleware
 from velithon.middleware.logging import LoggingMiddleware
 from velithon.middleware.wrapped import WrappedRSGITypeMiddleware
 from velithon.openapi.ui import get_swagger_ui_html
-from velithon.optimizations import get_middleware_optimizer
+from velithon.performance import get_middleware_optimizer
 from velithon.requests import Request
 from velithon.responses import HTMLResponse, JSONResponse, Response
 from velithon.routing import BaseRoute, Router

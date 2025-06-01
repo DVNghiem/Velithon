@@ -2,7 +2,7 @@ import inspect
 import functools
 import re
 from enum import Enum
-from typing import Annotated, Any, Callable, Dict, Pattern, Sequence, Tuple, TypeVar, Awaitable, Type, TYPE_CHECKING
+from typing import Annotated, Any, Callable, Dict, Pattern, Sequence, Tuple, TypeVar, Awaitable, Type
 
 from typing_extensions import Doc
 
@@ -15,9 +15,6 @@ from velithon.requests import Request
 from velithon.datastructures import Protocol, Scope
 from velithon.types import RSGIApp
 from velithon.params.dispatcher import dispatch
-
-if TYPE_CHECKING:
-    from velithon.websocket import WebSocket, WebSocketEndpoint
 
 T = TypeVar("T")
 # Match parameters in URL paths, eg. '{param}', and '{param:int}'

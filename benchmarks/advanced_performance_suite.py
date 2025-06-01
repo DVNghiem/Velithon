@@ -12,9 +12,8 @@ from velithon.datastructures import Scope, Protocol
 
 # Try importing optimizations
 try:
-    from velithon.optimizations import (
-        get_json_encoder, get_response_cache, get_async_optimizer,
-        get_profiler, get_dict_from_pool, return_dict_to_pool
+    from velithon.performance import (
+        get_json_encoder, get_response_cache
     )
     HAS_OPTIMIZATIONS = True
     print("✅ Advanced optimizations available")
@@ -174,42 +173,6 @@ class AdvancedBenchmarkSuite:
         self.results['cache_speedup'] = cache_speedup
         print(f"   📈 Cache speedup: {cache_speedup:.2f}x")
     
-    def benchmark_object_pooling(self):
-        """Benchmark object pooling effectiveness."""
-        print("♻️ Testing object pooling...")
-        
-        if not HAS_OPTIMIZATIONS:
-            print("   ⚠️ Object pooling not available")
-            return
-        
-        # Test dict allocation without pooling
-        def create_dict_normal():
-            d = {}
-            d["key1"] = "value1"
-            d["key2"] = "value2"
-            d.clear()
-            return d
-        
-        normal_results = self.time_execution(create_dict_normal)
-        
-        # Test dict allocation with pooling
-        def create_dict_pooled():
-            d = get_dict_from_pool()
-            d["key1"] = "value1"
-            d["key2"] = "value2"
-            return_dict_to_pool(d)
-            return d
-        
-        pooled_results = self.time_execution(create_dict_pooled)
-        
-        self.results['dict_normal'] = {k: v for k, v in normal_results.items() if k != 'result'}
-        self.results['dict_pooled'] = {k: v for k, v in pooled_results.items() if k != 'result'}
-        
-        # Calculate pool effectiveness
-        pool_speedup = normal_results['mean'] / pooled_results['mean']
-        self.results['pool_speedup'] = pool_speedup
-        print(f"   📈 Object pool speedup: {pool_speedup:.2f}x")
-    
     async def benchmark_concurrent_json_responses(self):
         """Benchmark concurrent JSON response handling."""
         print("⚡ Testing concurrent JSON response handling...")
@@ -317,7 +280,6 @@ class AdvancedBenchmarkSuite:
         # Basic optimizations
         self.benchmark_optimized_json_response()
         self.benchmark_response_caching()
-        self.benchmark_object_pooling()
         self.benchmark_memory_efficiency()
         
         # Advanced async tests

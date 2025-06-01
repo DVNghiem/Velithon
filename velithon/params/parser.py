@@ -10,6 +10,17 @@ from pydantic import BaseModel, ValidationError
 from pydantic_core import PydanticUndefined
 from pydash import get
 
+from velithon.datastructures import FormData, Headers, QueryParams, UploadFile
+from velithon.di import Provide
+from velithon.exceptions import (
+    BadRequestException,
+    InvalidMediaTypeException,
+    UnsupportParameterException,
+    ValidationException,
+)
+from velithon.params.params import Body, File, Form, Path, Query
+from velithon.requests import Request
+
 # Performance optimization: Pre-compiled type converters
 _TYPE_CONVERTERS = {
     int: int,
@@ -18,12 +29,6 @@ _TYPE_CONVERTERS = {
     bool: lambda v: str(v).lower() in ("true", "1", "yes", "on"),
     bytes: lambda v: v.encode() if isinstance(v, str) else v,
 }
-
-from velithon.datastructures import FormData, Headers, QueryParams, UploadFile
-from velithon.di import Provide
-from velithon.exceptions import BadRequestException, ValidationException, InvalidMediaTypeException, UnsupportParameterException
-from velithon.params.params import Body, File, Form, Path, Query
-from velithon.requests import Request
 
 
 class ParameterResolver:
@@ -122,7 +127,7 @@ class ParameterResolver:
             converter = _TYPE_CONVERTERS.get(annotation)
             if converter:
                 return converter(value)
-            
+
             # Fallback for bytes type
             if annotation is bytes:
                 return value[0] if isinstance(value, tuple) else value
@@ -290,7 +295,7 @@ class ParameterResolver:
                         "message": f"Unsupported parameter metadata for {param.name}: {annotation}"
                     }
                 )
-            
+
             if hasattr(param_metadata, "media_type"):
                 if param_metadata.media_type != self.request.headers.get(
                     "Content-Type", ""
@@ -300,7 +305,7 @@ class ParameterResolver:
                             "message": f"Invalid media type for parameter: {param.name}"
                         }
                     )
-            
+
             if isinstance(param_metadata, Provide):
                 return base_type, "provide", param_metadata, is_required
             param_type = self.param_types.get(type(param_metadata), "query_params")
@@ -355,7 +360,7 @@ class ParameterResolver:
             if param_type == "provide":
                 kwargs[name] = default  # Provide dependency injection
                 continue
-            
+
             type_key = self._get_type_key(annotation)
             # Special handling for BaseModel subclasses
             handler = self.type_handlers.get(type_key)
