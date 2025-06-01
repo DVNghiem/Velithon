@@ -1,9 +1,10 @@
 import logging
-from typing import Optional
+from typing import Optional, Dict, Any
 
 from .discovery import ConsulDiscovery, DiscoveryType, MDNSDiscovery, StaticDiscovery
 from .load_balancer import LoadBalancer, RoundRobinBalancer
 from .service import ServiceInfo
+from .abstract import TransportType
 
 logger = logging.getLogger(__name__)
 
@@ -13,16 +14,21 @@ class ServiceMesh:
         self,
         discovery_type: DiscoveryType = DiscoveryType.STATIC,
         load_balancer: Optional[LoadBalancer] = None,
+        transport_type: TransportType = TransportType.TCP,
+        transport_config: Optional[Dict[str, Any]] = None,
         **discovery_args,
     ):
         self.load_balancer = load_balancer or RoundRobinBalancer()
+        self.transport_type = transport_type
+        self.transport_config = transport_config or {}
+        
         if discovery_type == DiscoveryType.MDNS:
             self.discovery = MDNSDiscovery()
         elif discovery_type == DiscoveryType.CONSUL:
             self.discovery = ConsulDiscovery(**discovery_args)
         else:
             self.discovery = StaticDiscovery()
-        logger.debug(f"Initialized ServiceMesh with {discovery_type} discovery")
+        logger.debug(f"Initialized ServiceMesh with {discovery_type} discovery and {transport_type.value} transport")
 
     def register(self, service: ServiceInfo) -> None:
         self.discovery.register(service)

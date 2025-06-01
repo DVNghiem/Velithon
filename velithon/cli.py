@@ -242,6 +242,12 @@ def cli() -> None:
     type=int,
     help="Port for the Velithon Server Protocol (VSP) server.",
 )
+@click.option(
+    "--vsp-transport",
+    default="tcp",
+    type=click.Choice(["tcp", "udp", "websocket", "http2", "grpc", "message_queue"]),
+    help="Transport type for VSP communications.",
+)
 def run(
     app,
     host,
@@ -281,6 +287,7 @@ def run(
     backpressure,
     vsp_host,
     vsp_port,
+    vsp_transport,
 ):
     """Run the Velithon application."""
     try:
@@ -328,6 +335,7 @@ def run(
             backpressure,
             vsp_host,
             vsp_port,
+            vsp_transport,
         )
 
     except ValueError as e:

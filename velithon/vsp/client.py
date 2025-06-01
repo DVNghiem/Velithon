@@ -3,14 +3,15 @@ import logging
 import random
 import uuid
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 from .mesh import ServiceMesh
 from .message import VSPError, VSPMessage
+from .abstract import Transport, TransportType, ConnectionConfig
+from .transport_factory import TransportFactory
 
 if TYPE_CHECKING:
     from .manager import VSPManager
-from .abstract import Transport
 
 logger = logging.getLogger(__name__)
 
@@ -19,11 +20,11 @@ class VSPClient:
     def __init__(
         self,
         service_mesh: ServiceMesh,
-        transport_factory: Callable[..., Transport],
+        transport_type: TransportType = TransportType.TCP,
         max_transports: int = 5,
     ):
         self.service_mesh = service_mesh
-        self.transport_factory = transport_factory
+        self.transport_type = transport_type
         self.max_transports = max_transports
         self.transports: Dict[str, List[Transport]] = defaultdict(list)
         self.response_queues: Dict[str, asyncio.Queue] = defaultdict(asyncio.Queue)
@@ -49,14 +50,23 @@ class VSPClient:
         ]
         while len(active_transports) < self.max_transports:
             try:
-                transport = self.transport_factory(self.manager)
-                await transport.connect(service["host"], service["port"])
+                # Create connection configuration
+                config = ConnectionConfig(
+                    host=service["host"],
+                    port=service["port"],
+                    transport_type=self.transport_type
+                )
+                
+                # Create transport using factory
+                transport = TransportFactory.create_transport(self.transport_type, config)
+                
+                await transport.connect(config, self.manager)
                 self.transports[connection_key].append(transport)
                 active_transports.append(transport)
                 logger.debug(
-                    f"Added transport to {connection_key}, total: {len(active_transports)}"
+                    f"Added {self.transport_type.value} transport to {connection_key}, total: {len(active_transports)}"
                 )
-            except (ConnectionRefusedError, OSError) as e:
+            except (ConnectionRefusedError, OSError, Exception) as e:
                 logger.warning(f"Transport connection failed to {service_name}: {e}")
                 for s in await self.service_mesh.discovery.query(service_name):
                     if s.host == service["host"] and s.port == service["port"]:
@@ -115,7 +125,7 @@ class VSPClient:
             request_id=request_id, service=service_name, endpoint=endpoint, body=data
         )
         data_bytes = len(message.to_bytes()).to_bytes(4, "big") + message.to_bytes()
-        transport.send(data_bytes)
+        await transport.send(data_bytes)
         logger.debug(f"Sent request {request_id} to {service_name}.{endpoint}")
 
         try:

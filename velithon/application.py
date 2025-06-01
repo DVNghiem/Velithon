@@ -13,7 +13,7 @@ from typing import (
 import granian
 import granian.http
 from typing_extensions import Doc
-from velithon.vsp import VSPManager
+from velithon.vsp import VSPManager, TransportType
 from velithon._utils import is_async_callable
 from velithon.datastructures import FunctionInfo, Protocol, Scope
 from velithon.di import ServiceContainer
@@ -318,6 +318,50 @@ class Velithon:
             vsp_manager: The VSPManager instance to be used by the application.
         """
         self.vsp_manager = vsp_manager
+
+    def create_vsp_manager(
+        self, 
+        name: str = "web-service", 
+        transport_type: str | None = None, 
+        **kwargs
+    ) -> VSPManager:
+        """
+        Create a VSPManager with the specified transport type.
+        
+        Args:
+            name: The name for the VSP manager
+            transport_type: The transport type string (tcp, udp, websocket, etc.)
+                           If None, uses the transport from CLI or defaults to tcp
+            **kwargs: Additional arguments to pass to VSPManager
+            
+        Returns:
+            A configured VSPManager instance
+        """
+        # Use transport from parameter, CLI setting, or default to tcp
+        if transport_type is None:
+            transport_type = getattr(self, 'vsp_transport', 'tcp')
+        
+        # Convert string transport type to TransportType enum
+        transport_enum = TransportType.TCP  # default
+        if transport_type:
+            transport_mapping = {
+                'tcp': TransportType.TCP,
+                'udp': TransportType.UDP,
+                'websocket': TransportType.WEBSOCKET,
+                'http2': TransportType.HTTP2,
+                'grpc': TransportType.GRPC,
+                'message_queue': TransportType.MESSAGE_QUEUE,
+            }
+            transport_enum = transport_mapping.get(transport_type.lower(), TransportType.TCP)
+        
+        # Create and register the VSP manager
+        manager = VSPManager(
+            name=name,
+            transport_type=transport_enum,
+            **kwargs
+        )
+        self.register_vps(manager)
+        return manager
 
     def build_middleware_stack(self) -> RSGIApp:
         middleware = [
@@ -816,6 +860,7 @@ class Velithon:
         backpressure,
         vsp_host,
         vsp_port,
+        vsp_transport,
     ) -> None:
         # Set up logging configuration
         self.log_file = log_file
@@ -828,6 +873,7 @@ class Velithon:
 
         self.vsp_host = vsp_host
         self.vsp_port = vsp_port
+        self.vsp_transport = vsp_transport
 
         # Configure Granian server
         server = granian.Granian(
@@ -891,7 +937,8 @@ class Velithon:
                 f"HTTP2 Max Send Buffer Size: {http2_max_send_buffer_size} \n "
                 f"SSL Certificate: {ssl_certificate} \n SSL Keyfile: {ssl_keyfile} \n "
                 f"SSL Keyfile Password: {'*' * len(ssl_keyfile_password) if ssl_keyfile_password else None} \n "
-                f"Backpressure: {backpressure}"
+                f"Backpressure: {backpressure} \n "
+                f"VSP Host: {vsp_host} \n VSP Port: {vsp_port} \n VSP Transport: {vsp_transport}"
             )
 
         logger.info(

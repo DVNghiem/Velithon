@@ -11,7 +11,7 @@ from .client import VSPClient
 from .mesh import ServiceMesh
 from .message import VSPError, VSPMessage
 from .protocol import VSPProtocol
-from .transport import TCPTransport
+from .abstract import TransportType
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +27,7 @@ class VSPManager:
         self,
         name: str,
         service_mesh: Optional[ServiceMesh] = None,
+        transport_type: TransportType = TransportType.TCP,
         num_workers: int = 4,
         worker_type: WorkerType = WorkerType.ASYNCIO,
         max_queue_size: int = 2000, 
@@ -37,9 +38,10 @@ class VSPManager:
         
         self.name = name
         self.service_mesh = service_mesh or ServiceMesh(discovery_type="static")
+        self.transport_type = transport_type
         self.client = VSPClient(
             self.service_mesh,
-            transport_factory=lambda manager: TCPTransport(manager),
+            transport_type=transport_type,
             max_transports=max_transports,
         )
         self.endpoints: Dict[str, Callable[..., Dict[str, Any]]] = {}
