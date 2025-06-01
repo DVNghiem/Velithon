@@ -107,7 +107,7 @@ class VSPMessage:
             logger.error(f"Failed to deserialize message: {e}")
             raise VSPError(f"Message deserialization failed: {e}")
 
-    def clear_cache(self):
+    def clear_cache(self) -> None:
         """Clear serialization cache"""
         self._serialized_cache = None
 

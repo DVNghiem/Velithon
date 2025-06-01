@@ -301,7 +301,7 @@ class Velithon:
         self.shutdown_functions: List[FunctionInfo] = []
         self.setup()
 
-    def register_container(self, container: ServiceContainer):
+    def register_container(self, container: ServiceContainer) -> None:
         """
         Register a ServiceContainer for dependency injection.
 
@@ -310,7 +310,7 @@ class Velithon:
         """
         self.container = container
 
-    def register_vps(self, vsp_manager: VSPManager):
+    def register_vps(self, vsp_manager: VSPManager) -> None:
         """
         Register a VSPManager for managing VSP services.
 
@@ -726,7 +726,7 @@ class Velithon:
 
         return decorator
     
-    def config_logger(self):
+    def config_logger(self) -> None:
         configure_logger(
             log_file=self.log_file,
             level=self.log_level,

@@ -40,7 +40,7 @@ class HTTPException(Exception):
     _formatter: ResponseFormatter = DefaultFormatter()
 
     @classmethod
-    def set_formatter(cls, formatter: ResponseFormatter):
+    def set_formatter(cls, formatter: ResponseFormatter) -> None:
         cls._formatter = formatter
 
     def __init__(

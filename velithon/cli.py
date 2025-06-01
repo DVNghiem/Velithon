@@ -47,7 +47,7 @@ def import_from_string(import_str: Any) -> Any:
 
 
 @click.group()
-def cli():
+def cli() -> None:
     """Velithon CLI - A lightweight RSGI-based web framework."""
     pass
 

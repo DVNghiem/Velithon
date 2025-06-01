@@ -87,7 +87,7 @@ class ConnectionPool:
             else:
                 raise ConnectionError(f"Maximum connections reached for {service_key}")
 
-    def return_connection(self, service_key: str, connection: Any):
+    def return_connection(self, service_key: str, connection: Any) -> None:
         """Return a connection to the pool"""
         if not connection.is_closed() and len(self.pools[service_key]) < self.max_connections_per_service:
             self.pools[service_key].append((connection, time.time()))
@@ -97,13 +97,13 @@ class ConnectionPool:
                 connection.close()
             self.active_connections[service_key] = max(0, self.active_connections[service_key] - 1)
 
-    def remove_connection(self, service_key: str, connection: Any):
+    def remove_connection(self, service_key: str, connection: Any) -> None:
         """Remove a connection permanently (e.g., due to error)"""
         if not connection.is_closed():
             connection.close()
         self.active_connections[service_key] = max(0, self.active_connections[service_key] - 1)
 
-    def cleanup_expired_connections(self):
+    def cleanup_expired_connections(self) -> None:
         """Clean up expired connections from all pools"""
         current_time = time.time()
         expired_count = 0
@@ -142,7 +142,7 @@ class ConnectionPool:
             'pool_hit_rate': self.stats['pool_hits'] / max(1, self.stats['pool_hits'] + self.stats['pool_misses'])
         }
 
-    def close_all(self):
+    def close_all(self) -> None:
         """Close all connections and clean up"""
         for pool in self.pools.values():
             while pool:

@@ -123,7 +123,7 @@ class ResponseCache:
                 return self.cache[key]
         return None
 
-    def put(self, key: str, value: Any):
+    def put(self, key: str, value: Any) -> None:
         """Cache a response."""
         with self.lock:
             if key in self.cache:
@@ -147,7 +147,7 @@ class MiddlewareOptimizer:
         """Cache compiled middleware chains for maximum performance."""
         
         # Pre-build the entire middleware chain at once instead of iteratively
-        def optimized_chain(handler):
+        def optimized_chain(handler) -> Callable:
             # Use direct call for small chains (common case)
             if len(middleware_tuple) <= 3:
                 # Unroll the loop for better performance

@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+import typing
 import zipfile
 from datetime import datetime, timezone
 from logging.handlers import RotatingFileHandler, QueueHandler, QueueListener
@@ -11,37 +12,37 @@ import time
 
 
 class VelithonFilter(logging.Filter):
-    def filter(self, record):
+    def filter(self, record) -> bool:
         return record.name.startswith("velithon")
     
 class LocalQueueHandler(QueueHandler):
 
-    def emit(self, record):
+    def emit(self, record) -> None:
         return super().emit(record)
 
 class ThreadTrace(threading.Thread): 
     def __init__(self, *args, **keywords): 
         threading.Thread.__init__(self, *args, **keywords) 
 
-    def run(self):
+    def run(self) -> None:
         try:
             time.sleep(0.1)
         except Exception as e:
             logging.error(f"Error in thread run loop: {e}")
         super().run()
 
-    def join(self, timeout = None):
+    def join(self, timeout = None) -> None:
         return super().join(timeout)
 
 class LocalQueueListener(QueueListener):
 
-    def dequeue(self, block):
+    def dequeue(self, block) -> typing.Any:
         return self.queue.get(block)
-    def start(self):
+    def start(self) -> None:
         self._thread = t = ThreadTrace(target=self._monitor)
         t.daemon = True
         t.start()
-    def stop(self):
+    def stop(self) -> None:
         super().stop()
     def _monitor(self):
         q = self.queue
@@ -58,7 +59,7 @@ class LocalQueueListener(QueueListener):
                     q.task_done()
             except queue.Empty:
                 break
-    def handle(self, record):
+    def handle(self, record) -> None:
         super().handle(record)
 
 class TextFormatter(logging.Formatter):
@@ -75,7 +76,7 @@ class TextFormatter(logging.Formatter):
         self._time_fmt = "%Y-%m-%d %H:%M:%S"
         self._cache = {}
         
-    def format(self, record):
+    def format(self, record) -> str:
         """Format log records with custom formatting."""
         asctime = self.formatTime(record, self._time_fmt)
         
@@ -118,7 +119,7 @@ class JsonFormatter(logging.Formatter):
         super().__init__()
         self._cache = {}
     
-    def format(self, record):
+    def format(self, record) -> str:
         # Base structure that's always included
         log_entry = {
             "timestamp": datetime.fromtimestamp(
@@ -158,7 +159,7 @@ class ZipRotatingFileHandler(RotatingFileHandler):
     After compression, the original uncompressed file is removed.
     """
 
-    def doRollover(self):
+    def doRollover(self) -> None:
         super().doRollover()
         for i in range(self.backupCount - 1, 0, -1):
             src = f"{self.baseFilename}.{i}"

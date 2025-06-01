@@ -15,7 +15,7 @@ T = typing.TypeVar("T")
 _thread_pool = None
 _pool_lock = threading.Lock()
 
-def set_thread_pool():
+def set_thread_pool() -> None:
     global _thread_pool
     with _pool_lock:
         if _thread_pool is None:
@@ -33,7 +33,7 @@ def is_async_callable(obj: typing.Any) -> bool:
         callable(obj) and asyncio.iscoroutinefunction(getattr(obj, '__call__', None))
     )
 
-async def run_in_threadpool(func: typing.Callable, *args, **kwargs):
+async def run_in_threadpool(func: typing.Callable, *args, **kwargs) -> typing.Any:
     global _thread_pool
     if _thread_pool is None:
         set_thread_pool()
@@ -64,7 +64,7 @@ class RequestIDGenerator:
         self._counter = 0
         self._lock = threading.Lock()
     
-    def generate(self):
+    def generate(self) -> str:
         """Generate a unique request ID with format: prefix-timestamp-counter."""
         timestamp = int(time.time() * 1000)  # Timestamp in milliseconds
         

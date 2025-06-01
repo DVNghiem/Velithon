@@ -74,7 +74,7 @@ class WebSocketRoute(BaseRoute):
         return f"{class_name}(path={path!r}, name={name!r})"
 
 
-def websocket_route(path: str, name: str | None = None):
+def websocket_route(path: str, name: str | None = None) -> typing.Callable:
     """
     Decorator for creating WebSocket routes.
     

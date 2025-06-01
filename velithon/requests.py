@@ -159,7 +159,7 @@ class Request(HTTPConnection):
         return self.scope.method
 
     @property
-    def session(self):
+    def session(self) -> typing.Any:
         """Access session data. Returns empty dict if session middleware not enabled."""
         if hasattr(self.scope, '_session'):
             return self.scope._session

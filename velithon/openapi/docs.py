@@ -21,7 +21,7 @@ from velithon.datastructures import UploadFile, FormData, Headers
 from velithon.di import Provide
 from .constants import REF_TEMPLATE
 
-def join_url_paths(*parts):
+def join_url_paths(*parts) -> str:
     first = parts[0]
     parts = [part.strip("/") for part in parts]
     starts_with_slash = first.startswith("/") if first else False
