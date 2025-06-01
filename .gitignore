@@ -174,3 +174,7 @@ cython_debug/
 .pypirc
 test_app.py
 test_app_2.py
+
+# Added by cargo
+
+/target

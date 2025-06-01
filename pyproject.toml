@@ -32,5 +32,10 @@ pytest = "^8.3.5"
 pytest-codspeed = "^3.2.0"
 
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core>=2.0.0,<3.0.0", "maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[tool.maturin]
+module-name = 'velithon._velithon'
+bindings = 'pyo3'
+
