@@ -1,4 +1,4 @@
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 from .application import Velithon
 from .websocket import WebSocket, WebSocketRoute, WebSocketEndpoint, websocket_route
