@@ -52,3 +52,15 @@ def compile_path(
     # This function would compile a path using the provided convertor types.
     # The implementation is not provided in the original code snippet.
     ...
+
+@dataclass(frozen=True)
+class ResponseCache:
+    max_size: int
+    cache: typing.Dict[str, typing.Any]
+    access_order: typing.List[str]
+
+    def get(self, key: str) -> typing.Optional[typing.Any]:
+        ...
+
+    def put(self, key: str, value: typing.Any) -> None:
+        ...
