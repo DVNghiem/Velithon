@@ -4,6 +4,7 @@ mod convertors;
 mod di;
 mod logging;
 mod performance;
+mod vsp;
 
 /// Velithon Rust Extensions
 /// High-performance Rust implementations for critical Velithon components
@@ -19,6 +20,9 @@ fn _velithon(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     // Register logging functions
     logging::register_logging(m.py(), m)?;
+
+    // Register VSP (Velithon Service Protocol) components
+    vsp::register_vsp(m.py(), m)?;
 
     Ok(())
 }

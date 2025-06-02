@@ -12,11 +12,14 @@ name = "_velithon"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "=0.25", features = ["anyhow", "extension-module", "generate-import-lib"] }
+pyo3 = { version = "=0.25", features = ["anyhow", "extension-module", "generate-import-lib", "experimental-async"] }
+pyo3-async-runtimes = { version = "0.25", features = ["tokio-runtime"] }
 regex = "1.10"
 uuid = { version = "1.8", features = ["v4", "serde"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+tokio = { version = "1.0", features = ["full"] }
+rand = "0.8"
 mimalloc = { version = "0.1", optional = true }
 log = "0.4"
 env_logger = "0.11"
