@@ -2,6 +2,7 @@ use pyo3::prelude::*;
 
 mod convertors;
 mod di;
+mod logging;
 mod performance;
 
 /// Velithon Rust Extensions
@@ -15,6 +16,9 @@ fn _velithon(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     // Register dependency injection related functions and classes
     di::register_di(m.py(), m)?;
+
+    // Register logging functions
+    logging::register_logging(m.py(), m)?;
 
     Ok(())
 }

@@ -1,5 +1,4 @@
 import importlib
-import logging
 import pathlib
 from typing import Any
 
@@ -7,7 +6,9 @@ import click
 import granian
 import granian.http
 
-logger = logging.getLogger(__name__)
+from velithon.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 class ImportFromStringError(Exception):
@@ -331,9 +332,9 @@ def run(
         )
 
     except ValueError as e:
-        logging.error(f"Error: {str(e)}")
+        logger.error(f"Error: {str(e)}")
     except Exception as e:
-        logging.error(f"Failed to start server: {str(e)}")
+        logger.error(f"Failed to start server: {str(e)}")
 
 
 if __name__ == "__main__":

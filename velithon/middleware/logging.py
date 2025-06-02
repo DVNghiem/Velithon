@@ -1,23 +1,23 @@
-import logging
 import time
 import traceback
 
 from velithon.datastructures import Protocol, Scope
 from velithon.exceptions import HTTPException
 from velithon.responses import JSONResponse
+from velithon.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class LoggingMiddleware:
     def __init__(self, app):
         self.app = app
-        self._logger = logging.getLogger(__name__)
+        self._logger = get_logger(__name__)
 
     async def __call__(self, scope: Scope, protocol: Protocol):
         # Check if logging is enabled at INFO level first to avoid timing calculations
         # if we're not going to log anything
-        if not self._logger.isEnabledFor(logging.INFO):
+        if not self._logger.isEnabledFor(20):  # INFO level = 20
             return await self.app(scope, protocol)
 
         start_time = time.time()
@@ -32,7 +32,7 @@ class LoggingMiddleware:
             await self.app(scope, protocol)
             duration_ms = (time.time() - start_time) * 1000
         except Exception as e:
-            if self._logger.isEnabledFor(logging.DEBUG):
+            if self._logger.isEnabledFor(10):  # DEBUG level = 10
                 traceback.print_exc()
             duration_ms = (time.time() - start_time) * 1000
             status_code = 500
@@ -57,7 +57,7 @@ class LoggingMiddleware:
             "user_agent": user_agent,
             "path": path,
             "client_ip": client_ip,
-            "duration_ms": round(duration_ms, 2),  # Round to 2 decimal places is usually sufficient
-            "status": status_code,
+            "duration_ms": str(round(duration_ms, 2)),  # Convert to string for Rust
+            "status": str(status_code),  # Convert to string for Rust
         }
         self._logger.info("Processed %s %s", method, path, extra=extra)
