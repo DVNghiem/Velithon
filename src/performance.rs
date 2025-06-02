@@ -47,9 +47,9 @@ impl ResponseCache {
 }
 
 
-/// Register all convertor functions and classes with Python
+/// Register all performance functions and classes with Python
 pub fn register_performance(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
-    // Register individual convertor classes
+    // Register individual performance classes
     m.add_class::<ResponseCache>()?;
     
     Ok(())

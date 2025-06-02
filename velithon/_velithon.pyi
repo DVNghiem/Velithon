@@ -64,3 +64,7 @@ class ResponseCache:
 
     def put(self, key: str, value: typing.Any) -> None:
         ...
+
+
+def di_cached_signature(func: typing.Callable) -> typing.Any:
+    pass

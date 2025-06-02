@@ -1,10 +1,11 @@
 import logging
-import threading
 from asyncio import Lock
 from contextvars import ContextVar
 from functools import wraps
-from inspect import iscoroutinefunction, signature
+from inspect import iscoroutinefunction
 from typing import Any, Callable, Dict, Optional, Type
+
+from ._velithon import di_cached_signature
 
 from velithon.datastructures import Scope
 
@@ -12,29 +13,6 @@ logger = logging.getLogger(__name__)
 
 # Context variable to store the current request scope for dependency injection.
 current_scope: ContextVar[Optional[Scope]] = ContextVar("current_scope", default=None)
-
-# Cache for storing signatures to avoid repeated inspect.signature calls
-_signature_cache: Dict[Callable, Any] = {}
-_signature_cache_lock = threading.Lock()
-
-def cached_signature(func: Callable) -> Any:
-    """Cache the signature of a function or class to avoid repeated inspection - ULTRA OPTIMIZED."""
-    # Fast path: direct dictionary access
-    try:
-        return _signature_cache[func]
-    except KeyError:
-        # Slow path: get the signature and cache it
-        with _signature_cache_lock:
-            # Check again inside lock to avoid race conditions
-            if func not in _signature_cache:
-                _signature_cache[func] = signature(func)
-                # Prevent unbounded cache growth - but do it less frequently
-                if len(_signature_cache) > 2000:
-                    # Remove oldest entries when cache gets too big
-                    keys_to_remove = list(_signature_cache.keys())[:500]
-                    for key in keys_to_remove:
-                        _signature_cache.pop(key, None)
-            return _signature_cache[func]
 
 
 class Provide:
@@ -104,7 +82,7 @@ class SingletonProvider(Provider):
     async def _create_instance(
         self, container: Any, scope: Optional[Scope], resolution_stack: set
     ) -> Any:
-        sig = cached_signature(self.cls)  # Use cached signature
+        sig = di_cached_signature(self.cls)  # Use cached signature
         deps = await self._resolve_dependencies(sig, container, scope, resolution_stack)
         return self.cls(**deps)
 
@@ -157,7 +135,7 @@ class FactoryProvider(Provider):
         super().__init__()
         self.cls = cls
         self.kwargs = kwargs
-        self._signature = cached_signature(cls)  # Cache signature at initialization
+        self._signature = di_cached_signature(cls)  # Cache signature at initialization
 
     async def get(
         self, scope: Optional[Scope] = None, resolution_stack: Optional[set] = None
@@ -232,7 +210,7 @@ class AsyncFactoryProvider(Provider):
         super().__init__()
         self.factory = factory
         self.kwargs = kwargs
-        self._signature = cached_signature(factory)  # Cache signature at initialization
+        self._signature = di_cached_signature(factory)  # Cache signature at initialization
 
     async def get(
         self, scope: Optional[Scope] = None, resolution_stack: Optional[set] = None
@@ -326,7 +304,7 @@ class ServiceContainer:
 
 def inject(func: Callable) -> Callable:
     """Decorator to inject dependencies into a function with precomputed dependency mappings."""
-    sig = cached_signature(func)  # Cache signature at decoration time
+    sig = di_cached_signature(func)  # Cache signature at decoration time
     param_deps = []  # List of (name, Provide) for parameters with dependencies
 
     # Precompute dependency mappings - use original approach for maximum compatibility
