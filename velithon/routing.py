@@ -2,11 +2,11 @@ import inspect
 import functools
 import re
 from enum import Enum
-from typing import Annotated, Any, Callable, Dict, Pattern, Sequence, Tuple, TypeVar, Awaitable, Type
+from typing import Annotated, Any, Callable, Dict, Sequence, Tuple, TypeVar, Awaitable, Type
 
 from typing_extensions import Doc
 
-from velithon.convertors import CONVERTOR_TYPES, Convertor
+from velithon.convertors import CONVERTOR_TYPES
 from velithon.middleware import Middleware
 from velithon.openapi import swagger_generate
 from velithon.responses import PlainTextResponse, Response
@@ -15,6 +15,7 @@ from velithon.requests import Request
 from velithon.datastructures import Protocol, Scope
 from velithon.types import RSGIApp
 from velithon.params.dispatcher import dispatch
+from ._velithon import compile_path
 
 T = TypeVar("T")
 # Match parameters in URL paths, eg. '{param}', and '{param:int}'
@@ -61,63 +62,6 @@ class BaseRoute:
 def get_name(endpoint: Callable[..., Any]) -> str:
     return getattr(endpoint, "__name__", endpoint.__class__.__name__)
 
-
-def compile_path(
-    path: str,
-) -> tuple[Pattern[str], str, dict[str, Convertor[Any]]]:
-    """
-    Given a path string, like: "/{username:str}",
-    or a host string, like: "{subdomain}.mydomain.org", return a three-tuple
-    of (regex, format, {param_name:convertor}).
-
-    regex:      "/(?P<username>[^/]+)"
-    format:     "/{username}"
-    convertors: {"username": StringConvertor()}
-    """
-    is_host = not path.startswith("/")
-
-    path_regex = "^"
-    path_format = ""
-    duplicated_params = set()
-
-    idx = 0
-    param_convertors = {}
-    for match in PARAM_REGEX.finditer(path):
-        param_name, convertor_type = match.groups("str")
-        convertor_type = convertor_type.lstrip(":")
-        assert convertor_type in CONVERTOR_TYPES, (
-            f"Unknown path convertor '{convertor_type}'"
-        )
-        convertor = CONVERTOR_TYPES[convertor_type]
-
-        path_regex += re.escape(path[idx : match.start()])
-        path_regex += f"(?P<{param_name}>{convertor.regex})"
-
-        path_format += path[idx : match.start()]
-        path_format += "{%s}" % param_name
-
-        if param_name in param_convertors:
-            duplicated_params.add(param_name)
-
-        param_convertors[param_name] = convertor
-
-        idx = match.end()
-
-    if duplicated_params:
-        names = ", ".join(sorted(duplicated_params))
-        ending = "s" if len(duplicated_params) > 1 else ""
-        raise ValueError(f"Duplicated param name{ending} {names} at path {path}")
-
-    if is_host:
-        # Align with `Host.matches()` behavior, which ignores port.
-        hostname = path[idx:].split(":")[0]
-        path_regex += re.escape(hostname) + "$"
-    else:
-        path_regex += re.escape(path[idx:]) + "$"
-
-    path_format += path[idx:]
-
-    return re.compile(path_regex), path_format, param_convertors
 
 def request_response(
     func: Callable[[Request], Awaitable[Response] | Response],
@@ -204,7 +148,8 @@ class Route(BaseRoute):
             if "GET" in self.methods:
                 self.methods.add("HEAD")
 
-        self.path_regex, self.path_format, self.param_convertors = compile_path(path)
+        path_regex, self.path_format, self.param_convertors = compile_path(path, CONVERTOR_TYPES)
+        self.path_regex = re.compile(path_regex)
 
     def matches(self, scope: Scope) -> tuple[Match, Scope]:
         if scope.proto == "http":

@@ -21,7 +21,7 @@ dependencies = [
 [tool.poetry.dependencies]
 python = ">=3.10,<4.0"
 
-[tool.poetry.scripts]
+[project.scripts]
 velithon = "velithon.cli:cli"
 
 [tool.poetry.group.dev]
@@ -32,7 +32,7 @@ pytest = "^8.3.5"
 pytest-codspeed = "^3.2.0"
 
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0", "maturin>=1.0,<2.0"]
+requires = ["maturin>=1.0,<2.0"]
 build-backend = "maturin"
 
 [tool.maturin]
