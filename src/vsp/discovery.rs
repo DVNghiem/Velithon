@@ -435,6 +435,23 @@ impl ConsulDiscovery {
         }
     }
 
+    /// Check if Consul is healthy/available
+    pub fn check_health(&self) -> PyResult<bool> {
+        let consul_url = format!("http://{}:{}", self.consul_host, self.consul_port);
+        let health_url = format!("{}/v1/status/leader", consul_url);
+        
+        let rt = &self.runtime;
+        let result: Result<bool, reqwest::Error> = rt.block_on(async {
+            let client = reqwest::Client::new();
+            match client.get(&health_url).send().await {
+                Ok(response) => Ok(response.status().is_success()),
+                Err(_) => Ok(false),
+            }
+        });
+        
+        Ok(result.unwrap_or(false))
+    }
+
     fn __repr__(&self) -> String {
         format!(
             "ConsulDiscovery(host='{}', port={})",

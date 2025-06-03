@@ -192,6 +192,19 @@ impl VSPMessage {
         Uuid::new_v4().to_string()
     }
 
+    /// Serialize message to JSON string
+    pub fn to_json(&self) -> PyResult<String> {
+        let message_data = serde_json::json!({
+            "header": self.header,
+            "body": self.body
+        });
+
+        serde_json::to_string(&message_data)
+            .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                format!("JSON serialization failed: {}", e)
+            ))
+    }
+
     fn __repr__(&self) -> String {
         format!(
             "VSPMessage(request_id={}, service={}, endpoint={}, is_response={})",
