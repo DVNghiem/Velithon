@@ -27,6 +27,8 @@ chrono = { version = "0.4", features = ["serde"] }
 flate2 = "1.0"
 crossbeam-channel = "0.5"
 parking_lot = "0.12"
+reqwest = { version = "0.12", features = ["json"] }
+mdns = "3.0"
 
 
 [target.'cfg(not(any(target_env = "musl", target_os = "freebsd", target_os = "openbsd", target_os = "windows")))'.dependencies]
