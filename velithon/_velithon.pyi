@@ -1,5 +1,6 @@
 import typing
 import uuid
+import enum
 from dataclasses import dataclass
 
 @dataclass(frozen=True)
@@ -68,3 +69,112 @@ class ResponseCache:
 
 def di_cached_signature(func: typing.Callable) -> typing.Any:
     pass
+
+class LogLevel(str, enum.Enum):
+    Debug = "DEBUG"
+    Info = "INFO"
+    Warn = "WARNING"
+    Error = "ERROR"
+    Critical = "CRITICAL"
+
+    def from_str(cls, s: str) -> "LogLevel":
+        ...
+
+    def to_str(self) -> str:
+        ...
+
+    def to_int(self)-> int:
+        ...
+
+def configure_logger(
+    log_file: str | None,
+    level: str,
+    lof_format: str,
+    log_to_file: bool,
+    max_bytes: int, 
+    backup_count: int,
+) -> None:
+    ...
+
+def log_debug(
+    message: str,
+    module: str,
+    line: int,
+) -> None:
+    ...
+
+
+def log_debug_with_extra(
+    message: str,
+    module: str,
+    line: int,
+    extra: typing.Dict[str, typing.Any],
+) -> None:
+    ...
+
+
+def log_info(
+    message: str,
+    module: str,
+    line: int,
+) -> None:
+    ...
+
+def log_info_with_extra(
+    message: str,
+    module: str,
+    line: int,
+    extra: typing.Dict[str, typing.Any],
+) -> None:
+    ...
+
+def log_warn(
+    message: str,
+    module: str,
+    line: int,
+) -> None:
+    ...
+
+
+def log_warn_with_extra(
+    message: str,
+    module: str,
+    line: int,
+    extra: typing.Dict[str, typing.Any],
+) -> None:
+    ...
+
+def log_error(
+    message: str,
+    module: str,
+    line: int,
+) -> None:
+    ...
+
+def log_error_with_extra(
+    message: str,
+    module: str,
+    line: int,
+    extra: typing.Dict[str, typing.Any],
+) -> None:
+    ...
+
+def log_critical(
+    message: str,
+    module: str,
+    line: int,
+) -> None:
+    ...
+
+def log_critical_with_extra(
+    message: str,
+    module: str,
+    line: int,
+    extra: typing.Dict[str, typing.Any],
+) -> None:
+    ...
+
+def is_enabled_for(level: str) -> bool:
+    ...
+
+

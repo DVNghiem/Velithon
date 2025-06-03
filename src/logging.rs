@@ -122,13 +122,13 @@ pub trait Formatter: Send + Sync {
 }
 
 pub struct TextFormatter {
-    cache: Arc<Mutex<HashMap<String, Vec<String>>>>,
+    _cache: Arc<Mutex<HashMap<String, Vec<String>>>>,
 }
 
 impl TextFormatter {
     pub fn new() -> Self {
         Self {
-            cache: Arc::new(Mutex::new(HashMap::new())),
+            _cache: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 }
@@ -178,13 +178,13 @@ impl Formatter for TextFormatter {
 }
 
 pub struct JsonFormatter {
-    cache: Arc<Mutex<HashMap<String, Vec<String>>>>,
+    _cache: Arc<Mutex<HashMap<String, Vec<String>>>>,
 }
 
 impl JsonFormatter {
     pub fn new() -> Self {
         Self {
-            cache: Arc::new(Mutex::new(HashMap::new())),
+            _cache: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 }
@@ -206,6 +206,7 @@ impl Formatter for JsonFormatter {
 
 pub trait Handler: Send + Sync {
     fn handle(&self, record: &LogRecord);
+    #[allow(dead_code)]
     fn set_level(&mut self, level: LogLevel);
     fn is_enabled(&self, level: &LogLevel) -> bool;
 }

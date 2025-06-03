@@ -1,8 +1,3 @@
-"""
-Rust-based logging module for Velithon.
-This module provides a Python interface to the high-performance Rust logging implementation.
-"""
-
 import inspect
 import logging
 from velithon._velithon import (
@@ -268,44 +263,10 @@ def get_logger(name: str = "velithon") -> RustLogger:
     return _rust_logger
 
 
-# Mock classes for compatibility with existing code
-class VelithonFilter:
-    """Mock filter class for compatibility."""
-    def filter(self, record) -> bool:
-        return True
-
-
-class TextFormatter:
-    """Mock formatter class for compatibility."""
-    def __init__(self, *args, **kwargs):
-        pass
-    
-    def format(self, record) -> str:
-        return str(record)
-
-
-class JsonFormatter:
-    """Mock formatter class for compatibility."""
-    def __init__(self):
-        pass
-    
-    def format(self, record) -> str:
-        return str(record)
-
-
-class ZipRotatingFileHandler:
-    """Mock handler class for compatibility."""
-    def __init__(self, *args, **kwargs):
-        pass
-
 
 # Export the main functions and classes
 __all__ = [
     "configure_logger",
     "get_logger", 
     "RustLogger",
-    "VelithonFilter",
-    "TextFormatter", 
-    "JsonFormatter",
-    "ZipRotatingFileHandler",
 ]

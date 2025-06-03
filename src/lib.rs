@@ -22,7 +22,7 @@ fn _velithon(m: &Bound<'_, PyModule>) -> PyResult<()> {
     logging::register_logging(m.py(), m)?;
 
     // Register VSP (Velithon Service Protocol) components
-    vsp::register_vsp(m.py(), m)?;
+    // vsp::register_vsp(m.py(), m)?;
 
     Ok(())
 }
