@@ -214,3 +214,28 @@ class ServiceInfo:
     def endpoint(self) -> str:
         ...
 
+class LoadBalancer:
+    """Abstract Load Balancer interface."""
+
+    def select(self, instances: typing.List[ServiceInfo]) -> ServiceInfo:
+        """Select a service instance."""
+        ...
+
+@dataclass(frozen=True)
+class RoundRobinBalancer(LoadBalancer):
+    """Round-Robin Load Balancer."""
+
+    index: int = 0
+
+    def select(self, instances: typing.List[ServiceInfo]) -> ServiceInfo:
+        ...
+
+
+@dataclass(frozen=True)
+class WeightedBalancer(LoadBalancer):
+    """Weighted Load Balancer based on instance weight."""
+
+    def select(self, instances: typing.List[ServiceInfo]) -> ServiceInfo:
+        ...
+
+

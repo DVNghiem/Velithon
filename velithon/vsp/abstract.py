@@ -46,11 +46,3 @@ class Discovery(ABC):
         """Close discovery resources."""
         pass
 
-
-class LoadBalancer(ABC):
-    """Abstract Load Balancer interface."""
-
-    @abstractmethod
-    def select(self, instances: List[ServiceInfo]) -> ServiceInfo:
-        """Select a service instance."""
-        pass
