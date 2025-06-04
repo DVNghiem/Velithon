@@ -3,7 +3,7 @@ from typing import Optional
 
 from .discovery import ConsulDiscovery, DiscoveryType, MDNSDiscovery, StaticDiscovery
 from .load_balancer import LoadBalancer, RoundRobinBalancer
-from .service import ServiceInfo
+from velithon._velithon import ServiceInfo
 
 logger = logging.getLogger(__name__)
 

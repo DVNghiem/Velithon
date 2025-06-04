@@ -7,7 +7,7 @@ from .manager import VSPManager, WorkerType
 from .mesh import ServiceMesh
 from .message import VSPMessage
 from .protocol import VSPProtocol
-from .service import ServiceInfo
+from velithon._velithon import ServiceInfo
 from .transport import TCPTransport
 
 __all__ = [

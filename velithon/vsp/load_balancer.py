@@ -3,7 +3,8 @@ import random
 from typing import List
 
 from .abstract import LoadBalancer
-from .service import ServiceInfo
+from velithon._velithon import ServiceInfo
+
 
 logger = logging.getLogger(__name__)
 

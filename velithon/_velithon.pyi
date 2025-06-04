@@ -3,6 +3,7 @@ import uuid
 import enum
 from dataclasses import dataclass
 
+# Block Convertor class for request path parameters.
 @dataclass(frozen=True)
 class Convertor:
     regex: str
@@ -54,6 +55,7 @@ def compile_path(
     # The implementation is not provided in the original code snippet.
     ...
 
+# Block for Optimization and caching of responses.
 @dataclass(frozen=True)
 class ResponseCache:
     max_size: int
@@ -66,10 +68,12 @@ class ResponseCache:
     def put(self, key: str, value: typing.Any) -> None:
         ...
 
-
+# Block for Dependency Injection and caching of signatures.
 def di_cached_signature(func: typing.Callable) -> typing.Any:
     pass
 
+
+# Block for Rust-based logging system.
 class LogLevel(str, enum.Enum):
     Debug = "DEBUG"
     Info = "INFO"
@@ -177,4 +181,36 @@ def log_critical_with_extra(
 def is_enabled_for(level: str) -> bool:
     ...
 
+
+# Block for VSP service management.
+
+class HealthStatus(str, enum.Enum):
+    Healthy = "HealthStatus.Healthy"
+    Unhealthy = "HealthStatus.Unhealthy"
+    Unknown = "HealthStatus.Unknown"
+
+    def __repr__(self) -> str:
+        ...
+
+
+@dataclass(frozen=True)
+class ServiceInfo:
+    name: str
+    host: str
+    port: int
+    weight: int = 1
+    health_status: bool = True
+    last_health_check: float = 0.0
+
+    def mark_unhealthy(self) -> None:
+        ...
+
+    def mark_healthy(self) -> None:
+        ...
+
+    def is_healthy(self) -> bool:
+        ...
+
+    def endpoint(self) -> str:
+        ...
 

@@ -113,7 +113,7 @@ class VSPManager:
         ]
         
         # Start background cleanup task
-        cleanup_task = asyncio.create_task(self._background_cleanup())
+        # cleanup_task = asyncio.create_task(self._background_cleanup())
         
         async with server:
             logger.info(f"VSP server started on {host}:{port} with {self.num_workers} workers")
@@ -123,7 +123,7 @@ class VSPManager:
             except asyncio.CancelledError:
                 try:
                     server.close()
-                    cleanup_task.cancel()
+                    # cleanup_task.cancel()
                     self.close()
                 finally:
                     raise

@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List
 
-from .service import ServiceInfo
+from velithon._velithon import ServiceInfo
 
 
 class Transport(ABC):

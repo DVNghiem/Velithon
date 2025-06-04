@@ -1,5 +1,4 @@
 use pyo3::prelude::*;
-use pyo3::types::PyDict;
 use serde::{Serialize, Deserialize};
 use std::time::SystemTime;
 
@@ -40,8 +39,6 @@ pub struct ServiceInfo {
     #[pyo3(get)]
     pub last_health_check: u64,
     
-    // Additional metadata
-    tags: std::collections::HashMap<String, String>,
 }
 
 #[pymethods]
@@ -60,7 +57,6 @@ impl ServiceInfo {
                 .duration_since(SystemTime::UNIX_EPOCH)
                 .unwrap()
                 .as_secs(),
-            tags: std::collections::HashMap::new(),
         }
     }
 
@@ -90,41 +86,6 @@ impl ServiceInfo {
     /// Get service endpoint as string
     pub fn endpoint(&self) -> String {
         format!("{}:{}", self.host, self.port)
-    }
-
-    /// Add a tag
-    pub fn add_tag(&mut self, key: String, value: String) {
-        self.tags.insert(key, value);
-    }
-
-    /// Get a tag value
-    pub fn get_tag(&self, key: String) -> Option<String> {
-        self.tags.get(&key).cloned()
-    }
-
-    /// Remove a tag
-    pub fn remove_tag(&mut self, key: String) -> Option<String> {
-        self.tags.remove(&key)
-    }
-
-    /// Get all tags as dict
-    pub fn get_tags<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
-        let dict = PyDict::new(py);
-        for (key, value) in &self.tags {
-            dict.set_item(key, value)?;
-        }
-        Ok(dict)
-    }
-
-    /// Set tags from dict
-    pub fn set_tags(&mut self, tags: Bound<PyDict>) -> PyResult<()> {
-        self.tags.clear();
-        for (key, value) in tags.iter() {
-            let key_str: String = key.extract()?;
-            let value_str: String = value.extract()?;
-            self.tags.insert(key_str, value_str);
-        }
-        Ok(())
     }
 
     fn __repr__(&self) -> String {
