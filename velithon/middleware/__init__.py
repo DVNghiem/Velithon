@@ -16,6 +16,7 @@ from velithon.types import RSGIApp
 from velithon.middleware.compression import CompressionMiddleware, CompressionLevel
 from velithon.middleware.cors import CORSMiddleware
 from velithon.middleware.logging import LoggingMiddleware
+from velithon.middleware.rust_logging import RustLoggingMiddleware, FastLoggingMiddleware, RustMiddlewareOptimizer, RustMiddlewareOptimizer
 from velithon.middleware.session import SessionMiddleware, SessionInterface, MemorySessionInterface, SignedCookieSessionInterface, Session, get_session
 
 P = ParamSpec("P")
@@ -26,6 +27,9 @@ __all__ = [
     "CompressionLevel",
     "CORSMiddleware",
     "LoggingMiddleware",
+    "RustLoggingMiddleware",
+    "FastLoggingMiddleware",
+    "RustMiddlewareOptimizer",
     "SessionMiddleware",
     "SessionInterface",
     "MemorySessionInterface",

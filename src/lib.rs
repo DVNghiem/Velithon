@@ -3,6 +3,7 @@ use pyo3::prelude::*;
 mod convertors;
 mod di;
 mod logging;
+mod middleware;
 mod performance;
 mod vsp;
 
@@ -12,6 +13,7 @@ mod vsp;
 fn _velithon(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Register convertor classes and functions
     convertors::register_convertors(m.py(), m)?;
+    
     // Register performance-related functions and classes
     performance::register_performance(m.py(), m)?;
 
@@ -20,6 +22,9 @@ fn _velithon(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     // Register logging functions
     logging::register_logging(m.py(), m)?;
+    
+    // Register middleware components
+    middleware::register_middleware(m.py(), m)?;
 
     // Register VSP (Velithon Service Protocol) components
     vsp::register_vsp(m.py(), m)?;
