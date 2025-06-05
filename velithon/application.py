@@ -21,11 +21,6 @@ from velithon.logging import configure_logger
 from velithon.middleware import Middleware
 from velithon.middleware.di import DIMiddleware
 from velithon.middleware.logging import LoggingMiddleware
-try:
-    from velithon.middleware.rust_logging import RustLoggingMiddleware
-    _RUST_MIDDLEWARE_AVAILABLE = True
-except ImportError:
-    _RUST_MIDDLEWARE_AVAILABLE = False
 from velithon.middleware.wrapped import WrappedRSGITypeMiddleware
 from velithon.openapi.ui import get_swagger_ui_html
 from velithon.performance import get_middleware_optimizer
@@ -281,22 +276,9 @@ class Velithon:
                 """
             ),
         ] = None,
-        use_rust_middleware: Annotated[
-            bool,
-            Doc(
-                """
-                Whether to use high-performance Rust middleware instead of Python
-                middleware for logging and other core functions. Rust middleware
-                provides better performance by avoiding Python GIL limitations.
-                
-                Default: False (use Python middleware for compatibility)
-                """
-            ),
-        ] = False,
     ):
         self.router = Router(routes, on_startup=on_startup, on_shutdown=on_shutdown)
         self.container = None
-        self.use_rust_middleware = use_rust_middleware
 
         self.user_middleware = [] if middleware is None else list(middleware)
         self.middleware_stack: RSGIApp | None = None
@@ -338,18 +320,9 @@ class Velithon:
         self.vsp_manager = vsp_manager
 
     def build_middleware_stack(self) -> RSGIApp:
-        # Choose logging middleware based on configuration
-        if self.use_rust_middleware and _RUST_MIDDLEWARE_AVAILABLE:
-            logging_middleware_class = RustLoggingMiddleware
-            logger.info("Using high-performance Rust logging middleware")
-        else:
-            logging_middleware_class = LoggingMiddleware
-            if self.use_rust_middleware and not _RUST_MIDDLEWARE_AVAILABLE:
-                logger.warning("Rust middleware requested but not available, falling back to Python middleware")
-        
         middleware = [
             Middleware(WrappedRSGITypeMiddleware),
-            Middleware(logging_middleware_class),
+            Middleware(LoggingMiddleware),
         ]
         if self.container:
             middleware.append(Middleware(DIMiddleware, self))
