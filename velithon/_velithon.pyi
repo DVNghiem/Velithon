@@ -72,6 +72,64 @@ class ResponseCache:
 def di_cached_signature(func: typing.Callable) -> typing.Any:
     pass
 
+class Provide:
+    service: typing.Any
+
+    def __class_getitem__(cls, service: typing.Any) -> "Provide":
+        ...
+
+@dataclass(frozen=True)
+class Provider:
+    ...
+
+    def get(self, scope: typing.Any | None = None, resolution_stack: typing.Any | None = None) -> typing.Any:
+        ...
+
+@dataclass(frozen=True)
+class SingletonProvider(Provider):
+    cls: typing.Type
+    kwargs: typing.Dict[str, typing.Any] = None
+    lock_key: str
+
+    def __init__(self, cls: typing.Type, kwargs: typing.Dict[str, typing.Any] = None) -> None:
+        ...
+
+    def get(self, scope: typing.Any | None = None, resolution_stack: typing.Any | None = None) -> typing.Any:
+        ...
+
+@dataclass(frozen=True)
+class FactoryProvider(Provider):
+    cls: typing.Type
+    kwargs: typing.Dict[str, typing.Any] = None
+
+    def __init__(self, cls: typing.Type, kwargs: typing.Dict[str, typing.Any] = None) -> None:
+        ...
+
+    def get(self, scope: typing.Any | None = None, resolution_stack: typing.Any | None = None) -> typing.Any:
+        ...
+
+@dataclass(frozen=True)
+class AsyncFactoryProvider(Provider):
+    cls: typing.Type
+    kwargs: typing.Dict[str, typing.Any] = None
+
+    def __init__(self, cls: typing.Type, kwargs: typing.Dict[str, typing.Any] = None) -> None:
+        ...
+
+    async def get(self, scope: typing.Any | None = None, resolution_stack: typing.Any | None = None) -> typing.Any:
+        ...
+
+@dataclass(frozen=True)
+class ServiceContainer:
+    ...
+
+    def resolve(
+        self,
+        provide: typing.Any,
+        scope: typing.Any | None = None,
+        resolution_stack: typing.Any | None = None,
+    ) -> typing.Any:
+        ...
 
 # Block for Rust-based logging system.
 class LogLevel(str, enum.Enum):
