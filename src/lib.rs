@@ -1,5 +1,6 @@
 use pyo3::prelude::*;
 
+mod background;
 mod convertors;
 mod di;
 mod logging;
@@ -10,6 +11,9 @@ mod vsp;
 /// High-performance Rust implementations for critical Velithon components
 #[pymodule]
 fn _velithon(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    // Register background task classes and functions
+    background::register_background(m.py(), m)?;
+    
     // Register convertor classes and functions
     convertors::register_convertors(m.py(), m)?;
     

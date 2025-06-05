@@ -297,3 +297,39 @@ class WeightedBalancer(LoadBalancer):
         ...
 
 
+# Block for Background tasks management.
+@dataclass(frozen=True)
+class BackgroundTask:
+    """Background task that can be executed asynchronously."""
+    func: typing.Callable[..., typing.Any]
+    args: typing.Tuple[typing.Any, ...]
+    kwargs: typing.Dict[str, typing.Any]
+    is_async: bool 
+
+    def __call__(self) -> None:
+        """Execute the background task."""
+        ...
+
+@dataclass(frozen=True)
+class BackgroundTasks:
+    """Collection of background tasks to be executed."""
+    tasks: typing.List[BackgroundTask]
+    max_concurrent: int = 10
+
+    def add_task(self, func: typing.Callable[..., typing.Any], *args: typing.Any, **kwargs: typing.Any) -> None:
+        """Add a new task to the collection."""
+        ...
+
+    async def __call__(self, continue_on_error: bool = True) -> None:
+        """Execute all background tasks concurrently."""
+        ...
+    async def run_all(self, continue_on_error: bool = True) -> None:
+        """Run all tasks in the collection."""
+        # This method would run all tasks concurrently, handling errors based on continue_on_error flag.
+        ...
+
+    async def clear(self) -> None:
+        """Clear all tasks in the collection."""
+        ...
+
+

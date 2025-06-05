@@ -12,7 +12,7 @@ name = "_velithon"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "=0.25", features = ["anyhow", "extension-module", "generate-import-lib", "experimental-async"] }
+pyo3 = { version = "=0.25", features = ["extension-module", "generate-import-lib", "experimental-async"] }
 pyo3-async-runtimes = { version = "0.25", features = ["tokio-runtime"] }
 regex = "1.10"
 uuid = { version = "1.8", features = ["v4", "serde"] }
