@@ -306,7 +306,7 @@ class BackgroundTask:
     kwargs: typing.Dict[str, typing.Any]
     is_async: bool 
 
-    def __call__(self) -> None:
+    async def __call__(self) -> None:
         """Execute the background task."""
         ...
 
