@@ -1,3 +1,17 @@
+#[cfg(not(any(
+    target_env = "musl",
+    target_os = "freebsd",
+    target_os = "openbsd",
+    target_os = "windows",
+    feature = "mimalloc"
+)))]
+#[global_allocator]
+static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
+
+#[cfg(feature = "mimalloc")]
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 use pyo3::prelude::*;
 
 mod background;
@@ -10,7 +24,7 @@ mod error;
 
 /// Velithon Rust Extensions
 /// High-performance Rust implementations for critical Velithon components
-#[pymodule]
+#[pymodule(gil_used = false)]
 fn _velithon(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Register background task classes and functions
     background::register_background(m.py(), m)?;
