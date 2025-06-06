@@ -72,6 +72,64 @@ class ResponseCache:
 def di_cached_signature(func: typing.Callable) -> typing.Any:
     pass
 
+class Provide:
+    service: typing.Any
+
+    def __class_getitem__(cls, service: typing.Any) -> "Provide":
+        ...
+
+@dataclass(frozen=True)
+class Provider:
+    ...
+
+    def get(self, scope: typing.Any | None = None, resolution_stack: typing.Any | None = None) -> typing.Any:
+        ...
+
+@dataclass(frozen=True)
+class SingletonProvider(Provider):
+    cls: typing.Type
+    kwargs: typing.Dict[str, typing.Any] = None
+    lock_key: str
+
+    def __init__(self, cls: typing.Type, kwargs: typing.Dict[str, typing.Any] = None) -> None:
+        ...
+
+    def get(self, scope: typing.Any | None = None, resolution_stack: typing.Any | None = None) -> typing.Any:
+        ...
+
+@dataclass(frozen=True)
+class FactoryProvider(Provider):
+    cls: typing.Type
+    kwargs: typing.Dict[str, typing.Any] = None
+
+    def __init__(self, cls: typing.Type, kwargs: typing.Dict[str, typing.Any] = None) -> None:
+        ...
+
+    def get(self, scope: typing.Any | None = None, resolution_stack: typing.Any | None = None) -> typing.Any:
+        ...
+
+@dataclass(frozen=True)
+class AsyncFactoryProvider(Provider):
+    cls: typing.Type
+    kwargs: typing.Dict[str, typing.Any] = None
+
+    def __init__(self, cls: typing.Type, kwargs: typing.Dict[str, typing.Any] = None) -> None:
+        ...
+
+    async def get(self, scope: typing.Any | None = None, resolution_stack: typing.Any | None = None) -> typing.Any:
+        ...
+
+@dataclass(frozen=True)
+class ServiceContainer:
+    ...
+
+    def resolve(
+        self,
+        provide: typing.Any,
+        scope: typing.Any | None = None,
+        resolution_stack: typing.Any | None = None,
+    ) -> typing.Any:
+        ...
 
 # Block for Rust-based logging system.
 class LogLevel(str, enum.Enum):
@@ -236,6 +294,42 @@ class WeightedBalancer(LoadBalancer):
     """Weighted Load Balancer based on instance weight."""
 
     def select(self, instances: typing.List[ServiceInfo]) -> ServiceInfo:
+        ...
+
+
+# Block for Background tasks management.
+@dataclass(frozen=True)
+class BackgroundTask:
+    """Background task that can be executed asynchronously."""
+    func: typing.Callable[..., typing.Any]
+    args: typing.Tuple[typing.Any, ...]
+    kwargs: typing.Dict[str, typing.Any]
+    is_async: bool 
+
+    def __call__(self) -> None:
+        """Execute the background task."""
+        ...
+
+@dataclass(frozen=True)
+class BackgroundTasks:
+    """Collection of background tasks to be executed."""
+    tasks: typing.List[BackgroundTask]
+    max_concurrent: int = 10
+
+    def add_task(self, func: typing.Callable[..., typing.Any], *args: typing.Any, **kwargs: typing.Any) -> None:
+        """Add a new task to the collection."""
+        ...
+
+    async def __call__(self, continue_on_error: bool = True) -> None:
+        """Execute all background tasks concurrently."""
+        ...
+    async def run_all(self, continue_on_error: bool = True) -> None:
+        """Run all tasks in the collection."""
+        # This method would run all tasks concurrently, handling errors based on continue_on_error flag.
+        ...
+
+    async def clear(self) -> None:
+        """Clear all tasks in the collection."""
         ...
 
 

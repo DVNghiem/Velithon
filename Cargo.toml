@@ -12,7 +12,7 @@ name = "_velithon"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "=0.25", features = ["anyhow", "extension-module", "generate-import-lib", "experimental-async"] }
+pyo3 = { version = "=0.25", features = ["extension-module", "generate-import-lib", "experimental-async"] }
 pyo3-async-runtimes = { version = "0.25", features = ["tokio-runtime"] }
 regex = "1.10"
 uuid = { version = "1.8", features = ["v4", "serde"] }
@@ -28,6 +28,9 @@ parking_lot = "0.12"
 reqwest = { version = "0.12", features = ["json"] }
 async-trait = "0.1.88"
 thiserror = "2.0.12"
+urlencoding = "2.1"
+lru = "0.14.0"
+ahash = "0.8"
 
 
 [target.'cfg(not(any(target_env = "musl", target_os = "freebsd", target_os = "openbsd", target_os = "windows")))'.dependencies]
