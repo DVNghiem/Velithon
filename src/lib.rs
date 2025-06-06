@@ -3,11 +3,8 @@ use pyo3::prelude::*;
 mod background;
 mod convertors;
 mod di;
-mod headers;
-mod json_encoder;
 mod logging;
 mod performance;
-mod routing;
 mod vsp;
 mod error;
 
@@ -33,15 +30,5 @@ fn _velithon(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Register VSP (Velithon Service Protocol) components
     vsp::register_vsp(m.py(), m)?;
     
-    // Register JSON encoder functions
-    json_encoder::register_json_encoder(m.py(), m)?;
-    
-    // Register routing optimization functions
-    routing::register_routing(m.py(), m)?;
-    
-    // Register header processing functions
-    headers::register_headers(m.py(), m)?;
-
-
     Ok(())
 }
