@@ -5,6 +5,7 @@ mod di;
 mod logging;
 mod performance;
 mod vsp;
+mod error;
 
 /// Velithon Rust Extensions
 /// High-performance Rust implementations for critical Velithon components
