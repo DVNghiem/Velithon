@@ -26,6 +26,9 @@ flate2 = "1.0"
 crossbeam-channel = "0.5"
 parking_lot = "0.12"
 reqwest = { version = "0.12", features = ["json"] }
+urlencoding = "2.1"
+lru = "0.12"
+ahash = "0.8"
 
 
 [target.'cfg(not(any(target_env = "musl", target_os = "freebsd", target_os = "openbsd", target_os = "windows")))'.dependencies]
