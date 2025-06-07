@@ -285,55 +285,6 @@ impl RouterOptimizer {
     }
 }
 
-/// Fast path parameter extraction utility
-#[pyfunction]
-pub fn extract_path_params(
-    py: Python,
-    path_regex: &str,
-    route_path: &str,
-    param_convertors: &Bound<PyDict>,
-) -> PyResult<Option<Py<PyDict>>> {
-    let regex = Regex::new(path_regex)
-        .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("Invalid regex: {}", e)))?;
-    
-    if let Some(captures) = regex.captures(route_path) {
-        let params_dict = PyDict::new(py);
-        
-        for (capture, name) in captures.iter().skip(1).zip(regex.capture_names().skip(1)) {
-            if let (Some(capture), Some(param_name)) = (capture, name) {
-                let param_value = capture.as_str();
-                if let Ok(Some(convertor)) = param_convertors.get_item(param_name) {
-                    let converted = convertor.call_method1("convert", (param_value,))?;
-                    params_dict.set_item(param_name, converted)?;
-                }
-            }
-        }
-        
-        Ok(Some(params_dict.unbind()))
-    } else {
-        Ok(None)
-    }
-}
-
-/// Batch compile multiple paths for improved startup performance
-#[pyfunction]
-pub fn batch_compile_paths(
-    py: Python,
-    paths: Vec<String>,
-    convertor_types: &Bound<PyDict>,
-) -> PyResult<Vec<(String, String, Py<PyDict>)>> {
-    let mut results = Vec::with_capacity(paths.len());
-    
-    for path in paths {
-        // Import and use the existing compile_path function
-        let compile_path = py.import("velithon._velithon")?.getattr("compile_path")?;
-        let result: (String, String, Py<PyDict>) = compile_path.call1((&path, convertor_types))?.extract()?;
-        results.push(result);
-    }
-    
-    Ok(results)
-}
-
 /// High-performance route pattern matcher
 #[pyclass(name = "_RoutePatternMatcher")]
 pub struct RoutePatternMatcher {
@@ -435,10 +386,6 @@ pub fn register_routing(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<RouteOptimizer>()?;
     m.add_class::<RouterOptimizer>()?;
     m.add_class::<RoutePatternMatcher>()?;
-    
-    // Register utility functions
-    m.add_function(wrap_pyfunction!(extract_path_params, m)?)?;
-    m.add_function(wrap_pyfunction!(batch_compile_paths, m)?)?;
     
     Ok(())
 }

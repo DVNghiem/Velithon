@@ -355,20 +355,6 @@ class _RouterOptimizer:
         """Get cache statistics for the router optimizer."""
         ...
 
-def extract_path_params(
-    path_regex: str, route_path: str, param_convertors: typing.Dict[str, Convertor]
-) -> typing.Dict[str, typing.Any]:
-    """Extract path parameters from a route path using the provided convertors."""
-    # This function would extract parameters from the route path based on the regex and convertors.
-    ...
-
-def batch_compile_paths(
-    paths: typing.List[str],
-    convertor_types: typing.Dict[str, Convertor],
-) -> typing.List[typing.Tuple[str, str, typing.Dict[str, Convertor]]]:
-    """Batch compile multiple paths with their convertors."""
-    # This function would compile multiple paths and return a list of compiled paths.
-    ...
 @dataclass(frozen=True)
 class _RoutePatternMatcher:
     patterns: typing.List[typing.Tuple[str, str, typing.Dict[str, Convertor]]]

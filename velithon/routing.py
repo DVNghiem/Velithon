@@ -1,15 +1,7 @@
-"""
-High-performance Rust-optimized routing for Velithon
-
-This module provides a complete routing system with Rust optimizations for maximum performance.
-It serves as a drop-in replacement for the standard Python routing with significant
-performance improvements.
-"""
-
 import inspect
 import functools
 import re
-from typing import Any, Callable, Dict, Sequence, Tuple, TypeVar, Awaitable, Type, List
+from typing import Any, Callable, Dict, Sequence, Tuple, TypeVar, Awaitable, Type
 
 from velithon.convertors import CONVERTOR_TYPES
 from velithon.middleware import Middleware
@@ -25,7 +17,6 @@ from velithon._velithon import (
     _RouteOptimizer,
     _RouterOptimizer, 
     _RoutePatternMatcher,
-    batch_compile_paths,
     compile_path,
 )
 
@@ -699,24 +690,3 @@ class Router:
             return func
         return decorator
 
-
-# Legacy compatibility aliases for existing Rust routing classes
-RustOptimizedRoute = Route
-RustOptimizedRouter = Router
-HighPerformanceRouter = Router
-
-
-def batch_optimize_routes(paths: List[str]) -> List[Tuple[str, str, Dict]]:
-    """
-    Batch compile multiple route paths for improved startup performance.
-    
-    This is useful when you have many routes and want to compile them all at once
-    during application startup rather than lazily as requests come in.
-    
-    Args:
-        paths: List of route path patterns to compile
-        
-    Returns:
-        List of (path_regex, path_format, param_convertors) tuples
-    """
-    return batch_compile_paths(paths, CONVERTOR_TYPES)
