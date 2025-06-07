@@ -1,10 +1,15 @@
+"""
+High-performance Rust-optimized routing for Velithon
+
+This module provides a complete routing system with Rust optimizations for maximum performance.
+It serves as a drop-in replacement for the standard Python routing with significant
+performance improvements.
+"""
+
 import inspect
 import functools
 import re
-from enum import Enum
-from typing import Annotated, Any, Callable, Dict, Sequence, Tuple, TypeVar, Awaitable, Type
-
-from typing_extensions import Doc
+from typing import Any, Callable, Dict, Sequence, Tuple, TypeVar, Awaitable, Type, List
 
 from velithon.convertors import CONVERTOR_TYPES
 from velithon.middleware import Middleware
@@ -15,17 +20,39 @@ from velithon.requests import Request
 from velithon.datastructures import Protocol, Scope
 from velithon.types import RSGIApp
 from velithon.params.dispatcher import dispatch
-from ._velithon import compile_path
+from velithon._velithon import (
+    Match,
+    _RouteOptimizer,
+    _RouterOptimizer, 
+    _RoutePatternMatcher,
+    batch_compile_paths,
+    compile_path,
+)
 
 T = TypeVar("T")
 # Match parameters in URL paths, eg. '{param}', and '{param:int}'
 PARAM_REGEX = re.compile("{([a-zA-Z_][a-zA-Z0-9_]*)(:[a-zA-Z_][a-zA-Z0-9_]*)?}")
 
 
-class Match(Enum):
-    NONE = 0
-    PARTIAL = 1
-    FULL = 2
+def get_name(endpoint: Callable[..., Any]) -> str:
+    return getattr(endpoint, "__name__", endpoint.__class__.__name__)
+
+
+def request_response(
+    func: Callable[[Request], Awaitable[Response] | Response],
+) -> RSGIApp:
+    """
+    Takes a function or coroutine `func(request) -> response`,
+    and returns an ARGI application.
+    """
+    f: Callable[[Request], Awaitable[Response]] = (
+        func if is_async_callable(func) else functools.partial(run_in_threadpool, func)  # type:ignore
+    )
+    async def app(scope: Scope, protocol: Protocol) -> None:
+        request = Request(scope, protocol)
+        response = await dispatch(f, request)
+        return await response(scope, protocol)
+    return app
 
 
 class BaseRoute:
@@ -59,63 +86,19 @@ class BaseRoute:
         await self.handle(scope, protocol)
 
 
-def get_name(endpoint: Callable[..., Any]) -> str:
-    return getattr(endpoint, "__name__", endpoint.__class__.__name__)
-
-
-def request_response(
-    func: Callable[[Request], Awaitable[Response] | Response],
-) -> RSGIApp:
-    """
-    Takes a function or coroutine `func(request) -> response`,
-    and returns an ARGI application.
-    """
-    f: Callable[[Request], Awaitable[Response]] = (
-        func if is_async_callable(func) else functools.partial(run_in_threadpool, func)  # type:ignore
-    )
-    async def app(scope: Scope, protocol: Protocol) -> None:
-        request = Request(scope, protocol)
-        response = await dispatch(f, request)
-        return await response(scope, protocol)
-    return app
-
 class Route(BaseRoute):
     def __init__(
         self,
-        path: Annotated[str, Doc("Path to match")],
-        endpoint: Annotated[
-            Callable[..., Any],
-            Doc("The endpoint to call when the route matches"),
-        ],
+        path: str,
+        endpoint: Callable[..., Any],
         *,
-        methods: Annotated[
-            Sequence[str] | None,
-            Doc("HTTP methods to match, defaults to all methods"),
-        ] = None,
-        name: Annotated[
-            str | None,
-            Doc("Name of the route, used for OpenAPI schema generation"),
-        ] = None,
-        middleware: Annotated[
-            Sequence[Middleware] | None,
-            Doc("Middleware to apply to the route"),
-        ] = None,
-        summary: Annotated[
-            str | None,
-            Doc("Summary of the route, used for OpenAPI schema generation"),
-        ] = None,
-        description: Annotated[
-            str | None,
-            Doc("Description of the route, used for OpenAPI schema generation"),
-        ] = None,
-        tags: Annotated[
-            Sequence[str] | None,
-            Doc("Tags for the route, used for OpenAPI schema generation"),
-        ] = None,
-        include_in_schema: Annotated[
-            bool | None,
-            Doc("Whether to include this route in the OpenAPI schema"),
-        ] = True
+        methods: Sequence[str] | None = None,
+        name: str | None = None,
+        middleware: Sequence[Middleware] | None = None,
+        summary: str | None = None,
+        description: str | None = None,
+        tags: Sequence[str] | None = None,
+        include_in_schema: bool | None = True
     ) -> None:
         assert path.startswith("/"), "Routed paths must start with '/'"
         self.path = path
@@ -148,11 +131,35 @@ class Route(BaseRoute):
             if "GET" in self.methods:
                 self.methods.add("HEAD")
 
+        # Use Rust-optimized path compilation
         path_regex, self.path_format, self.param_convertors = compile_path(path, CONVERTOR_TYPES)
         self.path_regex = re.compile(path_regex)
+        
+        # Initialize Rust optimizer for enhanced performance
+        methods_list = list(self.methods) if self.methods else None
+        self._rust_optimizer = _RouteOptimizer(
+            path_regex=path_regex,
+            path_format=self.path_format,
+            param_convertors=self.param_convertors,
+            methods=methods_list,
+            max_cache_size=1000
+        )
 
     def matches(self, scope: Scope) -> tuple[Match, Scope]:
         if scope.proto == "http":
+            # Use Rust-optimized matching first
+            try:
+                match_result, params = self._rust_optimizer.matches(scope.path, scope.method)
+                if params:
+                    setattr(scope, "_path_params", params)
+                    return match_result, scope
+                elif match_result != Match.NONE:
+                    return match_result, scope
+            except Exception:
+                # Fall back to Python implementation if Rust optimization fails
+                pass
+            
+            # Fallback to original Python logic
             route_path = scope.path
             
             # Check if we have this path in the path cache
@@ -284,6 +291,34 @@ class Router:
         if middleware:
             for cls, args, kwargs in reversed(middleware):
                 self.middleware_stack = cls(self.middleware_stack, *args, **kwargs)
+        
+        # Initialize Rust optimizations
+        self._rust_optimizer = _RouterOptimizer(max_cache_size=1000)
+        self._pattern_matcher = _RoutePatternMatcher()
+        self._rebuild_rust_optimizations()
+
+    def _rebuild_rust_optimizations(self):
+        """Rebuild Rust optimizations for all routes"""
+        try:
+            self._pattern_matcher = _RoutePatternMatcher()
+            
+            for route in self.routes:
+                if hasattr(route, 'path'):
+                    # Add pattern to the pattern matcher
+                    path_regex, path_format, param_convertors = compile_path(route.path, CONVERTOR_TYPES)
+                    
+                    # Check if this is an exact path (no parameters)
+                    is_exact = "{" not in route.path
+                    
+                    self._pattern_matcher.add_pattern(
+                        path_regex=path_regex,
+                        path_format=path_format,
+                        param_convertors=param_convertors,
+                        is_exact_path=is_exact
+                    )
+        except Exception:
+            # If Rust optimizations fail, continue without them
+            pass
 
     async def not_found(self, scope: Scope, protocol: Protocol) -> None:
         response = PlainTextResponse("Not Found", status_code=404)
@@ -292,7 +327,28 @@ class Router:
     async def app(self, scope: Scope, protocol: Protocol) -> None:
         assert scope.proto in ("http", "websocket")
         
-        # Check if we have a route lookup table
+        # Try Rust-optimized routing first
+        if scope.proto == "http":
+            try:
+                cached_result = self._rust_optimizer.lookup_route(scope.path, scope.method)
+                
+                if cached_result is not None:
+                    if cached_result == -1:  # Cached "not found"
+                        await self.default(scope, protocol)
+                        return
+                    route = self.routes[cached_result]
+                    # For cached results, we need to extract params again
+                    match_result, params = route._rust_optimizer.matches(scope.path, scope.method)
+                    if match_result == Match.FULL:
+                        if params:
+                            setattr(scope, "_path_params", params)
+                        await route.handle(scope, protocol)
+                        return
+            except Exception:
+                # Fall back to Python implementation if Rust optimization fails
+                pass
+        
+        # Check if we have a route lookup table (fallback)
         if not hasattr(self, "_route_lookup"):
             self._route_lookup = {}
             self._exact_routes = {}
@@ -324,7 +380,7 @@ class Router:
             if match == Match.FULL:
                 # Cache this result for future lookups
                 # Don't cache parameterized routes to avoid memory issues
-                if not scope._path_params:
+                if not getattr(scope, "_path_params", None):
                     self._exact_routes[route_key] = route
                 elif len(self._route_lookup) < 1000:  # Limit cache size
                     self._route_lookup[route_key] = route
@@ -375,40 +431,20 @@ class Router:
             tags=tags,
         )
         self.routes.append(route)
+        self._rebuild_rust_optimizations()
 
     def add_api_route(
         self,
         path: str,
         endpoint: Callable[..., Any],
         *,
-        methods: Annotated[
-            Sequence[str] | None,
-            Doc("HTTP methods to match, defaults to all methods"),
-        ] = None,
-        name: Annotated[
-            str | None,
-            Doc("Name of the route, used for OpenAPI schema generation"),
-        ] = None,
-        middleware: Annotated[
-            Sequence[Middleware] | None,
-            Doc("Middleware to apply to the route"),
-        ] = None,
-        summary: Annotated[
-            str | None,
-            Doc("Summary of the route, used for OpenAPI schema generation"),
-        ] = None,
-        description: Annotated[
-            str | None,
-            Doc("Description of the route, used for OpenAPI schema generation"),
-        ] = None,
-        tags: Annotated[
-            Sequence[str] | None,
-            Doc("Tags for the route, used for OpenAPI schema generation"),
-        ] = None,
-        include_in_schema: Annotated[
-            bool | None,
-            Doc("Whether to include this route in the OpenAPI schema"),
-        ] = True,
+        methods: Sequence[str] | None = None,
+        name: str | None = None,
+        middleware: Sequence[Middleware] | None = None,
+        summary: str | None = None,
+        description: str | None = None,
+        tags: Sequence[str] | None = None,
+        include_in_schema: bool | None = True,
         route_class_override: Type[BaseRoute] | None = None,
     ) -> None:
         route_class = route_class_override or self.route_class
@@ -424,39 +460,19 @@ class Router:
             include_in_schema=include_in_schema,
         )
         self.routes.append(route)
+        self._rebuild_rust_optimizations()
 
     def api_route(
         self,
         path: str,
         *,
-        methods: Annotated[
-            Sequence[str] | None,
-            Doc("HTTP methods to match, defaults to all methods"),
-        ] = None,
-        name: Annotated[
-            str | None,
-            Doc("Name of the route, used for OpenAPI schema generation"),
-        ] = None,
-        middleware: Annotated[
-            Sequence[Middleware] | None,
-            Doc("Middleware to apply to the route"),
-        ] = None,
-        summary: Annotated[
-            str | None,
-            Doc("Summary of the route, used for OpenAPI schema generation"),
-        ] = None,
-        description: Annotated[
-            str | None,
-            Doc("Description of the route, used for OpenAPI schema generation"),
-        ] = None,
-        tags: Annotated[
-            Sequence[str] | None,
-            Doc("Tags for the route, used for OpenAPI schema generation"),
-        ] = None,
-        include_in_schema: Annotated[
-            bool | None,
-            Doc("Whether to include this route in the OpenAPI schema"),
-        ] = True,
+        methods: Sequence[str] | None = None,
+        name: str | None = None,
+        middleware: Sequence[Middleware] | None = None,
+        summary: str | None = None,
+        description: str | None = None,
+        tags: Sequence[str] | None = None,
+        include_in_schema: bool | None = True,
         route_class_override: Type[BaseRoute] | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -519,14 +535,14 @@ class Router:
         include_in_schema: bool = True,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """
-        Add a *path operation* using an HTTP GET operation.
+        Add a *path operation* using an HTTP POST operation.
 
         ## Example
         ```python
         router = Router()
 
         @router.post("/items/")
-        def read_items():
+        def create_item():
             return [{"name": "Empanada"}, {"name": "Arepa"}]
         ```
         """
@@ -558,7 +574,7 @@ class Router:
         router = Router()
 
         @router.put("/items/")
-        def read_items():
+        def update_item():
             return [{"name": "Empanada"}, {"name": "Arepa"}]
         ```
         """
@@ -589,8 +605,8 @@ class Router:
         ```python
         router = Router()
 
-        @router.delet("/items/")
-        def read_items():
+        @router.delete("/items/")
+        def delete_item():
             return [{"name": "Empanada"}, {"name": "Arepa"}]
         ```
         """
@@ -604,7 +620,7 @@ class Router:
             include_in_schema=include_in_schema,
         )
     
-    def patch (
+    def patch(
         self,
         path: str,
         *,
@@ -627,7 +643,7 @@ class Router:
             summary=summary,
         )
     
-    def option (
+    def options(
         self,
         path: str,
         *,
@@ -638,13 +654,13 @@ class Router:
         include_in_schema: bool = True,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """
-        Add a *path operation* using an HTTP OPTION operation.
+        Add a *path operation* using an HTTP OPTIONS operation.
         """
         return self.api_route(
             path=path,
             tags=tags,
             description=description,
-            methods=["OPTION"],
+            methods=["OPTIONS"],
             name=name,
             include_in_schema=include_in_schema,
             summary=summary,
@@ -660,6 +676,7 @@ class Router:
         from velithon.websocket import WebSocketRoute
         route = WebSocketRoute(path, endpoint, name)
         self.routes.append(route)
+        self._rebuild_rust_optimizations()
 
     def websocket(
         self,
@@ -681,3 +698,25 @@ class Router:
             self.add_websocket_route(path, func, name)
             return func
         return decorator
+
+
+# Legacy compatibility aliases for existing Rust routing classes
+RustOptimizedRoute = Route
+RustOptimizedRouter = Router
+HighPerformanceRouter = Router
+
+
+def batch_optimize_routes(paths: List[str]) -> List[Tuple[str, str, Dict]]:
+    """
+    Batch compile multiple route paths for improved startup performance.
+    
+    This is useful when you have many routes and want to compile them all at once
+    during application startup rather than lazily as requests come in.
+    
+    Args:
+        paths: List of route path patterns to compile
+        
+    Returns:
+        List of (path_regex, path_format, param_convertors) tuples
+    """
+    return batch_compile_paths(paths, CONVERTOR_TYPES)

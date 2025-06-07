@@ -62,11 +62,8 @@ class ResponseCache:
     cache: typing.Dict[str, typing.Any]
     access_order: typing.List[str]
 
-    def get(self, key: str) -> typing.Optional[typing.Any]:
-        ...
-
-    def put(self, key: str, value: typing.Any) -> None:
-        ...
+    def get(self, key: str) -> typing.Optional[typing.Any]: ...
+    def put(self, key: str, value: typing.Any) -> None: ...
 
 # Block for Dependency Injection and caching of signatures.
 def di_cached_signature(func: typing.Callable) -> typing.Any:
@@ -75,15 +72,17 @@ def di_cached_signature(func: typing.Callable) -> typing.Any:
 class Provide:
     service: typing.Any
 
-    def __class_getitem__(cls, service: typing.Any) -> "Provide":
-        ...
+    def __class_getitem__(cls, service: typing.Any) -> "Provide": ...
 
 @dataclass(frozen=True)
 class Provider:
     ...
 
-    def get(self, scope: typing.Any | None = None, resolution_stack: typing.Any | None = None) -> typing.Any:
-        ...
+    def get(
+        self,
+        scope: typing.Any | None = None,
+        resolution_stack: typing.Any | None = None,
+    ) -> typing.Any: ...
 
 @dataclass(frozen=True)
 class SingletonProvider(Provider):
@@ -91,33 +90,42 @@ class SingletonProvider(Provider):
     kwargs: typing.Dict[str, typing.Any] = None
     lock_key: str
 
-    def __init__(self, cls: typing.Type, kwargs: typing.Dict[str, typing.Any] = None) -> None:
-        ...
-
-    def get(self, scope: typing.Any | None = None, resolution_stack: typing.Any | None = None) -> typing.Any:
-        ...
+    def __init__(
+        self, cls: typing.Type, kwargs: typing.Dict[str, typing.Any] = None
+    ) -> None: ...
+    def get(
+        self,
+        scope: typing.Any | None = None,
+        resolution_stack: typing.Any | None = None,
+    ) -> typing.Any: ...
 
 @dataclass(frozen=True)
 class FactoryProvider(Provider):
     cls: typing.Type
     kwargs: typing.Dict[str, typing.Any] = None
 
-    def __init__(self, cls: typing.Type, kwargs: typing.Dict[str, typing.Any] = None) -> None:
-        ...
-
-    def get(self, scope: typing.Any | None = None, resolution_stack: typing.Any | None = None) -> typing.Any:
-        ...
+    def __init__(
+        self, cls: typing.Type, kwargs: typing.Dict[str, typing.Any] = None
+    ) -> None: ...
+    def get(
+        self,
+        scope: typing.Any | None = None,
+        resolution_stack: typing.Any | None = None,
+    ) -> typing.Any: ...
 
 @dataclass(frozen=True)
 class AsyncFactoryProvider(Provider):
     cls: typing.Type
     kwargs: typing.Dict[str, typing.Any] = None
 
-    def __init__(self, cls: typing.Type, kwargs: typing.Dict[str, typing.Any] = None) -> None:
-        ...
-
-    async def get(self, scope: typing.Any | None = None, resolution_stack: typing.Any | None = None) -> typing.Any:
-        ...
+    def __init__(
+        self, cls: typing.Type, kwargs: typing.Dict[str, typing.Any] = None
+    ) -> None: ...
+    async def get(
+        self,
+        scope: typing.Any | None = None,
+        resolution_stack: typing.Any | None = None,
+    ) -> typing.Any: ...
 
 @dataclass(frozen=True)
 class ServiceContainer:
@@ -128,8 +136,7 @@ class ServiceContainer:
         provide: typing.Any,
         scope: typing.Any | None = None,
         resolution_stack: typing.Any | None = None,
-    ) -> typing.Any:
-        ...
+    ) -> typing.Any: ...
 
 # Block for Rust-based logging system.
 class LogLevel(str, enum.Enum):
@@ -139,106 +146,74 @@ class LogLevel(str, enum.Enum):
     Error = "ERROR"
     Critical = "CRITICAL"
 
-    def from_str(cls, s: str) -> "LogLevel":
-        ...
-
-    def to_str(self) -> str:
-        ...
-
-    def to_int(self)-> int:
-        ...
+    def from_str(cls, s: str) -> "LogLevel": ...
+    def to_str(self) -> str: ...
+    def to_int(self) -> int: ...
 
 def configure_logger(
     log_file: str | None,
     level: str,
     lof_format: str,
     log_to_file: bool,
-    max_bytes: int, 
+    max_bytes: int,
     backup_count: int,
-) -> None:
-    ...
-
+) -> None: ...
 def log_debug(
     message: str,
     module: str,
     line: int,
-) -> None:
-    ...
-
-
+) -> None: ...
 def log_debug_with_extra(
     message: str,
     module: str,
     line: int,
     extra: typing.Dict[str, typing.Any],
-) -> None:
-    ...
-
-
+) -> None: ...
 def log_info(
     message: str,
     module: str,
     line: int,
-) -> None:
-    ...
-
+) -> None: ...
 def log_info_with_extra(
     message: str,
     module: str,
     line: int,
     extra: typing.Dict[str, typing.Any],
-) -> None:
-    ...
-
+) -> None: ...
 def log_warn(
     message: str,
     module: str,
     line: int,
-) -> None:
-    ...
-
-
+) -> None: ...
 def log_warn_with_extra(
     message: str,
     module: str,
     line: int,
     extra: typing.Dict[str, typing.Any],
-) -> None:
-    ...
-
+) -> None: ...
 def log_error(
     message: str,
     module: str,
     line: int,
-) -> None:
-    ...
-
+) -> None: ...
 def log_error_with_extra(
     message: str,
     module: str,
     line: int,
     extra: typing.Dict[str, typing.Any],
-) -> None:
-    ...
-
+) -> None: ...
 def log_critical(
     message: str,
     module: str,
     line: int,
-) -> None:
-    ...
-
+) -> None: ...
 def log_critical_with_extra(
     message: str,
     module: str,
     line: int,
     extra: typing.Dict[str, typing.Any],
-) -> None:
-    ...
-
-def is_enabled_for(level: str) -> bool:
-    ...
-
+) -> None: ...
+def is_enabled_for(level: str) -> bool: ...
 
 # Block for VSP service management.
 
@@ -247,9 +222,7 @@ class HealthStatus(str, enum.Enum):
     Unhealthy = "HealthStatus.Unhealthy"
     Unknown = "HealthStatus.Unknown"
 
-    def __repr__(self) -> str:
-        ...
-
+    def __repr__(self) -> str: ...
 
 @dataclass(frozen=True)
 class ServiceInfo:
@@ -260,17 +233,10 @@ class ServiceInfo:
     health_status: bool = True
     last_health_check: float = 0.0
 
-    def mark_unhealthy(self) -> None:
-        ...
-
-    def mark_healthy(self) -> None:
-        ...
-
-    def is_healthy(self) -> bool:
-        ...
-
-    def endpoint(self) -> str:
-        ...
+    def mark_unhealthy(self) -> None: ...
+    def mark_healthy(self) -> None: ...
+    def is_healthy(self) -> bool: ...
+    def endpoint(self) -> str: ...
 
 class LoadBalancer:
     """Abstract Load Balancer interface."""
@@ -285,26 +251,23 @@ class RoundRobinBalancer(LoadBalancer):
 
     index: int = 0
 
-    def select(self, instances: typing.List[ServiceInfo]) -> ServiceInfo:
-        ...
-
+    def select(self, instances: typing.List[ServiceInfo]) -> ServiceInfo: ...
 
 @dataclass(frozen=True)
 class WeightedBalancer(LoadBalancer):
     """Weighted Load Balancer based on instance weight."""
 
-    def select(self, instances: typing.List[ServiceInfo]) -> ServiceInfo:
-        ...
-
+    def select(self, instances: typing.List[ServiceInfo]) -> ServiceInfo: ...
 
 # Block for Background tasks management.
 @dataclass(frozen=True)
 class BackgroundTask:
     """Background task that can be executed asynchronously."""
+
     func: typing.Callable[..., typing.Any]
     args: typing.Tuple[typing.Any, ...]
     kwargs: typing.Dict[str, typing.Any]
-    is_async: bool 
+    is_async: bool
 
     async def __call__(self) -> None:
         """Execute the background task."""
@@ -313,10 +276,16 @@ class BackgroundTask:
 @dataclass(frozen=True)
 class BackgroundTasks:
     """Collection of background tasks to be executed."""
+
     tasks: typing.List[BackgroundTask]
     max_concurrent: int = 10
 
-    def add_task(self, func: typing.Callable[..., typing.Any], *args: typing.Any, **kwargs: typing.Any) -> None:
+    def add_task(
+        self,
+        func: typing.Callable[..., typing.Any],
+        *args: typing.Any,
+        **kwargs: typing.Any,
+    ) -> None:
         """Add a new task to the collection."""
         ...
 
@@ -332,4 +301,96 @@ class BackgroundTasks:
         """Clear all tasks in the collection."""
         ...
 
+# Block for routing and request handling.
+class Match(int, enum.Enum):
+    """Enum for matching results."""
 
+    NONE = 0
+    PARTIAL = 1
+    FULL = 2
+
+@dataclass(frozen=True)
+class _RouteOptimizer:
+    path_regex: str
+    param_convertors: typing.Dict[str, Convertor]
+    method: typing.Dict[str, typing.Any]
+    path_cache: typing.Dict[str, typing.Dict[str, typing.Any] | None]
+    max_cache_size: int
+    is_simple_route: bool
+    simple_path: str | None
+
+    def match(
+        self, route_path: str, method: str
+    ) -> typing.Tuple[Match, typing.Dict[str, typing.Any]]:
+        """Match a route path against the optimizer's path regex."""
+        ...
+    def get_allowed_methods(self) -> typing.List[str]:
+        """Get allowed methods for the route."""
+        ...
+    def clear_cache(self) -> None:
+        """Clear the cache for the route optimizer."""
+        ...
+    def cache_stats(self) -> typing.Tuple[int, int]:
+        """Get cache statistics."""
+        ...
+
+@dataclass(frozen=True)
+class _RouterOptimizer:
+    extrac_routes: typing.Dict[str, int]  # path:method -> route index
+    route_lookup: typing.Dict[
+        str, int
+    ]  # path:method -> route index or -1 for not found
+    max_cache_size: int
+
+    def cache_route(self, path: str, method: str, route_index: int) -> None:
+        """Cache a route in the router optimizer."""
+        ...
+    def lookup_route(self, path: str, method: str) -> int:
+        """Lookup a route in the router optimizer."""
+        ...
+    def clear_cache(self) -> None:
+        """Clear the cache for the router optimizer."""
+        ...
+    def cache_stats(self) -> typing.Tuple[int, int, int]:
+        """Get cache statistics for the router optimizer."""
+        ...
+
+def extract_path_params(
+    path_regex: str, route_path: str, param_convertors: typing.Dict[str, Convertor]
+) -> typing.Dict[str, typing.Any]:
+    """Extract path parameters from a route path using the provided convertors."""
+    # This function would extract parameters from the route path based on the regex and convertors.
+    ...
+
+def batch_compile_paths(
+    paths: typing.List[str],
+    convertor_types: typing.Dict[str, Convertor],
+) -> typing.List[typing.Tuple[str, str, typing.Dict[str, Convertor]]]:
+    """Batch compile multiple paths with their convertors."""
+    # This function would compile multiple paths and return a list of compiled paths.
+    ...
+@dataclass(frozen=True)
+class _RoutePatternMatcher:
+    patterns: typing.List[typing.Tuple[str, str, typing.Dict[str, Convertor]]]
+    extrac_paths: typing.Dict[str, int]  # path:method -> route index
+
+    def add_pattern(
+        self,
+        path_regex: str,
+        path_format: str,
+        param_convertors: typing.Dict[str, Convertor],
+        is_exact_path: bool,
+    ) -> None:
+        """Add a new pattern to the matcher."""
+        ...
+    def match_path(self, route_path: str) -> typing.Tuple[int, typing.Dict[str, typing.Any]]:
+        """Match a route path against the patterns."""
+        # This method would match the route path against the compiled patterns and return the match result.
+        ...
+
+    def pattern_count(self) -> int:
+        """Get the number of patterns in the matcher."""
+        ...
+    def clear(self) -> None:
+        """Clear all patterns in the matcher."""
+        ...

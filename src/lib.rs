@@ -19,6 +19,7 @@ mod convertors;
 mod di;
 mod logging;
 mod performance;
+mod routing;
 mod vsp;
 mod error;
 
@@ -40,6 +41,9 @@ fn _velithon(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     // Register logging functions
     logging::register_logging(m.py(), m)?;
+    
+    // Register routing functions and classes
+    routing::register_routing(m.py(), m)?;
     
     // Register VSP (Velithon Service Protocol) components
     vsp::register_vsp(m.py(), m)?;

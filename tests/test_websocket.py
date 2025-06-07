@@ -1,7 +1,6 @@
 """
 Tests for WebSocket functionality in Velithon.
 """
-import asyncio
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 
@@ -14,7 +13,6 @@ from velithon.websocket import (
     websocket_route,
     websocket_response,
 )
-from velithon.datastructures import Scope, Protocol
 from velithon.status import WS_1000_NORMAL_CLOSURE, WS_1008_POLICY_VIOLATION
 
 
@@ -219,12 +217,12 @@ class TestWebSocketRoute:
         
         # Test matching
         match, scope = route.matches(mock_scope)
-        assert match.value > 0  # Should match
+        assert int(match) > 0  # Should match
         
         # Test non-matching protocol
         mock_scope.proto = "http"
         match, scope = route.matches(mock_scope)
-        assert match.value == 0  # Should not match
+        assert int(match) == 0  # Should not match
     
     def test_websocket_route_with_class_endpoint(self, mock_scope, mock_protocol):
         """Test WebSocketRoute with class-based endpoint."""

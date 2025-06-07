@@ -28,6 +28,7 @@ parking_lot = "0.12"
 reqwest = { version = "0.12", features = ["json"] }
 async-trait = "0.1.88"
 thiserror = "2.0.12"
+ahash = "0.8"
 
 [target.'cfg(not(any(target_env = "musl", target_os = "freebsd", target_os = "openbsd", target_os = "windows")))'.dependencies]
 tikv-jemallocator = { version = "0.6.0", default-features = false, features = ["disable_initial_exec_tls"] }
