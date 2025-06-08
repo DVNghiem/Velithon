@@ -30,6 +30,13 @@ optional = true
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.5"
 pytest-codspeed = "^3.2.0"
+pytest-cov = "^6.0.0"
+mypy = "^1.13.0"
+ruff = "^0.8.0"
+black = "^24.0.0"
+isort = "^5.13.0"
+bandit = "^1.8.0"
+coverage = "^7.6.0"
 
 [build-system]
 requires = ["maturin>=1.0,<2.0"]
@@ -38,4 +45,83 @@ build-backend = "maturin"
 [tool.maturin]
 module-name = 'velithon._velithon'
 bindings = 'pyo3'
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = [
+    "granian.*",
+    "orjson.*",
+    "msgpack.*",
+    "pydash.*",
+    "zeroconf.*",
+    "consul.*",
+]
+ignore_missing_imports = true
+
+[tool.coverage.run]
+source = ["velithon"]
+omit = [
+    "*/tests/*",
+    "*/benchmarks/*",
+    "*/__pycache__/*",
+    "*/target/*",
+    "*/build/*",
+    "*/dist/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+[tool.black]
+line-length = 88
+target-version = ['py310']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+  | target
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+line_length = 88
+known_first_party = ["velithon"]
 
