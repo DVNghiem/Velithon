@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """
 Simple Performance Test to measure current optimization impact.
+Refactored to use base benchmark classes.
 """
 
 import asyncio
 import time
+import json
 from typing import Dict, Any
 
 # Velithon imports
@@ -12,22 +14,21 @@ from velithon.responses import JSONResponse
 
 # Base benchmark imports
 from base_benchmark import (
-    BaseBenchmark, ResponseBenchmarkMixin, 
+    BaseBenchmark, ResponseBenchmarkMixin, TimingResult,
     generate_test_api_response
 )
 
 
 class SimpleBenchmark(BaseBenchmark, ResponseBenchmarkMixin):
-    """Simple benchmark to test current performance."""
+    """Simple benchmark to test current performance using base classes."""
     
     def __init__(self, iterations: int = 5000):
-        self.iterations = iterations
+        super().__init__(iterations)
     
-    def benchmark_json_responses(self) -> Dict[str, float]:
-        """Benchmark JSON response creation and rendering."""
+    def benchmark_json_responses(self) -> TimingResult:
+        """Benchmark JSON response creation and rendering using base timer."""
         print("🧪 Testing JSON response performance...")
         
-        times = []
         test_data = {
             "message": "Hello World",
             "timestamp": time.time(),
@@ -39,74 +40,53 @@ class SimpleBenchmark(BaseBenchmark, ResponseBenchmarkMixin):
             }
         }
         
-        # Warmup
-        for _ in range(100):
+        def create_and_render_response():
             response = JSONResponse(test_data)
-            response.render(test_data)
+            return response.render(test_data)
         
-        # Actual benchmark
-        for i in range(self.iterations):
-            start = time.perf_counter()
-            
-            response = JSONResponse(test_data)
-            content = response.render(test_data)
-            
-            end = time.perf_counter()
-            times.append(end - start)
-        
-        times.sort()
-        mean_time = sum(times) / len(times)
-        p95_time = times[int(len(times) * 0.95)]
-        p99_time = times[int(len(times) * 0.99)]
-        
-        print(f"   📈 Mean: {mean_time*1000:.3f}ms")
-        print(f"   📈 P95:  {p95_time*1000:.3f}ms") 
-        print(f"   📈 P99:  {p99_time*1000:.3f}ms")
-        
-        return {
-            'mean': mean_time,
-            'p95': p95_time,
-            'p99': p99_time,
-            'times': times
-        }
+        result = self.timer.time_function(create_and_render_response)
+        self.print_timing_results("JSON Response Performance", result)
+        return result
     
     def benchmark_throughput(self) -> Dict[str, float]:
-        """Benchmark simple throughput."""
+        """Benchmark simple throughput using base timer."""
         print("🚀 Testing throughput...")
         
-        test_data = {
+        test_data_template = {
             "id": 1,
             "message": "test message",
             "data": [1, 2, 3, 4, 5]
         }
         
-        # Warmup
-        for _ in range(100):
-            response = JSONResponse(test_data)
-            response.render(test_data)
+        def throughput_test():
+            total_processed = 0
+            start_time = time.perf_counter()
+            
+            for i in range(self.iterations):
+                test_data = test_data_template.copy()
+                test_data["id"] = i
+                response = JSONResponse(test_data)
+                response.render(test_data)
+                total_processed += 1
+            
+            end_time = time.perf_counter()
+            total_time = end_time - start_time
+            throughput = total_processed / total_time
+            
+            return {
+                'throughput': throughput,
+                'total_time': total_time,
+                'avg_time': total_time / total_processed
+            }
         
-        start_time = time.perf_counter()
+        result = throughput_test()
+        self.print_throughput_results("Throughput", result['throughput'])
+        print(f"    Avg time: {result['avg_time']*1000:.3f}ms")
         
-        for i in range(self.iterations):
-            test_data["id"] = i
-            response = JSONResponse(test_data)
-            content = response.render(test_data)
-        
-        end_time = time.perf_counter()
-        total_time = end_time - start_time
-        throughput = self.iterations / total_time
-        
-        print(f"   📊 Throughput: {throughput:,.0f} responses/sec")
-        print(f"   ⏱️ Avg time: {total_time/self.iterations*1000:.3f}ms")
-        
-        return {
-            'throughput': throughput,
-            'avg_time': total_time / self.iterations,
-            'total_time': total_time
-        }
+        return result
     
     async def benchmark_concurrent(self) -> Dict[str, float]:
-        """Benchmark concurrent response creation."""
+        """Benchmark concurrent response creation using base timer."""
         print("⚡ Testing concurrent performance...")
         
         async def create_response(i: int):
@@ -119,38 +99,46 @@ class SimpleBenchmark(BaseBenchmark, ResponseBenchmarkMixin):
             return response.render(data)
         
         num_concurrent = min(100, self.iterations // 10)
-        tasks = [create_response(i) for i in range(num_concurrent)]
         
         start_time = time.perf_counter()
-        results = await asyncio.gather(*tasks)
+        tasks = [create_response(i) for i in range(num_concurrent)]
+        await asyncio.gather(*tasks)
         end_time = time.perf_counter()
         
         total_time = end_time - start_time
-        throughput = len(tasks) / total_time
+        throughput = num_concurrent / total_time
         
-        print(f"   📈 Concurrent throughput: {throughput:,.0f} responses/sec")
-        print(f"   📈 Tasks: {len(tasks)}")
+        self.print_throughput_results("Concurrent Throughput", throughput)
+        print(f"    Tasks: {num_concurrent}")
         
         return {
             'concurrent_throughput': throughput,
-            'tasks': len(tasks),
+            'tasks': num_concurrent,
             'total_time': total_time
         }
     
-    async def run_full_benchmark(self) -> Dict[str, Any]:
+    async def run_benchmark(self) -> Dict[str, Any]:
         """Run complete benchmark suite."""
         print("🧪 Starting Simple Performance Benchmark")
         print("=" * 50)
         
-        results = {
+        # Run all benchmarks
+        json_result = self.benchmark_json_responses()
+        throughput_result = self.benchmark_throughput()
+        concurrent_result = await self.benchmark_concurrent()
+        
+        # Store results
+        self.results.update({
+            'json_performance': json_result,
+            'throughput': throughput_result,
+            'concurrent': concurrent_result
+        })
+        
+        return {
             'timestamp': time.time(),
             'iterations': self.iterations,
-            'json_performance': self.benchmark_json_responses(),
-            'throughput': self.benchmark_throughput(),
-            'concurrent': await self.benchmark_concurrent()
+            **self.results
         }
-        
-        return results
 
 
 async def compare_with_baseline():
@@ -164,10 +152,10 @@ async def compare_with_baseline():
     
     # Run current benchmark
     benchmark = SimpleBenchmark(iterations=2000)
-    current_results = await benchmark.run_full_benchmark()
+    current_results = await benchmark.run_benchmark()
     
     current_throughput = current_results['throughput']['throughput']
-    current_json_time = current_results['json_performance']['mean'] * 1000000  # Convert to μs
+    current_json_time = current_results['json_performance'].stats['mean'] * 1000000  # Convert to μs
     
     # Calculate improvements
     throughput_ratio = current_throughput / baseline_throughput
@@ -188,7 +176,9 @@ async def compare_with_baseline():
     else:
         print("❌ JSON performance DECREASED")
     
-    # Save results
+    # Save results using base class method
+    benchmark.save_results('simple_benchmark_results.json')
+    
     comparison = {
         'baseline': {
             'throughput': baseline_throughput,
@@ -201,11 +191,7 @@ async def compare_with_baseline():
         }
     }
     
-    with open('simple_benchmark_results.json', 'w') as f:
-        json.dump(comparison, f, indent=2, default=str)
-    
     print(f"\n📄 Results saved to: simple_benchmark_results.json")
-    
     return comparison
 
 
@@ -230,4 +216,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    success = asyncio.run(main())
+    asyncio.run(main())

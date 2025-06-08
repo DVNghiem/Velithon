@@ -3,40 +3,50 @@ from __future__ import annotations
 
 import inspect
 import typing
-from functools import lru_cache
 
 from pydantic import BaseModel
 
 from velithon._utils import is_async_callable, run_in_threadpool
+from velithon.cache import cache_manager, signature_cache
 from velithon.exceptions import HTTPException
 from velithon.requests import Request
 from velithon.responses import JSONResponse, Response
 
 from .parser import InputHandler
 
+
 # Cache for function signatures to avoid repeated inspection
-@lru_cache(maxsize=256)
+@signature_cache()
 def _get_cached_signature(func: typing.Any) -> inspect.Signature:
     """Get cached function signature."""
     return inspect.signature(func)
 
+
 # Cache for class-based endpoint method lookups
-@lru_cache(maxsize=128)
+@signature_cache()
 def _get_method_lookup_cache(handler_class: type, method_name: str) -> typing.Any:
     """Cache method lookups for class-based endpoints."""
     return getattr(handler_class, method_name, None)
 
+
+# Register caches with the global cache manager
+cache_manager.register_lru_cache("signature_cache", _get_cached_signature)
+cache_manager.register_lru_cache("method_lookup_cache", _get_method_lookup_cache)
+
+
 async def dispatch(handler: typing.Any, request: Request) -> Response:
     """OPTIMIZED request dispatcher with caching and reduced overhead."""
-    is_class_based = not (inspect.isfunction(handler) or inspect.iscoroutinefunction(handler))
-    
+    is_class_based = not (
+        inspect.isfunction(handler) or inspect.iscoroutinefunction(handler)
+    )
+
     if is_class_based:
         method_name = request.scope.method.lower()
         # Use cached method lookup
         handler_method = _get_method_lookup_cache(handler, method_name)
         if not handler_method:
             raise HTTPException(405, "Method Not Allowed", "METHOD_NOT_ALLOWED")
-        
+
         # Create instance only when needed
         endpoint_instance = handler()
         handler = getattr(endpoint_instance, method_name)
@@ -46,7 +56,7 @@ async def dispatch(handler: typing.Any, request: Request) -> Response:
 
     # Pre-check if handler is async to avoid repeated calls
     is_async = is_async_callable(handler)
-    
+
     # Optimize input handling
     input_handler = InputHandler(request)
     _response_type = signature.return_annotation

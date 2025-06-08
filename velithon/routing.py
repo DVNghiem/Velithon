@@ -9,6 +9,7 @@ from velithon.openapi import swagger_generate
 from velithon.responses import PlainTextResponse, Response
 from velithon._utils import is_async_callable, run_in_threadpool
 from velithon.requests import Request
+from velithon.cache import CacheConfig
 from velithon.datastructures import Protocol, Scope
 from velithon.types import RSGIApp
 from velithon.params.dispatcher import dispatch
@@ -133,7 +134,7 @@ class Route(BaseRoute):
             path_format=self.path_format,
             param_convertors=self.param_convertors,
             methods=methods_list,
-            max_cache_size=1000
+            max_cache_size=CacheConfig.get_cache_size('route')
         )
 
     def matches(self, scope: Scope) -> tuple[Match, Scope]:
@@ -284,7 +285,7 @@ class Router:
                 self.middleware_stack = cls(self.middleware_stack, *args, **kwargs)
         
         # Initialize Rust optimizations
-        self._rust_optimizer = _RouterOptimizer(max_cache_size=1000)
+        self._rust_optimizer = _RouterOptimizer(max_cache_size=CacheConfig.get_cache_size('route'))
         self._pattern_matcher = _RoutePatternMatcher()
         self._rebuild_rust_optimizations()
 
@@ -483,6 +484,31 @@ class Router:
 
         return decorator
     
+    def _create_http_method_decorator(
+        self,
+        method: str,
+        path: str,
+        *,
+        tags: Sequence[str] | None = None,
+        summary: str | None = None,
+        description: str | None = None,
+        name: str | None = None,
+        include_in_schema: bool = True,
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+        """
+        Generic factory method for creating HTTP method decorators.
+        Eliminates code duplication across get, post, put, delete, patch, options methods.
+        """
+        return self.api_route(
+            path=path,
+            tags=tags,
+            summary=summary,
+            description=description,
+            methods=[method.upper()],
+            name=name,
+            include_in_schema=include_in_schema,
+        )
+
     def get(
         self,
         path: str,
@@ -505,12 +531,12 @@ class Router:
             return [{"name": "Empanada"}, {"name": "Arepa"}]
         ```
         """
-        return self.api_route(
+        return self._create_http_method_decorator(
+            "get",
             path=path,
             tags=tags,
             summary=summary,
             description=description,
-            methods=["GET"],
             name=name,
             include_in_schema=include_in_schema,
         )
@@ -537,14 +563,9 @@ class Router:
             return [{"name": "Empanada"}, {"name": "Arepa"}]
         ```
         """
-        return self.api_route(
-            path=path,
-            tags=tags,
-            summary=summary,
-            description=description,
-            methods=["POST"],
-            name=name,
-            include_in_schema=include_in_schema,
+        return self._create_http_method_decorator(
+            "POST", path, tags=tags, summary=summary, description=description,
+            name=name, include_in_schema=include_in_schema
         )
     
     def put(
@@ -569,14 +590,9 @@ class Router:
             return [{"name": "Empanada"}, {"name": "Arepa"}]
         ```
         """
-        return self.api_route(
-            path=path,
-            tags=tags,
-            summary=summary,
-            description=description,
-            methods=["PUT"],
-            name=name,
-            include_in_schema=include_in_schema,
+        return self._create_http_method_decorator(
+            "PUT", path, tags=tags, summary=summary, description=description,
+            name=name, include_in_schema=include_in_schema
         )
     
     def delete(
@@ -601,14 +617,9 @@ class Router:
             return [{"name": "Empanada"}, {"name": "Arepa"}]
         ```
         """
-        return self.api_route(
-            path=path,
-            tags=tags,
-            summary=summary,
-            description=description,
-            methods=["DELETE"],
-            name=name,
-            include_in_schema=include_in_schema,
+        return self._create_http_method_decorator(
+            "DELETE", path, tags=tags, summary=summary, description=description,
+            name=name, include_in_schema=include_in_schema
         )
     
     def patch(
@@ -624,14 +635,9 @@ class Router:
         """
         Add a *path operation* using an HTTP PATCH operation.
         """
-        return self.api_route(
-            path=path,
-            tags=tags,
-            description=description,
-            methods=["PATCH"],
-            name=name,
-            include_in_schema=include_in_schema,
-            summary=summary,
+        return self._create_http_method_decorator(
+            "PATCH", path, tags=tags, summary=summary, description=description,
+            name=name, include_in_schema=include_in_schema
         )
     
     def options(
@@ -647,14 +653,9 @@ class Router:
         """
         Add a *path operation* using an HTTP OPTIONS operation.
         """
-        return self.api_route(
-            path=path,
-            tags=tags,
-            description=description,
-            methods=["OPTIONS"],
-            name=name,
-            include_in_schema=include_in_schema,
-            summary=summary,
+        return self._create_http_method_decorator(
+            "OPTIONS", path, tags=tags, summary=summary, description=description,
+            name=name, include_in_schema=include_in_schema
         )
     
     def add_websocket_route(

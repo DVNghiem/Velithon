@@ -3,18 +3,19 @@ import traceback
 
 from velithon.datastructures import Protocol, Scope
 from velithon.exceptions import HTTPException
-from velithon.responses import JSONResponse
 from velithon.logging import get_logger
+from velithon.middleware.base import BaseHTTPMiddleware
+from velithon.responses import JSONResponse
 
 logger = get_logger(__name__)
 
 
-class LoggingMiddleware:
+class LoggingMiddleware(BaseHTTPMiddleware):
     def __init__(self, app):
-        self.app = app
+        super().__init__(app)
         self._logger = get_logger(__name__)
 
-    async def __call__(self, scope: Scope, protocol: Protocol):
+    async def process_http_request(self, scope: Scope, protocol: Protocol) -> None:
         # Check if logging is enabled at INFO level first to avoid timing calculations
         # if we're not going to log anything
         if not self._logger.isEnabledFor(20):  # INFO level = 20

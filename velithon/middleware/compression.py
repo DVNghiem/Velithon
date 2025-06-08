@@ -3,7 +3,8 @@ import io
 import typing
 from enum import Enum
 
-from velithon.datastructures import Headers, Protocol, Scope
+from velithon.datastructures import Protocol, Scope
+from velithon.middleware.base import BaseHTTPMiddleware
 
 
 class CompressionLevel(Enum):
@@ -13,7 +14,7 @@ class CompressionLevel(Enum):
     BEST = 9
 
 
-class CompressionMiddleware:
+class CompressionMiddleware(BaseHTTPMiddleware):
     """
     Middleware that compresses HTTP responses using gzip compression.
     
@@ -51,15 +52,12 @@ class CompressionMiddleware:
         compression_level: CompressionLevel = CompressionLevel.BALANCED,
         compressible_types: typing.Optional[typing.Set[str]] = None,
     ) -> None:
-        self.app = app
+        super().__init__(app)
         self.minimum_size = minimum_size
         self.compression_level = compression_level.value
         self.compressible_types = compressible_types or self.DEFAULT_COMPRESSIBLE_TYPES
         
-    async def __call__(self, scope: Scope, protocol: Protocol) -> None:
-        if scope.proto != "http":
-            return await self.app(scope, protocol)
-            
+    async def process_http_request(self, scope: Scope, protocol: Protocol) -> None:
         # Check if client accepts gzip encoding
         accept_encoding = scope.headers.get("accept-encoding", "")
         if "gzip" not in accept_encoding.lower():

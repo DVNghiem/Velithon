@@ -1,9 +1,19 @@
 #  @copyright (c) 2025 Starlette
 from __future__ import annotations
+
 import typing
 from urllib.parse import SplitResult, parse_qsl, urlencode, urlsplit
-from granian.rsgi import HTTPProtocol, Scope as RSGIScope
-from velithon._utils import run_in_threadpool, RequestIDGenerator
+
+from granian.rsgi import HTTPProtocol
+from granian.rsgi import Scope as RSGIScope
+
+from velithon._utils import RequestIDGenerator, run_in_threadpool
+from velithon.base_datastructures import (
+    MultiDictBase,
+    PriorityDataStructure,
+    RepresentableDataStructure,
+    UrlDataStructure,
+)
 
 request_id_generator = RequestIDGenerator()
 
@@ -149,7 +159,7 @@ _KeyType = typing.TypeVar("_KeyType")
 _CovariantValueType = typing.TypeVar("_CovariantValueType", covariant=True)
 
 
-class URL:
+class URL(UrlDataStructure):
     def __init__(
         self,
         url: str = "",
@@ -269,17 +279,15 @@ class URL:
         components = self.components._replace(**kwargs)
         return self.__class__(components.geturl())
 
-    def __eq__(self, other: typing.Any) -> bool:
-        return str(self) == str(other)
-
-    def __str__(self) -> str:
+    def _get_url_string(self) -> str:
+        """Return the URL as a string."""
         return self._url
 
-    def __repr__(self) -> str:
-        url = str(self)
-        if self.password:
-            url = str(self.replace(password="********"))
-        return f"{self.__class__.__name__}({repr(url)})"
+    def _get_repr_attrs(self) -> typing.Dict[str, typing.Any]:
+        """Return attributes to include in __repr__."""
+        # URL repr is handled by UrlDataStructure base class
+        # This method is required but not used for URL representation
+        return {"url": str(self)}
 
 
 class URLPath(str):
@@ -312,7 +320,7 @@ class URLPath(str):
         return URL(scheme=scheme, netloc=netloc, path=path)
 
 
-class ImmutableMultiDict(typing.Mapping[_KeyType, _CovariantValueType]):
+class ImmutableMultiDict(MultiDictBase, typing.Mapping[_KeyType, _CovariantValueType]):
     _dict: dict[_KeyType, _CovariantValueType]
 
     def __init__(
@@ -374,16 +382,6 @@ class ImmutableMultiDict(typing.Mapping[_KeyType, _CovariantValueType]):
 
     def __len__(self) -> int:
         return len(self._dict)
-
-    def __eq__(self, other: typing.Any) -> bool:
-        if not isinstance(other, self.__class__):
-            return False
-        return sorted(self._list) == sorted(other._list)
-
-    def __repr__(self) -> str:
-        class_name = self.__class__.__name__
-        items = self.multi_items()
-        return f"{class_name}({items!r})"
 
 
 class MultiDict(ImmutableMultiDict[typing.Any, typing.Any]):
@@ -476,13 +474,8 @@ class QueryParams(ImmutableMultiDict[str, str]):
     def __str__(self) -> str:
         return urlencode(self._list)
 
-    def __repr__(self) -> str:
-        class_name = self.__class__.__name__
-        query_string = str(self)
-        return f"{class_name}({query_string!r})"
 
-
-class UploadFile:
+class UploadFile(RepresentableDataStructure):
     """
     An uploaded file included as part of the request data.
     """
@@ -536,8 +529,9 @@ class UploadFile:
         else:
             await run_in_threadpool(self.file.close)
 
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(filename={self.filename!r}, size={self.size!r}, headers={self.headers!r})"
+    def _get_repr_attrs(self) -> typing.Dict[str, typing.Any]:
+        """Return attributes to include in __repr__."""
+        return {"filename": self.filename, "size": self.size, "headers": self.headers}
 
 
 class FormData(ImmutableMultiDict[str, typing.Union[UploadFile, str]]):
@@ -560,7 +554,7 @@ class FormData(ImmutableMultiDict[str, typing.Union[UploadFile, str]]):
                 await value.close()
 
 
-class Headers(typing.Mapping[str, str]):
+class Headers(MultiDictBase, typing.Mapping[str, str]):
     """
     An immutable, case-insensitive multidict.
     """
@@ -632,7 +626,7 @@ class Headers(typing.Mapping[str, str]):
             self._list.append((key, value))
 
 
-class FunctionInfo:
+class FunctionInfo(PriorityDataStructure):
     def __init__(
         self,
         func: typing.Callable[..., typing.Any],
@@ -647,50 +641,28 @@ class FunctionInfo:
         self.is_async = is_async
         self.priority = priority
 
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(func={self.func}, args={self.args}, kwargs={self.kwargs}, is_async={self.is_async}, priority={self.priority})"
+    def _get_hash_key(self) -> typing.Any:
+        """Return the key used for hashing this object."""
+        return (
+            self.func,
+            self.args,
+            frozenset(self.kwargs.items()),
+            self.is_async,
+            self.priority,
+        )
+
+    def _get_repr_attrs(self) -> typing.Dict[str, typing.Any]:
+        """Return attributes to include in __repr__."""
+        return {
+            "func": self.func,
+            "args": self.args,
+            "kwargs": self.kwargs,
+            "is_async": self.is_async,
+            "priority": self.priority,
+        }
 
     def __hash__(self) -> int:
-        return hash(
-            (
-                self.func,
-                self.args,
-                frozenset(self.kwargs.items()),
-                self.is_async,
-                self.priority,
-            )
-        )
-    
-    def __eq__(self, other: FunctionInfo) -> bool:
-        if not isinstance(other, self.__class__):
-            return False
-        # check from __hash__ method
-        return self.__hash__() == other.__hash__()
-        
-    def __lt__(self, other: FunctionInfo) -> bool:
-        if not isinstance(other, FunctionInfo):
-            return NotImplemented
-        return self.priority < other.priority
-
-    def __le__(self, other: FunctionInfo) -> bool:
-        if not isinstance(other, FunctionInfo):
-            return NotImplemented
-        return self.priority <= other.priority
-
-    def __gt__(self, other: FunctionInfo) -> bool:
-        if not isinstance(other, FunctionInfo):
-            return NotImplemented
-        return self.priority > other.priority
-
-    def __ge__(self, other: FunctionInfo) -> bool:
-        if not isinstance(other, FunctionInfo):
-            return NotImplemented
-        return self.priority >= other.priority
-
-    def __ne__(self, other: typing.Any) -> bool:
-        if not isinstance(other, self.__class__):
-            return True
-        return not self == other
+        return hash(self._get_hash_key())
 
     def __call__(self):
         if self.is_async:

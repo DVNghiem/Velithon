@@ -1,15 +1,16 @@
 from typing import Any
-from velithon.datastructures import Scope, Protocol
-from velithon.di import current_scope
 
-class DIMiddleware:
+from velithon.datastructures import Protocol, Scope
+from velithon.di import current_scope
+from velithon.middleware.base import BaseHTTPMiddleware
+
+
+class DIMiddleware(BaseHTTPMiddleware):
     def __init__(self, app: Any, velithon: Any):
-        self.app = app
+        super().__init__(app)
         self.velithon = velithon
 
-    async def __call__(self, scope: Scope, protocol: Protocol):
-        if scope.proto != "http":
-            return await self.app(scope, protocol)
+    async def process_http_request(self, scope: Scope, protocol: Protocol) -> None:
         scope._di_context["velithon"] = self.velithon
         token = current_scope.set(scope)
         try:

@@ -1,8 +1,8 @@
 import json
-from functools import lru_cache
 from typing import Any, Callable
 
 from ._velithon import ResponseCache
+from .cache import CacheConfig, LRUCache, cache_manager, middleware_cache
 
 try:
     import orjson
@@ -31,11 +31,9 @@ class FastJSONEncoder:
         else:
             self._encode = self._encode_stdlib
 
-        # Cache for small, common responses
-        self._cache = {}
-        self._cache_hits = 0
-        self._cache_misses = 0
-        self._MAX_CACHE_SIZE = 1000
+        # Cache for small, common responses using centralized cache
+        self._cache = LRUCache[Any, bytes](CacheConfig.get_cache_size("response"))
+        cache_manager.register_cache("json_encoder", self._cache)
 
     def _encode_orjson(self, obj: Any) -> bytes:
         """Encode with orjson (fastest)."""
@@ -65,14 +63,10 @@ class FastJSONEncoder:
                 cache_key = obj
                 cached = self._cache.get(cache_key)
                 if cached is not None:
-                    self._cache_hits += 1
                     return cached
-                self._cache_misses += 1
-                result = self._encode(obj)
 
-                # Limit cache size to prevent memory growth
-                if len(self._cache) < self._MAX_CACHE_SIZE:
-                    self._cache[cache_key] = result
+                result = self._encode(obj)
+                self._cache.put(cache_key, result)
                 return result
             except Exception:
                 # Fall through to normal encoding on any error
@@ -89,15 +83,10 @@ class FastJSONEncoder:
 
                     cached = self._cache.get(cache_key)
                     if cached is not None:
-                        self._cache_hits += 1
                         return cached
 
-                    self._cache_misses += 1
                     result = self._encode(obj)
-
-                    # Limit cache size
-                    if len(self._cache) < self._MAX_CACHE_SIZE:
-                        self._cache[cache_key] = result
+                    self._cache.put(cache_key, result)
                     return result
             except Exception:
                 # Fall through to normal encoding on any error
@@ -110,9 +99,9 @@ class FastJSONEncoder:
 class MiddlewareOptimizer:
     """Optimize middleware stack for better performance."""
 
-    # Use a larger cache size for better hit rate on busy servers
+    # Use centralized cache configuration for middleware chains
     @staticmethod
-    @lru_cache(maxsize=5000)
+    @middleware_cache()
     def cached_middleware_chain(middleware_tuple: tuple) -> Callable:
         """Cache compiled middleware chains for maximum performance."""
 
@@ -189,6 +178,11 @@ _json_encoder = FastJSONEncoder()
 _response_cache = ResponseCache()
 _middleware_optimizer = MiddlewareOptimizer()
 
+# Register the middleware cache for management
+cache_manager.register_lru_cache(
+    "middleware_chain", _middleware_optimizer.cached_middleware_chain
+)
+
 
 def get_json_encoder() -> FastJSONEncoder:
     """Get the global optimized JSON encoder."""
@@ -203,3 +197,15 @@ def get_response_cache() -> ResponseCache:
 def get_middleware_optimizer() -> MiddlewareOptimizer:
     """Get the global middleware optimizer."""
     return _middleware_optimizer
+
+
+def get_cache_stats() -> dict:
+    """Get comprehensive cache statistics from the cache manager."""
+    return cache_manager.get_cache_stats()
+
+
+def clear_all_caches() -> None:
+    """Clear all performance-related caches."""
+    cache_manager.clear_all_caches()
+    _json_encoder._cache.clear()
+    _response_cache = ResponseCache()  # Reset response cache

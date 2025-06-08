@@ -1,7 +1,8 @@
 import json
 import logging
-from functools import lru_cache
 from typing import Any, Dict, Optional
+
+from velithon.cache import create_lru_cache
 
 # Try to import faster serialization libraries
 try:
@@ -46,7 +47,7 @@ class VSPMessage:
         # Cache serialized form for repeated sends
         self._serialized_cache: Optional[bytes] = None
 
-    @lru_cache(maxsize=1000)
+    @create_lru_cache(cache_type="message")
     def _fast_serialize_header(
         self, request_id: str, service: str, endpoint: str, is_response: bool
     ) -> dict:
