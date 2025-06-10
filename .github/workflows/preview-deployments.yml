@@ -1,3 +1,6 @@
+# CI to release the project for Linux, Windows, and MacOS
+# The purpose of this action is to verify if the release builds are working or not.
+
 name: Preview Release
 
 on:
@@ -14,7 +17,7 @@ env:
 
 jobs:
   wheels:
-    name: wheel ${{ matrix.platform || matrix.os }}(${ matrix.target }) - ${{ matrix.manylinux || 'auto' }} - ${{ matrix.allocator || 'auto' }}
+    name: wheel ${{ matrix.platform || matrix.os }}(${{ matrix.target }}) - ${{ matrix.manylinux || 'auto' }} - ${{ matrix.allocator || 'auto' }}
     strategy:
       fail-fast: false
       matrix:
@@ -39,11 +42,13 @@ jobs:
           - os: ubuntu
             platform: linux
             target: aarch64
+            # rust-cross/manylinux2014-cross:aarch64 has issues with `ring`
             container: ghcr.io/rust-cross/manylinux_2_28-cross:aarch64
             interpreter: 3.10 3.11 3.12 3.13 pypy3.10 pypy3.11
           - os: ubuntu
             platform: linux
             target: aarch64
+            # rust-cross/manylinux2014-cross:aarch64 has issues with `ring`
             container: ghcr.io/rust-cross/manylinux_2_28-cross:aarch64
             interpreter: 3.13t
             allocator: mimalloc
@@ -92,63 +97,12 @@ jobs:
             target: aarch64
 
     runs-on: ${{ matrix.os }}-latest
-    container: ${{ matrix.container }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install dependencies for Ubuntu (non-container)
-        if: matrix.os == 'ubuntu' && matrix.container == ''
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libssl-dev pkg-config
-          pkg-config --modversion openssl || exit 1
-          export PKG_CONFIG_PATH=/usr/lib/pkgconfig:/usr/lib64/pkgconfig:/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
-          echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH" >> $GITHUB_ENV
-
-      - name: Install dependencies for manylinux container
-        if: matrix.container != '' || matrix.manylinux != 'auto'
-        run: |
-          if command -v apt-get >/dev/null 2>&1; then
-            sudo apt-get update || true
-            sudo apt-get install -y libssl-dev pkg-config
-            export PKG_CONFIG_PATH=/usr/lib/pkgconfig:/usr/lib64/pkgconfig:/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
-          elif command -v yum >/dev/null 2>&1; then
-            sudo yum install -y openssl-devel pkgconf
-            export PKG_CONFIG_PATH=/usr/lib64/pkgconfig:/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
-          else
-            echo "No supported package manager (apt-get or yum) found in container!"
-            exit 1
-          fi
-          pkg-config --modversion openssl || exit 1
-          echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH" >> $GITHUB_ENV
-
-      - name: Install dependencies for default manylinux container
-        if: matrix.container == '' && matrix.manylinux == 'auto' && matrix.os == 'ubuntu'
-        run: |
-          sudo /usr/bin/docker run --rm -v $(pwd):/io quay.io/pypa/manylinux2014_x86_64:latest /bin/sh -c "yum install -y openssl-devel pkgconf && pkg-config --modversion openssl"
-          export PKG_CONFIG_PATH=/usr/lib64/pkgconfig:/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
-          echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH" >> $GITHUB_ENV
-
-      - name: Install dependencies for macOS
-        if: matrix.os == 'macos'
-        run: |
-          brew install openssl@3 pkg-config
-          export PKG_CONFIG_PATH=/usr/local/opt/openssl@3:/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
-          pkg-config --modversion openssl || exit 1
-          echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH" >> $GITHUB_ENV
-
-      - name: Install dependencies for Windows
-        if: matrix.os == 'windows'
-        run: |
-          vcpkg install openssl:x64-windows
-          echo "OPENSSL_DIR=C:\vcpkg\installed\x64-windows" >> $GITHUB_ENV
-          echo "PKG_CONFIG_PATH=C:\vcpkg\installed\x64-windows\lib\pkgconfig" >> $GITHUB_ENV
-
       - name: Set jemalloc for aarch64 Linux
         if: matrix.target == 'aarch64' && matrix.os == 'ubuntu'
         run: |
           echo "JEMALLOC_SYS_WITH_LG_PAGE=16" >> $GITHUB_ENV
-
       - uses: pyo3/maturin-action@v1
         if: matrix.allocator != 'mimalloc'
         with:
@@ -158,10 +112,9 @@ jobs:
           target: ${{ matrix.target }}
           manylinux: ${{ matrix.manylinux || 'auto' }}
           container: ${{ matrix.container }}
-          docker-options: -e CI -e PKG_CONFIG_PATH=$PKG_CONFIG_PATH
-
+          docker-options: -e CI
       - uses: pyo3/maturin-action@v1
-        if: matrix. allocator == 'mimalloc'
+        if: matrix.allocator == 'mimalloc'
         with:
           rust-toolchain: stable
           command: build
@@ -169,8 +122,7 @@ jobs:
           target: ${{ matrix.target }}
           manylinux: ${{ matrix.manylinux || 'auto' }}
           container: ${{ matrix.container }}
-          docker-options: -e CI -e PKG_CONFIG_PATH=$PKG_CONFIG_PATH
-
+          docker-options: -e CI
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
