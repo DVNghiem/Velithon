@@ -75,7 +75,7 @@ jobs:
             allocator: mimalloc
           - os: macos
             target: aarch64
-            interpreter: 3.10 3.11 3.12 3.13 pypy3.10 pypy3.11
+            interpreter: 3.10 3. 3.12 3.13 pypy3.10 pypy3.11
           - os: macos
             target: aarch64
             interpreter: 3.13t
@@ -101,16 +101,15 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libssl-dev pkg-config
+          pkg-config --modversion openssl || exit 1
 
       - name: Install dependencies for manylinux container
-        if: matrix.container != ''
+        if: matrix.container != '' || matrix.manylinux != 'auto'
         run: |
-          # Check if apt-get is available (Debian/Ubuntu-based container)
           if command -v apt-get >/dev/null 2>&1; then
             apt-get update
             apt-get install -y libssl-dev pkg-config
             export PKG_CONFIG_PATH=/usr/lib/pkgconfig:/usr/lib64/pkgconfig:/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
-          # Check if yum is available (CentOS/Fedora-based container)
           elif command -v yum >/dev/null 2>&1; then
             yum install -y openssl-devel pkgconf
             export PKG_CONFIG_PATH=/usr/lib64/pkgconfig:/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
@@ -118,15 +117,19 @@ jobs:
             echo "No supported package manager (apt-get or yum) found in container!"
             exit 1
           fi
-          # Verify pkg-config finds OpenSSL
           pkg-config --modversion openssl || exit 1
+
+      - name: Install dependencies for default manylinux container
+        if: matrix.container == '' && matrix.manylinux == 'auto' && matrix.os == 'ubuntu'
+        run: |
+          # Install dependencies in the default manylinux container used by maturin-action
+          /usr/bin/docker run --rm -v $(pwd):/io quay.io/pypa/manylinux2014_x86_64:latest /bin/sh -c "yum install -y openssl-devel pkgconf && pkg-config --modversion openssl"
 
       - name: Install dependencies for macOS
         if: matrix.os == 'macos'
         run: |
           brew install openssl@3 pkg-config
           export PKG_CONFIG_PATH=/usr/local/opt/openssl@3/lib/pkgconfig:$PKG_CONFIG_PATH
-          # Verify pkg-config finds OpenSSL
           pkg-config --modversion openssl || exit 1
 
       - name: Install dependencies for Windows
