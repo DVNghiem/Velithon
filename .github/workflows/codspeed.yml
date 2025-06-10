@@ -34,6 +34,7 @@ jobs:
         run: |
           maturin build -i python${{ matrix.python-version }} --release --out dist
           pip install --force-reinstall dist/*.whl
+          rm -rf velithon
           python -c "import velithon"
 
       - name: Run benchmarks
@@ -42,5 +43,5 @@ jobs:
           token: ${{ secrets.CODSPEED_TOKEN }}
           run: |
             cd $GITHUB_WORKSPACE
-            ls
+            rm -rf velithon
             poetry run pytest --codspeed
