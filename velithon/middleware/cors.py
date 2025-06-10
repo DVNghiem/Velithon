@@ -57,6 +57,11 @@ class CORSMiddleware(ConditionalMiddleware):
         self.allow_methods = allow_methods
         self.allow_headers = [h.lower() for h in allow_headers]
         self.allow_all_headers = allow_all_headers
+        self.allow_all_origins = allow_all_origins
+        self.allow_origins = allow_origins
+        self.allow_credentials = allow_credentials
+        self.max_age = max_age
+        self.allow_origin_regex = None  # For potential future regex support
         self.preflight_explicit_allow_origin = preflight_explicit_allow_origin
         self.simple_headers = simple_headers
         self.preflight_headers = preflight_headers
