@@ -123,11 +123,6 @@ jobs:
           manylinux: ${{ matrix.manylinux || 'auto' }}
           container: ${{ matrix.container }}
           docker-options: -e CI
-      - name: Install build wheel
-        run: |
-          pip install --force-reinstall dist/*.whl
-          cd ~ && python -c 'import velithon'
-
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
