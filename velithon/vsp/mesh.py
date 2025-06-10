@@ -1,9 +1,9 @@
 import logging
 from typing import Optional
 
+from velithon._velithon import LoadBalancer, RoundRobinBalancer, ServiceInfo
+
 from .discovery import ConsulDiscovery, DiscoveryType, MDNSDiscovery, StaticDiscovery
-from .load_balancer import LoadBalancer, RoundRobinBalancer
-from .service import ServiceInfo
 
 logger = logging.getLogger(__name__)
 

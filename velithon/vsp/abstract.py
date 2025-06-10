@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List
 
-from .service import ServiceInfo
+from velithon._velithon import ServiceInfo
 
 
 class Transport(ABC):
@@ -46,11 +46,3 @@ class Discovery(ABC):
         """Close discovery resources."""
         pass
 
-
-class LoadBalancer(ABC):
-    """Abstract Load Balancer interface."""
-
-    @abstractmethod
-    def select(self, instances: List[ServiceInfo]) -> ServiceInfo:
-        """Select a service instance."""
-        pass

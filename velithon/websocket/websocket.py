@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import typing
-
+import re
 from velithon.datastructures import Protocol, Scope
-from velithon.routing import BaseRoute, Match
+from velithon.routing import BaseRoute
+from velithon._velithon import Match  # Import directly from Rust module
 from velithon.websocket.connection import WebSocket
 from velithon.websocket.endpoint import WebSocketEndpoint, websocket_response
-
+from velithon.convertors import CONVERTOR_TYPES
 
 class WebSocketRoute(BaseRoute):
     """WebSocket route implementation that integrates with Velithon's routing system."""
@@ -26,7 +27,8 @@ class WebSocketRoute(BaseRoute):
         
         # Compile path regex for matching
         from velithon.routing import compile_path
-        self.path_regex, self.path_format, self.param_convertors = compile_path(path)
+        path_regex, self.path_format, self.param_convertors = compile_path(path, CONVERTOR_TYPES)
+        self.path_regex = re.compile(path_regex)
         
         # Prepare the application
         if isinstance(endpoint, type) and issubclass(endpoint, WebSocketEndpoint):
@@ -44,9 +46,9 @@ class WebSocketRoute(BaseRoute):
         """Check if this route matches the given scope."""
         if scope.proto == "websocket":
             route_path = scope.path
-            match = self.path_regex.match(route_path)
-            if match:
-                matched_params = match.groupdict()
+            regex_match = self.path_regex.match(route_path)
+            if regex_match:
+                matched_params = regex_match.groupdict()
                 for key, value in matched_params.items():
                     matched_params[key] = self.param_convertors[key].convert(value)
                 setattr(scope, "_path_params", matched_params)

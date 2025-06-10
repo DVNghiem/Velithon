@@ -13,7 +13,7 @@ from typing import (
 import granian
 import granian.http
 from typing_extensions import Doc
-from velithon.vsp import VSPManager
+
 from velithon._utils import is_async_callable
 from velithon.datastructures import FunctionInfo, Protocol, Scope
 from velithon.di import ServiceContainer
@@ -28,6 +28,7 @@ from velithon.requests import Request
 from velithon.responses import HTMLResponse, JSONResponse, Response
 from velithon.routing import BaseRoute, Router
 from velithon.types import RSGIApp
+from velithon.vsp import VSPManager
 
 _middleware_optimizer = get_middleware_optimizer()
 
@@ -327,10 +328,12 @@ class Velithon:
         if self.container:
             middleware.append(Middleware(DIMiddleware, self))
         middleware += self.user_middleware
-        
+
         # Extract middleware classes for optimization
         middleware_classes = [m.cls for m in middleware]
-        optimized_classes = _middleware_optimizer.optimize_middleware_stack(middleware_classes)
+        optimized_classes = _middleware_optimizer.optimize_middleware_stack(
+            middleware_classes
+        )
 
         # Rebuild middleware list with optimized order
         optimized_middleware = []
@@ -342,7 +345,6 @@ class Velithon:
                     break
         middleware = optimized_middleware
 
-        
         app = self.router
         for cls, args, kwargs in reversed(middleware):
             app = cls(app, *args, **kwargs)
@@ -482,15 +484,16 @@ class Velithon:
         Returns:
             Decorator function
         """
-        return self.router.get(
-            path=path,
+        return self._create_http_method_decorator(
+            "get",
+            path,
             tags=tags,
-            summary=summary,  # Fixed parameter name
+            summary=summary,
             description=description,
             name=name,
             include_in_schema=include_in_schema,
         )
-    
+
     def post(
         self,
         path: str,
@@ -515,15 +518,16 @@ class Velithon:
         Returns:
             Decorator function
         """
-        return self.router.post(
-            path=path,
+        return self._create_http_method_decorator(
+            "post",
+            path,
             tags=tags,
             summary=summary,
             description=description,
             name=name,
             include_in_schema=include_in_schema,
         )
-    
+
     def put(
         self,
         path: str,
@@ -548,15 +552,16 @@ class Velithon:
         Returns:
             Decorator function
         """
-        return self.router.put(
-            path=path,
+        return self._create_http_method_decorator(
+            "put",
+            path,
             tags=tags,
             summary=summary,
             description=description,
             name=name,
             include_in_schema=include_in_schema,
         )
-    
+
     def delete(
         self,
         path: str,
@@ -581,15 +586,16 @@ class Velithon:
         Returns:
             Decorator function
         """
-        return self.router.delete(
-            path=path,
+        return self._create_http_method_decorator(
+            "delete",
+            path,
             tags=tags,
             summary=summary,
             description=description,
             name=name,
             include_in_schema=include_in_schema,
         )
-    
+
     def patch(
         self,
         path: str,
@@ -614,15 +620,16 @@ class Velithon:
         Returns:
             Decorator function
         """
-        return self.router.patch(
-            path=path,
+        return self._create_http_method_decorator(
+            "patch",
+            path,
             tags=tags,
             summary=summary,
             description=description,
             name=name,
             include_in_schema=include_in_schema,
         )
-    
+
     def options(
         self,
         path: str,
@@ -647,17 +654,16 @@ class Velithon:
         Returns:
             Decorator function
         """
-        # Using api_route directly with OPTIONS method to avoid the singular/plural issue
-        return self.router.api_route(
-            path=path,
+        return self._create_http_method_decorator(
+            "options",
+            path,
             tags=tags,
             summary=summary,
             description=description,
-            methods=["OPTIONS"],
             name=name,
             include_in_schema=include_in_schema,
         )
-    
+
     def websocket(
         self,
         path: str,
@@ -725,7 +731,7 @@ class Velithon:
             self.shutdown_functions.sort()
 
         return decorator
-    
+
     def config_logger(self) -> None:
         configure_logger(
             log_file=self.log_file,
@@ -750,11 +756,13 @@ class Velithon:
         """
         # configure the logger
         self.config_logger()
-        
+
         # internal server startup
         if hasattr(self, "vsp_manager"):
-            loop.create_task(self.vsp_manager.start_server(self.vsp_host, self.vsp_port, loop=loop))
-            
+            loop.create_task(
+                self.vsp_manager.start_server(self.vsp_host, self.vsp_port, loop=loop)
+            )
+
         # run all the startup functions from user setup
         for function_info in self.startup_functions:
             loop.run_until_complete(function_info())
@@ -900,3 +908,39 @@ class Velithon:
         if reload:
             logger.debug("Auto-reload enabled.")
         server.serve()
+
+    def _create_http_method_decorator(
+        self,
+        method: str,
+        path: str,
+        *,
+        tags: Sequence[str] | None = None,
+        summary: str | None = None,
+        description: str | None = None,
+        name: str | None = None,
+        include_in_schema: bool = True,
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+        """
+        Generic factory method for creating HTTP method decorators.
+        Eliminates code duplication across get, post, put, delete, patch, options methods.
+        """
+        # Special case for OPTIONS method - use api_route directly
+        if method.upper() == "OPTIONS":
+            return self.router.api_route(
+                path=path,
+                tags=tags,
+                summary=summary,
+                description=description,
+                methods=["OPTIONS"],
+                name=name,
+                include_in_schema=include_in_schema,
+            )
+
+        return getattr(self.router, method.lower())(
+            path=path,
+            tags=tags,
+            summary=summary,
+            description=description,
+            name=name,
+            include_in_schema=include_in_schema,
+        )

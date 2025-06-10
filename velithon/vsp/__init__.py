@@ -1,13 +1,13 @@
-from .abstract import Discovery, LoadBalancer, Transport
+from velithon._velithon import RoundRobinBalancer, ServiceInfo, WeightedBalancer
+
+from .abstract import Discovery, Transport
 from .client import VSPClient
 from .connection_pool import ConnectionPool
 from .discovery import ConsulDiscovery, DiscoveryType, MDNSDiscovery, StaticDiscovery
-from .load_balancer import RoundRobinBalancer, WeightedBalancer
 from .manager import VSPManager, WorkerType
 from .mesh import ServiceMesh
 from .message import VSPMessage
 from .protocol import VSPProtocol
-from .service import ServiceInfo
 from .transport import TCPTransport
 
 __all__ = [

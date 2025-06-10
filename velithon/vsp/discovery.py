@@ -1,7 +1,7 @@
 import logging
 import enum
 from typing import List
-from .service import ServiceInfo
+from velithon._velithon import ServiceInfo
 from .abstract import Discovery
 try:
     from zeroconf import Zeroconf, ServiceInfo as ZeroconfServiceInfo

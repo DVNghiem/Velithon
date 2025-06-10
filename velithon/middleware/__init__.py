@@ -13,6 +13,7 @@ else:  # pragma: no cover
 from velithon.types import RSGIApp
 
 # Import middleware classes for easier discovery
+from velithon.middleware.base import BaseHTTPMiddleware, PassThroughMiddleware, ConditionalMiddleware, ProtocolWrapperMiddleware
 from velithon.middleware.compression import CompressionMiddleware, CompressionLevel
 from velithon.middleware.cors import CORSMiddleware
 from velithon.middleware.logging import LoggingMiddleware
@@ -22,10 +23,17 @@ P = ParamSpec("P")
 
 __all__ = [
     "Middleware",
+    "BaseHTTPMiddleware",
+    "PassThroughMiddleware", 
+    "ConditionalMiddleware",
+    "ProtocolWrapperMiddleware",
     "CompressionMiddleware", 
     "CompressionLevel",
     "CORSMiddleware",
     "LoggingMiddleware",
+    "RustLoggingMiddleware",
+    "FastLoggingMiddleware",
+    "RustMiddlewareOptimizer",
     "SessionMiddleware",
     "SessionInterface",
     "MemorySessionInterface",

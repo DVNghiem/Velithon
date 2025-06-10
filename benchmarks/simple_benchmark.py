@@ -5,15 +5,19 @@ Simple Performance Test to measure current optimization impact.
 
 import asyncio
 import time
-import json
-import tempfile
 from typing import Dict, Any
 
 # Velithon imports
 from velithon.responses import JSONResponse
 
+# Base benchmark imports
+from base_benchmark import (
+    BaseBenchmark, ResponseBenchmarkMixin, 
+    generate_test_api_response
+)
 
-class SimpleBenchmark:
+
+class SimpleBenchmark(BaseBenchmark, ResponseBenchmarkMixin):
     """Simple benchmark to test current performance."""
     
     def __init__(self, iterations: int = 5000):

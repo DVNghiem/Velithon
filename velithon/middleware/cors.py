@@ -1,12 +1,14 @@
 import typing
-from velithon.datastructures import Headers, Scope, Protocol
+
+from velithon.datastructures import Headers, Protocol, Scope
+from velithon.middleware.base import ConditionalMiddleware
 from velithon.responses import PlainTextResponse, Response
 
 ALL_METHODS = ("DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT")
 SAFELISTED_HEADERS = {"Accept", "Accept-Language", "Content-Language", "Content-Type"}
 
-class CORSMiddleware:
-    
+
+class CORSMiddleware(ConditionalMiddleware):
     def __init__(
         self,
         app: typing.Any,
@@ -16,7 +18,8 @@ class CORSMiddleware:
         allow_credentials: bool = False,
         max_age: int = 600,
     ) -> None:
-        
+        super().__init__(app)
+
         if "*" in allow_methods:
             allow_methods = ALL_METHODS
 
@@ -36,44 +39,53 @@ class CORSMiddleware:
         else:
             preflight_headers.append(("Access-Control-Allow-Origin", "*"))
 
-        preflight_headers.extend([
-            ("Access-Control-Allow-Methods", ", ".join(allow_methods)),
-            ("Access-Control-Max-Age", str(max_age))
-        ])
+        preflight_headers.extend(
+            [
+                ("Access-Control-Allow-Methods", ", ".join(allow_methods)),
+                ("Access-Control-Max-Age", str(max_age)),
+            ]
+        )
 
         allow_headers = sorted(SAFELISTED_HEADERS | set(allow_headers))
         if allow_headers and not allow_all_headers:
-            preflight_headers.append(("Access-Control-Allow-Headers", ", ".join(allow_headers)))
+            preflight_headers.append(
+                ("Access-Control-Allow-Headers", ", ".join(allow_headers))
+            )
         if allow_credentials:
             preflight_headers.append(("Access-Control-Allow-Credentials", "true"))
 
-        self.app = app
         self.allow_methods = allow_methods
         self.allow_headers = [h.lower() for h in allow_headers]
         self.allow_all_headers = allow_all_headers
+        self.allow_all_origins = allow_all_origins
+        self.allow_origins = allow_origins
+        self.allow_credentials = allow_credentials
+        self.max_age = max_age
+        self.allow_origin_regex = None  # For potential future regex support
         self.preflight_explicit_allow_origin = preflight_explicit_allow_origin
         self.simple_headers = simple_headers
         self.preflight_headers = preflight_headers
 
-    async def __call__(self, scope: Scope, protocol: Protocol):
-        if scope.proto != "http":
-            return await self.app(scope, protocol)
-        
+    async def should_process_request(self, scope: Scope, protocol: Protocol) -> bool:
+        """Handle CORS logic and return whether to continue processing."""
         header = scope.headers
         if scope.method == "OPTIONS":
             # Handle preflight request
             response = self.preflight_response(header)
-            return await response(scope, protocol)
+            await response(scope, protocol)
+            return False  # Don't continue processing
         else:
             # Handle simple request
             protocol.update_headers(self.simple_headers)
-            return await self.app(scope, protocol)
-        
+            return True  # Continue processing
+
     def is_allowed_origin(self, origin: str) -> bool:
         if self.allow_all_origins:
             return True
 
-        if self.allow_origin_regex is not None and self.allow_origin_regex.fullmatch(origin):
+        if self.allow_origin_regex is not None and self.allow_origin_regex.fullmatch(
+            origin
+        ):
             return True
 
         return origin in self.allow_origins

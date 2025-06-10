@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import inspect
 from collections.abc import Mapping, Sequence
-from functools import lru_cache
 from typing import Annotated, Any, Dict, Optional, Union, get_args, get_origin
 
 import orjson
@@ -10,6 +9,7 @@ from pydantic import BaseModel, ValidationError
 from pydantic_core import PydanticUndefined
 from pydash import get
 
+from velithon.cache import parser_cache
 from velithon.datastructures import FormData, Headers, QueryParams, UploadFile
 from velithon.di import Provide
 from velithon.exceptions import (
@@ -267,7 +267,7 @@ class ParameterResolver:
             return files
         return files[0] if files else None
 
-    @lru_cache(maxsize=1024)
+    @parser_cache()
     def _resolve_param_metadata(
         self, param: inspect.Parameter
     ) -> tuple[Any, str, Any, bool]:
