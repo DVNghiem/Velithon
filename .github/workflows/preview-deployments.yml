@@ -75,7 +75,7 @@ jobs:
             allocator: mimalloc
           - os: macos
             target: aarch64
-            interpreter: 3.10 3. 3.12 3.13 pypy3.10 pypy3.11
+            interpreter: 3.10 3.11 3.12 3.13 pypy3.10 pypy3.11
           - os: macos
             target: aarch64
             interpreter: 3.13t
@@ -102,35 +102,40 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libssl-dev pkg-config
           pkg-config --modversion openssl || exit 1
+          export PKG_CONFIG_PATH=/usr/lib/pkgconfig:/usr/lib64/pkgconfig:/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
+          echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH" >> $GITHUB_ENV
 
       - name: Install dependencies for manylinux container
         if: matrix.container != '' || matrix.manylinux != 'auto'
         run: |
           if command -v apt-get >/dev/null 2>&1; then
-            apt-get update
-            apt-get install -y libssl-dev pkg-config
+            sudo apt-get update || true
+            sudo apt-get install -y libssl-dev pkg-config
             export PKG_CONFIG_PATH=/usr/lib/pkgconfig:/usr/lib64/pkgconfig:/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
           elif command -v yum >/dev/null 2>&1; then
-            yum install -y openssl-devel pkgconf
+            sudo yum install -y openssl-devel pkgconf
             export PKG_CONFIG_PATH=/usr/lib64/pkgconfig:/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
           else
             echo "No supported package manager (apt-get or yum) found in container!"
             exit 1
           fi
           pkg-config --modversion openssl || exit 1
+          echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH" >> $GITHUB_ENV
 
       - name: Install dependencies for default manylinux container
         if: matrix.container == '' && matrix.manylinux == 'auto' && matrix.os == 'ubuntu'
         run: |
-          # Install dependencies in the default manylinux container used by maturin-action
-          /usr/bin/docker run --rm -v $(pwd):/io quay.io/pypa/manylinux2014_x86_64:latest /bin/sh -c "yum install -y openssl-devel pkgconf && pkg-config --modversion openssl"
+          sudo /usr/bin/docker run --rm -v $(pwd):/io quay.io/pypa/manylinux2014_x86_64:latest /bin/sh -c "yum install -y openssl-devel pkgconf && pkg-config --modversion openssl"
+          export PKG_CONFIG_PATH=/usr/lib64/pkgconfig:/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
+          echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH" >> $GITHUB_ENV
 
       - name: Install dependencies for macOS
         if: matrix.os == 'macos'
         run: |
           brew install openssl@3 pkg-config
-          export PKG_CONFIG_PATH=/usr/local/opt/openssl@3/lib/pkgconfig:$PKG_CONFIG_PATH
+          export PKG_CONFIG_PATH=/usr/local/opt/openssl@3:/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
           pkg-config --modversion openssl || exit 1
+          echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH" >> $GITHUB_ENV
 
       - name: Install dependencies for Windows
         if: matrix.os == 'windows'
@@ -153,10 +158,10 @@ jobs:
           target: ${{ matrix.target }}
           manylinux: ${{ matrix.manylinux || 'auto' }}
           container: ${{ matrix.container }}
-          docker-options: -e CI -e PKG_CONFIG_PATH=/usr/lib/pkgconfig:/usr/lib64/pkgconfig:/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
+          docker-options: -e CI -e PKG_CONFIG_PATH=$PKG_CONFIG_PATH
 
       - uses: pyo3/maturin-action@v1
-        if: matrix.allocator == 'mimalloc'
+        if: matrix. allocator == 'mimalloc'
         with:
           rust-toolchain: stable
           command: build
@@ -164,7 +169,7 @@ jobs:
           target: ${{ matrix.target }}
           manylinux: ${{ matrix.manylinux || 'auto' }}
           container: ${{ matrix.container }}
-          docker-options: -e CI -e PKG_CONFIG_PATH=/usr/lib/pkgconfig:/usr/lib64/pkgconfig:/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
+          docker-options: -e CI -e PKG_CONFIG_PATH=$PKG_CONFIG_PATH
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
