@@ -1,5 +1,7 @@
 import importlib
 import pathlib
+import sys
+import traceback
 from typing import Any
 
 import click
@@ -9,6 +11,10 @@ import granian.http
 from velithon.logging import get_logger
 
 logger = get_logger(__name__)
+
+project_root = pathlib.Path.cwd()  # Use current working directory
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))  # Insert at the beginning to prioritize
 
 
 class ImportFromStringError(Exception):
@@ -286,10 +292,12 @@ def run(
     """Run the Velithon application."""
     try:
         app_instance = import_from_string(app)
+        print(f"Importing application from: {app}")
         if not callable(app_instance):
             raise ImportFromStringError(
                 f"'{app}' is not a callable application instance."
             )
+        print(f"Starting Velithon server with app: {app_instance}")
         app_instance._serve(
             app,
             host,
@@ -332,8 +340,10 @@ def run(
         )
 
     except ValueError as e:
+        traceback.print_exc()
         logger.error(f"Error: {str(e)}")
     except Exception as e:
+        traceback.print_exc()
         logger.error(f"Failed to start server: {str(e)}")
 
 
