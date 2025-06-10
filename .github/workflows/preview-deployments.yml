@@ -96,7 +96,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install dependencies for Ubuntu
+      - name: Install dependencies for Ubuntu (non-container)
         if: matrix.os == 'ubuntu' && matrix.container == ''
         run: |
           sudo apt-get update
@@ -105,24 +105,36 @@ jobs:
       - name: Install dependencies for manylinux container
         if: matrix.container != ''
         run: |
-          yum install -y openssl-devel pkgconf
-          # Ensure pkg-config can find openssl
-          export PKG_CONFIG_PATH=/usr/lib64/pkgconfig:/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
+          # Check if apt-get is available (Debian/Ubuntu-based container)
+          if command -v apt-get >/dev/null 2>&1; then
+            apt-get update
+            apt-get install -y libssl-dev pkg-config
+            export PKG_CONFIG_PATH=/usr/lib/pkgconfig:/usr/lib64/pkgconfig:/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
+          # Check if yum is available (CentOS/Fedora-based container)
+          elif command -v yum >/dev/null 2>&1; then
+            yum install -y openssl-devel pkgconf
+            export PKG_CONFIG_PATH=/usr/lib64/pkgconfig:/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
+          else
+            echo "No supported package manager (apt-get or yum) found in container!"
+            exit 1
+          fi
+          # Verify pkg-config finds OpenSSL
+          pkg-config --modversion openssl || exit 1
 
       - name: Install dependencies for macOS
         if: matrix.os == 'macos'
         run: |
           brew install openssl@3 pkg-config
-          # Link OpenSSL to pkg-config
           export PKG_CONFIG_PATH=/usr/local/opt/openssl@3/lib/pkgconfig:$PKG_CONFIG_PATH
+          # Verify pkg-config finds OpenSSL
+          pkg-config --modversion openssl || exit 1
 
       - name: Install dependencies for Windows
         if: matrix.os == 'windows'
         run: |
-          # Use vcpkg to install OpenSSL
           vcpkg install openssl:x64-windows
-          # Set OPENSSL_DIR for Windows
           echo "OPENSSL_DIR=C:\vcpkg\installed\x64-windows" >> $GITHUB_ENV
+          echo "PKG_CONFIG_PATH=C:\vcpkg\installed\x64-windows\lib\pkgconfig" >> $GITHUB_ENV
 
       - name: Set jemalloc for aarch64 Linux
         if: matrix.target == 'aarch64' && matrix.os == 'ubuntu'
@@ -138,7 +150,7 @@ jobs:
           target: ${{ matrix.target }}
           manylinux: ${{ matrix.manylinux || 'auto' }}
           container: ${{ matrix.container }}
-          docker-options: -e CI -e PKG_CONFIG_PATH=/usr/lib64/pkgconfig:/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
+          docker-options: -e CI -e PKG_CONFIG_PATH=/usr/lib/pkgconfig:/usr/lib64/pkgconfig:/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
 
       - uses: pyo3/maturin-action@v1
         if: matrix.allocator == 'mimalloc'
@@ -149,7 +161,7 @@ jobs:
           target: ${{ matrix.target }}
           manylinux: ${{ matrix.manylinux || 'auto' }}
           container: ${{ matrix.container }}
-          docker-options: -e CI -e PKG_CONFIG_PATH=/usr/lib64/pkgconfig:/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
+          docker-options: -e CI -e PKG_CONFIG_PATH=/usr/lib/pkgconfig:/usr/lib64/pkgconfig:/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
