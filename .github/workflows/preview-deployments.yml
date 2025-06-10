@@ -1,6 +1,3 @@
-# CI to release the project for Linux, Windows, and MacOS
-# The purpose of this action is to verify if the release builds are working or not.
-
 name: Preview Release
 
 on:
@@ -17,7 +14,7 @@ env:
 
 jobs:
   wheels:
-    name: wheel ${{ matrix.platform || matrix.os }}(${{ matrix.target }}) - ${{ matrix.manylinux || 'auto' }} - ${{ matrix.allocator || 'auto' }}
+    name: wheel ${{ matrix.platform || matrix.os }}(${ matrix.target }) - ${{ matrix.manylinux || 'auto' }} - ${{ matrix.allocator || 'auto' }}
     strategy:
       fail-fast: false
       matrix:
@@ -42,13 +39,11 @@ jobs:
           - os: ubuntu
             platform: linux
             target: aarch64
-            # rust-cross/manylinux2014-cross:aarch64 has issues with `ring`
             container: ghcr.io/rust-cross/manylinux_2_28-cross:aarch64
             interpreter: 3.10 3.11 3.12 3.13 pypy3.10 pypy3.11
           - os: ubuntu
             platform: linux
             target: aarch64
-            # rust-cross/manylinux2014-cross:aarch64 has issues with `ring`
             container: ghcr.io/rust-cross/manylinux_2_28-cross:aarch64
             interpreter: 3.13t
             allocator: mimalloc
@@ -97,13 +92,43 @@ jobs:
             target: aarch64
 
     runs-on: ${{ matrix.os }}-latest
+    container: ${{ matrix.container }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install dependencies for Ubuntu
+        if: matrix.os == 'ubuntu' && matrix.container == ''
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libssl-dev pkg-config
+
+      - name: Install dependencies for manylinux container
+        if: matrix.container != ''
+        run: |
+          yum install -y openssl-devel pkgconf
+          # Ensure pkg-config can find openssl
+          export PKG_CONFIG_PATH=/usr/lib64/pkgconfig:/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
+
+      - name: Install dependencies for macOS
+        if: matrix.os == 'macos'
+        run: |
+          brew install openssl@3 pkg-config
+          # Link OpenSSL to pkg-config
+          export PKG_CONFIG_PATH=/usr/local/opt/openssl@3/lib/pkgconfig:$PKG_CONFIG_PATH
+
+      - name: Install dependencies for Windows
+        if: matrix.os == 'windows'
+        run: |
+          # Use vcpkg to install OpenSSL
+          vcpkg install openssl:x64-windows
+          # Set OPENSSL_DIR for Windows
+          echo "OPENSSL_DIR=C:\vcpkg\installed\x64-windows" >> $GITHUB_ENV
+
       - name: Set jemalloc for aarch64 Linux
         if: matrix.target == 'aarch64' && matrix.os == 'ubuntu'
         run: |
           echo "JEMALLOC_SYS_WITH_LG_PAGE=16" >> $GITHUB_ENV
-          sudo apt-get install -y libssl-dev pkg-config openssl libjemalloc-dev
+
       - uses: pyo3/maturin-action@v1
         if: matrix.allocator != 'mimalloc'
         with:
@@ -113,7 +138,8 @@ jobs:
           target: ${{ matrix.target }}
           manylinux: ${{ matrix.manylinux || 'auto' }}
           container: ${{ matrix.container }}
-          docker-options: -e CI
+          docker-options: -e CI -e PKG_CONFIG_PATH=/usr/lib64/pkgconfig:/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
+
       - uses: pyo3/maturin-action@v1
         if: matrix.allocator == 'mimalloc'
         with:
@@ -123,7 +149,8 @@ jobs:
           target: ${{ matrix.target }}
           manylinux: ${{ matrix.manylinux || 'auto' }}
           container: ${{ matrix.container }}
-          docker-options: -e CI
+          docker-options: -e CI -e PKG_CONFIG_PATH=/usr/lib64/pkgconfig:/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
+
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
