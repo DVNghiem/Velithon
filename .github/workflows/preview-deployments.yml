@@ -124,7 +124,7 @@ jobs:
             --volume "${PWD}/dist:/artifacts"
           install: |
             apt update -y
-            apt install -y --no-install-recommends software-properties-common
+            apt install -y --no-install-recommends software-properties-common pkg-config libssl-dev
             add-apt-repository ppa:deadsnakes/ppa
             apt update -y
             apt install -y gcc g++ musl-dev python${{ matrix.python.version }}-dev python${{ matrix.python.version }} python${{ matrix.python.version }}-venv
