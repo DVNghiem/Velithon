@@ -1,11 +1,12 @@
 """
 Tests for advanced routing functionality and path parameter handling.
 """
-import pytest
 from unittest.mock import MagicMock
 
-from velithon.routing import Router, Route
+import pytest
+
 from velithon.responses import JSONResponse
+from velithon.routing import Route, Router
 
 
 class TestRouterEdgeCases:

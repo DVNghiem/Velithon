@@ -6,15 +6,13 @@ Refactored to use base benchmark classes.
 
 import asyncio
 import time
-from typing import Dict, Any
+from typing import Any, Dict
+
+# Base benchmark imports
+from base_benchmark import BaseBenchmark, ResponseBenchmarkMixin, TimingResult
 
 # Velithon imports
 from velithon.responses import JSONResponse
-
-# Base benchmark imports
-from base_benchmark import (
-    BaseBenchmark, ResponseBenchmarkMixin, TimingResult
-)
 
 
 class SimpleBenchmark(BaseBenchmark, ResponseBenchmarkMixin):

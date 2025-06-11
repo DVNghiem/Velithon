@@ -1,8 +1,9 @@
 
-from velithon.endpoint import HTTPEndpoint
-from velithon.responses import PlainTextResponse
-from velithon.requests import Request
 import logging
+
+from velithon.endpoint import HTTPEndpoint
+from velithon.requests import Request
+from velithon.responses import PlainTextResponse
 
 logger = logging.getLogger(__name__)
 

@@ -1,4 +1,5 @@
-from velithon.di import ServiceContainer, AsyncFactoryProvider, SingletonProvider, FactoryProvider
+from velithon.di import AsyncFactoryProvider, FactoryProvider, ServiceContainer, SingletonProvider
+
 
 class MockDatabase:
     async def query(self, q: str):

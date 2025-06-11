@@ -1,13 +1,14 @@
 """
 Tests for security features and middleware.
 """
-import pytest
 import base64
-from unittest.mock import MagicMock, AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
+import pytest
+
+from velithon.exceptions import HTTPException
 from velithon.middleware.session import SignedCookieSessionInterface
 from velithon.responses import JSONResponse
-from velithon.exceptions import HTTPException
 
 
 class TestSecurityHeaders:
@@ -258,8 +259,8 @@ class TestInputValidation:
 
     def test_path_parameter_validation(self):
         """Test path parameter validation."""
-        from velithon.routing import Route
         from velithon.responses import JSONResponse
+        from velithon.routing import Route
 
         async def handler(user_id: int):
             if user_id < 0:
@@ -307,8 +308,9 @@ class TestInputValidation:
 
     def test_request_body_validation(self):
         """Test request body validation."""
-        from pydantic import BaseModel, field_validator
         import re
+
+        from pydantic import BaseModel, field_validator
 
         class UserCreate(BaseModel):
             username: str
@@ -493,8 +495,8 @@ class TestRateLimiting:
 
     def test_rate_limiting_middleware_concept(self):
         """Test rate limiting middleware concept."""
-        from collections import defaultdict
         import time
+        from collections import defaultdict
 
         class RateLimitingMiddleware:
             def __init__(self, app, max_requests=100, window_seconds=3600):

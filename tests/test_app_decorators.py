@@ -5,6 +5,7 @@ from velithon import Velithon
 from velithon.requests import Request
 from velithon.responses import JSONResponse
 
+
 @pytest.fixture
 def app():
     """Create a test app with no default routes."""

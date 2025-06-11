@@ -1,10 +1,11 @@
 import os
+import platform
 import signal
 import socket
 import subprocess
 import time
 from typing import List
-import platform
+
 import pytest
 
 

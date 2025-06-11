@@ -1,25 +1,25 @@
-import inspect
 import functools
+import inspect
 import re
-from typing import Any, Callable, Dict, Sequence, Tuple, TypeVar, Awaitable, Type
+from typing import Any, Awaitable, Callable, Dict, Sequence, Tuple, Type, TypeVar
 
-from velithon.convertors import CONVERTOR_TYPES
-from velithon.middleware import Middleware
-from velithon.openapi import swagger_generate
-from velithon.responses import PlainTextResponse, Response
 from velithon._utils import is_async_callable, run_in_threadpool
-from velithon.requests import Request
-from velithon.cache import CacheConfig
-from velithon.datastructures import Protocol, Scope
-from velithon.types import RSGIApp
-from velithon.params.dispatcher import dispatch
 from velithon._velithon import (
     Match,
     _RouteOptimizer,
-    _RouterOptimizer, 
     _RoutePatternMatcher,
+    _RouterOptimizer,
     compile_path,
 )
+from velithon.cache import CacheConfig
+from velithon.convertors import CONVERTOR_TYPES
+from velithon.datastructures import Protocol, Scope
+from velithon.middleware import Middleware
+from velithon.openapi import swagger_generate
+from velithon.params.dispatcher import dispatch
+from velithon.requests import Request
+from velithon.responses import PlainTextResponse, Response
+from velithon.types import RSGIApp
 
 T = TypeVar("T")
 # Match parameters in URL paths, eg. '{param}', and '{param:int}'

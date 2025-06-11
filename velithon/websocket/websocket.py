@@ -1,13 +1,15 @@
 from __future__ import annotations
 
-import typing
 import re
+import typing
+
+from velithon._velithon import Match  # Import directly from Rust module
+from velithon.convertors import CONVERTOR_TYPES
 from velithon.datastructures import Protocol, Scope
 from velithon.routing import BaseRoute
-from velithon._velithon import Match  # Import directly from Rust module
 from velithon.websocket.connection import WebSocket
 from velithon.websocket.endpoint import WebSocketEndpoint, websocket_response
-from velithon.convertors import CONVERTOR_TYPES
+
 
 class WebSocketRoute(BaseRoute):
     """WebSocket route implementation that integrates with Velithon's routing system."""

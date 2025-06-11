@@ -4,13 +4,12 @@ import typing
 
 from ._velithon import (
     Convertor,
-    StringConvertor,
-    PathConvertor,
-    IntegerConvertor,
     FloatConvertor,
+    IntegerConvertor,
+    PathConvertor,
+    StringConvertor,
     UUIDConvertor,
 )
-
 
 CONVERTOR_TYPES: dict[str, Convertor[typing.Any]] = {
     "str": StringConvertor(),

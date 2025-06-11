@@ -9,6 +9,7 @@ from velithon.middleware.base import BaseHTTPMiddleware
 
 class CompressionLevel(Enum):
     """Compression levels for gzip compression."""
+
     FASTEST = 1
     BALANCED = 6
     BEST = 9

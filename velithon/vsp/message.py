@@ -60,7 +60,7 @@ class VSPMessage:
         }
 
     def to_bytes(self) -> bytes:
-        """serialization with caching and fast backends"""
+        """Serialization with caching and fast backends"""
         if self._serialized_cache is not None:
             return self._serialized_cache
 
@@ -88,7 +88,7 @@ class VSPMessage:
 
     @classmethod
     def from_bytes(cls, data: bytes) -> "VSPMessage":
-        """deserialization"""
+        """Deserialization"""
         try:
             if HAS_ORJSON:
                 unpacked = orjson.loads(data)

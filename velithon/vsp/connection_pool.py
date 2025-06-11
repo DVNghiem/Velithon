@@ -1,8 +1,8 @@
 import asyncio
 import logging
 import time
-from typing import Dict, Any
 from collections import defaultdict, deque
+from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,6 @@ class ConnectionPool:
 
     async def get_connection(self, service_key: str, connection_factory) -> Any:
         """Get a connection from the pool or create a new one"""
-        
         # Check if service is marked as unhealthy
         if service_key in self.unhealthy_services:
             # Retry unhealthy services every 30 seconds

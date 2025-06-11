@@ -6,9 +6,8 @@ from http import cookies as http_cookies
 import orjson
 from python_multipart.multipart import parse_options_header
 
-from velithon.datastructures import URL, Address, FormData, Headers, QueryParams, UploadFile
+from velithon.datastructures import URL, Address, FormData, Headers, Protocol, QueryParams, Scope, UploadFile
 from velithon.formparsers import FormParser, MultiPartException, MultiPartParser
-from velithon.datastructures import Protocol, Scope
 
 T_co = typing.TypeVar("T_co", covariant=True)
 

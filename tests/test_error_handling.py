@@ -1,13 +1,14 @@
 """
 Tests for error handling and exception management in Velithon.
 """
-import pytest
 import asyncio
 from unittest.mock import MagicMock
 
+import pytest
+
 from velithon.exceptions import HTTPException
-from velithon.responses import JSONResponse, PlainTextResponse
 from velithon.middleware.logging import LoggingMiddleware
+from velithon.responses import JSONResponse, PlainTextResponse
 
 
 class CustomHTTPException(HTTPException):

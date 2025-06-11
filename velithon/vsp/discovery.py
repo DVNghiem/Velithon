@@ -1,10 +1,14 @@
-import logging
 import enum
+import logging
 from typing import List
+
 from velithon._velithon import ServiceInfo
+
 from .abstract import Discovery
+
 try:
-    from zeroconf import Zeroconf, ServiceInfo as ZeroconfServiceInfo
+    from zeroconf import ServiceInfo as ZeroconfServiceInfo
+    from zeroconf import Zeroconf
 except ImportError:
     Zeroconf = None
 try:
@@ -16,12 +20,14 @@ logger = logging.getLogger(__name__)
 
 class DiscoveryType(str, enum.Enum):
     """Enumeration of discovery types."""
+
     STATIC = "static"
     MDNS = "mdns"
     CONSUL = "consul"
 
 class StaticDiscovery(Discovery):
     """Static discovery using pre-configured services."""
+
     def __init__(self):
         self.services: dict[str, List[ServiceInfo]] = {}
 
@@ -42,6 +48,7 @@ class StaticDiscovery(Discovery):
 
 class MDNSDiscovery(Discovery):
     """mDNS discovery using zeroconf."""
+
     def __init__(self):
         if Zeroconf is None:
             raise ImportError("zeroconf package is required for mDNS discovery")
@@ -85,6 +92,7 @@ class MDNSDiscovery(Discovery):
 
 class ConsulDiscovery(Discovery):
     """Consul discovery using consul client."""
+
     def __init__(self, host: str = "localhost", port: int = 8500):
         if consul is None:
             raise ImportError("consul package is required for Consul discovery")

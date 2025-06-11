@@ -5,13 +5,15 @@ from inspect import iscoroutinefunction
 from typing import Any, Callable, Optional
 
 from velithon._velithon import (
+    AsyncFactoryProvider,
+    FactoryProvider,
     Provide,
     Provider,
     SingletonProvider,
-    FactoryProvider,
-    AsyncFactoryProvider,
-    ServiceContainer as _RustServiceContainer,
     di_cached_signature,
+)
+from velithon._velithon import (
+    ServiceContainer as _RustServiceContainer,
 )
 from velithon.datastructures import Scope
 

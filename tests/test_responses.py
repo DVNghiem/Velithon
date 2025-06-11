@@ -6,14 +6,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from velithon.datastructures import Protocol
 from velithon.responses import (
-    Response,
+    FileResponse,
     JSONResponse,
     RedirectResponse,
-    FileResponse,
+    Response,
     StreamingResponse,
 )
-from velithon.datastructures import Protocol
 
 
 @pytest.fixture

@@ -1,6 +1,6 @@
+import enum
 import typing
 import uuid
-import enum
 from dataclasses import dataclass
 
 # Block Convertor class for request path parameters.

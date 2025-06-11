@@ -129,7 +129,7 @@ class VSPManager:
                     raise
 
     async def enqueue_message(self, message: VSPMessage, protocol: VSPProtocol) -> None:
-        """message enqueuing with priority handling"""
+        """Message enqueuing with priority handling"""
         # Handle priority messages separately
         if (message.header["is_response"] or 
             message.header["endpoint"] == "health"):
@@ -158,7 +158,7 @@ class VSPManager:
             raise VSPError("Message queue full")
 
     async def optimized_worker(self, worker_id: int) -> None:
-        """worker with batch processing and priority handling"""
+        """Worker with batch processing and priority handling"""
         logger.info(f"Worker {worker_id} ({self.worker_type.name.lower()}) started for {self.name}")
         
         batch = []

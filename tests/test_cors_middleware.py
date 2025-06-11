@@ -1,12 +1,13 @@
 """
 Tests for CORS middleware implementation.
 """
-import pytest
-from unittest.mock import MagicMock, AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
-from velithon.middleware.cors import CORSMiddleware, ALL_METHODS, SAFELISTED_HEADERS
-from velithon.responses import PlainTextResponse
+import pytest
+
 from velithon.datastructures import Headers
+from velithon.middleware.cors import ALL_METHODS, SAFELISTED_HEADERS, CORSMiddleware
+from velithon.responses import PlainTextResponse
 
 
 class TestCORSMiddleware:

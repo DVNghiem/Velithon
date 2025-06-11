@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
-import typing
-import functools
 import asyncio
 import concurrent.futures
-import time
+import functools
+import os
 import random
 import threading
-import os
-
+import time
+import typing
 
 T = typing.TypeVar("T")
 

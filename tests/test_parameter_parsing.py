@@ -1,12 +1,13 @@
 """
 Tests for request parameter parsing and validation.
 """
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
 from pydantic import BaseModel, Field, ValidationError
 
-from velithon.requests import Request
 from velithon.datastructures import Headers
+from velithon.requests import Request
 
 
 class TestParameterParsing:

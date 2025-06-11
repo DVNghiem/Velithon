@@ -6,11 +6,11 @@ duplication across benchmark implementations.
 """
 
 import asyncio
-import time
 import statistics
+import time
 import tracemalloc
-from typing import Dict, Any, Callable, List
 from abc import ABC, abstractmethod
+from typing import Any, Callable, Dict, List
 
 
 class TimingResult:

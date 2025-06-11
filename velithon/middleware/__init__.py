@@ -10,14 +10,25 @@ if sys.version_info >= (3, 10):  # pragma: no cover
 else:  # pragma: no cover
     from typing_extensions import ParamSpec
 
-from velithon.types import RSGIApp
-
 # Import middleware classes for easier discovery
-from velithon.middleware.base import BaseHTTPMiddleware, PassThroughMiddleware, ConditionalMiddleware, ProtocolWrapperMiddleware
-from velithon.middleware.compression import CompressionMiddleware, CompressionLevel
+from velithon.middleware.base import (
+    BaseHTTPMiddleware,
+    ConditionalMiddleware,
+    PassThroughMiddleware,
+    ProtocolWrapperMiddleware,
+)
+from velithon.middleware.compression import CompressionLevel, CompressionMiddleware
 from velithon.middleware.cors import CORSMiddleware
 from velithon.middleware.logging import LoggingMiddleware
-from velithon.middleware.session import SessionMiddleware, SessionInterface, MemorySessionInterface, SignedCookieSessionInterface, Session, get_session
+from velithon.middleware.session import (
+    MemorySessionInterface,
+    Session,
+    SessionInterface,
+    SessionMiddleware,
+    SignedCookieSessionInterface,
+    get_session,
+)
+from velithon.types import RSGIApp
 
 P = ParamSpec("P")
 

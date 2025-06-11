@@ -1,6 +1,4 @@
-"""
-Base middleware classes and utilities for the Velithon framework.
-"""
+"""Base middleware classes and utilities for the Velithon framework."""
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

@@ -5,24 +5,22 @@ Refactored to use base benchmark classes and eliminate duplication.
 """
 
 import asyncio
-import time
-import sys
 import os
-from typing import Dict, Any
+import sys
+import time
+from typing import Any, Dict
 
 # Add the project root to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Velithon imports
 from velithon.application import Velithon
-from velithon.responses import JSONResponse, PlainTextResponse
 from velithon.requests import Request
+from velithon.responses import JSONResponse, PlainTextResponse
 
 # Try importing optimizations
 try:
-    from velithon.performance import (
-        get_json_encoder, get_response_cache
-    )
+    from velithon.performance import get_json_encoder, get_response_cache
     HAS_OPTIMIZATIONS = True
     print("✅ Advanced optimizations available")
 except ImportError:
@@ -31,8 +29,12 @@ except ImportError:
 
 # Base benchmark imports
 from base_benchmark import (
-    BaseBenchmark, ResponseBenchmarkMixin, CacheBenchmarkMixin,
-    TimingResult, generate_test_user_data, generate_test_api_response
+    BaseBenchmark,
+    CacheBenchmarkMixin,
+    ResponseBenchmarkMixin,
+    TimingResult,
+    generate_test_api_response,
+    generate_test_user_data,
 )
 
 

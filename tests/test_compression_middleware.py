@@ -1,9 +1,10 @@
 import gzip
-import pytest
 from unittest.mock import AsyncMock, MagicMock
 
+import pytest
+
 from velithon.datastructures import Headers
-from velithon.middleware.compression import CompressionMiddleware, CompressionLevel
+from velithon.middleware.compression import CompressionLevel, CompressionMiddleware
 
 
 @pytest.fixture

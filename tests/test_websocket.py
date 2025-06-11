@@ -1,19 +1,20 @@
 """
 Tests for WebSocket functionality in Velithon.
 """
-import pytest
 from unittest.mock import AsyncMock, MagicMock
 
+import pytest
+
+from velithon.status import WS_1000_NORMAL_CLOSURE, WS_1008_POLICY_VIOLATION
 from velithon.websocket import (
     WebSocket,
     WebSocketDisconnect,
     WebSocketEndpoint,
     WebSocketRoute,
     WebSocketState,
-    websocket_route,
     websocket_response,
+    websocket_route,
 )
-from velithon.status import WS_1000_NORMAL_CLOSURE, WS_1008_POLICY_VIOLATION
 
 
 class MockProtocol:
@@ -283,7 +284,6 @@ class TestWebSocketDisconnect:
 @pytest.mark.asyncio
 async def test_websocket_integration():
     """Integration test for WebSocket functionality."""
-    
     # Create a simple WebSocket handler
     messages = []
     

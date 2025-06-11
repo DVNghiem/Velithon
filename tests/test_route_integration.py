@@ -5,6 +5,7 @@ from velithon import Velithon
 from velithon.requests import Request
 from velithon.responses import JSONResponse
 
+
 def test_route_decorator_integration():
     """Test HTTP method decorators in integrated application."""
     # Disable OpenAPI routes for cleaner testing

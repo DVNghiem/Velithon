@@ -1,14 +1,15 @@
 """
 Tests for application lifecycle and integration scenarios.
 """
-import pytest
 import asyncio
 
+import pytest
+
 from velithon import Velithon
-from velithon.responses import JSONResponse
-from velithon.requests import Request
+from velithon.di import Provide, ServiceContainer
 from velithon.middleware import Middleware
-from velithon.di import ServiceContainer, Provide
+from velithon.requests import Request
+from velithon.responses import JSONResponse
 
 
 class TestApplicationLifecycle:
@@ -162,7 +163,7 @@ class TestApplicationIntegration:
 
     def test_error_handling_integration(self, app):
         """Test error handling integration."""
-        from velithon.exceptions import HTTPException, ErrorDefinitions
+        from velithon.exceptions import ErrorDefinitions, HTTPException
 
         @app.get("/error")
         async def error_handler(request: Request):
@@ -284,7 +285,7 @@ class TestApplicationConfiguration:
         # rather than a direct exception_handler decorator
         
         # For now, just test that we can create custom exceptions
-        from velithon.exceptions import HTTPException, ErrorDefinitions
+        from velithon.exceptions import ErrorDefinitions, HTTPException
         
         try:
             raise HTTPException(status_code=400, error=ErrorDefinitions.VALIDATION_ERROR)

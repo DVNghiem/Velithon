@@ -5,23 +5,27 @@ Refactored to use base benchmark classes and eliminate duplication.
 """
 
 import asyncio
-import time
-import sys
 import os
-from typing import Dict, Any
+import sys
+import time
+from typing import Any, Dict
 
 # Add the project root to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from velithon import Velithon
-from velithon.responses import JSONResponse
-from velithon.params.dispatcher import _get_cached_signature
-
 # Base benchmark imports
 from base_benchmark import (
-    BaseBenchmark, ResponseBenchmarkMixin, CacheBenchmarkMixin,
-    TimingResult, generate_test_user_data, generate_test_api_response
+    BaseBenchmark,
+    CacheBenchmarkMixin,
+    ResponseBenchmarkMixin,
+    TimingResult,
+    generate_test_api_response,
+    generate_test_user_data,
 )
+
+from velithon import Velithon
+from velithon.params.dispatcher import _get_cached_signature
+from velithon.responses import JSONResponse
 
 
 class PerformanceBenchmark(BaseBenchmark, ResponseBenchmarkMixin, CacheBenchmarkMixin):

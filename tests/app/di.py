@@ -1,8 +1,10 @@
+import logging
+
+from velithon.di import Provide, inject
 from velithon.endpoint import HTTPEndpoint
 from velithon.responses import PlainTextResponse
-from .container import container, MockUserService, MockUserRepository, MockDatabase
-from velithon.di import inject, Provide
-import logging
+
+from .container import MockDatabase, MockUserRepository, MockUserService, container
 
 logger = logging.getLogger(__name__)
 

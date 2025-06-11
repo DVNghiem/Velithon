@@ -5,23 +5,23 @@ Measures the impact of various optimizations on key performance metrics.
 """
 
 import asyncio
-import time
-import statistics
-import json
-import sys
-import tracemalloc
-import traceback
-from typing import Dict, Callable
-import os
 import gc
+import json
+import os
+import statistics
+import sys
+import time
+import traceback
+import tracemalloc
+from typing import Callable, Dict
 
 # Add the project root to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from velithon import Velithon
-from velithon.responses import JSONResponse, PlainTextResponse
-from velithon.params.dispatcher import _get_cached_signature
 from velithon._utils import set_thread_pool
+from velithon.params.dispatcher import _get_cached_signature
+from velithon.responses import JSONResponse, PlainTextResponse
 
 
 class PerformanceBenchmark:

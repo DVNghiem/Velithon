@@ -48,7 +48,6 @@ def post(
     headers dict: The headers to send with the request.
     should_check_response bool: A boolean to indicate if the status code and headers should be checked.
     """
-
     endpoint = endpoint.strip("/")
     response = requests.post(f"{BASE_URL}/{endpoint}", json=data, headers=headers)
     if should_check_response:
@@ -70,7 +69,6 @@ def multipart_post(
     expected_status_code int: The expected status code of the response.
     should_check_response bool: A boolean to indicate if the status code and headers should be checked.
     """
-
     endpoint = endpoint.strip("/")
     response = requests.post(f"{BASE_URL}/{endpoint}", files=files)
     if should_check_response:
@@ -93,7 +91,6 @@ def put(
     headers dict: The headers to send with the request.
     should_check_response bool: A boolean to indicate if the status code and headers should be checked.
     """
-
     endpoint = endpoint.strip("/")
     response = requests.put(f"{BASE_URL}/{endpoint}", json=data, headers=headers)
     if should_check_response:
@@ -116,7 +113,6 @@ def delete(
     headers dict: The headers to send with the request.
     should_check_response bool: A boolean to indicate if the status code and headers should be checked.
     """
-
     endpoint = endpoint.strip("/")
     response = requests.delete(f"{BASE_URL}/{endpoint}", json=data, headers=headers)
     if should_check_response:

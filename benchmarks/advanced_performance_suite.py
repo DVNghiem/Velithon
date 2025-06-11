@@ -6,15 +6,13 @@ from unittest.mock import MagicMock
 
 # Velithon imports
 from velithon.application import Velithon
-from velithon.responses import JSONResponse, PlainTextResponse
+from velithon.datastructures import Protocol, Scope
 from velithon.requests import Request
-from velithon.datastructures import Scope, Protocol
+from velithon.responses import JSONResponse, PlainTextResponse
 
 # Try importing optimizations
 try:
-    from velithon.performance import (
-        get_json_encoder, get_response_cache
-    )
+    from velithon.performance import get_json_encoder, get_response_cache
     HAS_OPTIMIZATIONS = True
     print("✅ Advanced optimizations available")
 except ImportError:

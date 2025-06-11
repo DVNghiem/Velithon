@@ -17,7 +17,7 @@ import anyio
 from velithon._utils import iterate_in_threadpool
 from velithon.background import BackgroundTask
 from velithon.datastructures import URL, Headers, Protocol, Scope
-from velithon.performance import get_json_encoder, get_response_cache, HAS_ORJSON
+from velithon.performance import HAS_ORJSON, get_json_encoder, get_response_cache
 
 _optimized_json_encoder = get_json_encoder()
 _response_cache = get_response_cache()

@@ -1,6 +1,6 @@
 from __future__ import annotations
-from velithon._velithon import BackgroundTask
-from velithon._velithon import BackgroundTasks
+
+from velithon._velithon import BackgroundTask, BackgroundTasks
 
 __all__ = [
     "BackgroundTask",

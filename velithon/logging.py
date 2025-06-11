@@ -1,18 +1,41 @@
 import inspect
 import logging
+
 from velithon._velithon import (
     configure_logger as rust_configure_logger,
-    log_debug as rust_log_debug,
-    log_debug_with_extra as rust_log_debug_with_extra,
-    log_info as rust_log_info,
-    log_info_with_extra as rust_log_info_with_extra,
-    log_warn as rust_log_warn,
-    log_warn_with_extra as rust_log_warn_with_extra,
-    log_error as rust_log_error,
-    log_error_with_extra as rust_log_error_with_extra,
-    log_critical as rust_log_critical,
-    log_critical_with_extra as rust_log_critical_with_extra,
+)
+from velithon._velithon import (
     is_enabled_for as rust_is_enabled_for,
+)
+from velithon._velithon import (
+    log_critical as rust_log_critical,
+)
+from velithon._velithon import (
+    log_critical_with_extra as rust_log_critical_with_extra,
+)
+from velithon._velithon import (
+    log_debug as rust_log_debug,
+)
+from velithon._velithon import (
+    log_debug_with_extra as rust_log_debug_with_extra,
+)
+from velithon._velithon import (
+    log_error as rust_log_error,
+)
+from velithon._velithon import (
+    log_error_with_extra as rust_log_error_with_extra,
+)
+from velithon._velithon import (
+    log_info as rust_log_info,
+)
+from velithon._velithon import (
+    log_info_with_extra as rust_log_info_with_extra,
+)
+from velithon._velithon import (
+    log_warn as rust_log_warn,
+)
+from velithon._velithon import (
+    log_warn_with_extra as rust_log_warn_with_extra,
 )
 
 

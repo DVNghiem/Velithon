@@ -1,20 +1,21 @@
 """
 Tests for session middleware implementation.
 """
-import pytest
 import asyncio
-from unittest.mock import MagicMock, AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
-from velithon.requests import Request
-from velithon.responses import JSONResponse
+import pytest
+
 from velithon.middleware.session import (
-    SessionMiddleware,
     MemorySessionInterface,
-    SignedCookieSessionInterface,
     Session,
+    SessionMiddleware,
     SessionProtocol,
+    SignedCookieSessionInterface,
     get_session,
 )
+from velithon.requests import Request
+from velithon.responses import JSONResponse
 
 
 class TestSession:

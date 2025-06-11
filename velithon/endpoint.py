@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import typing
 
+from velithon.datastructures import Protocol, Scope
+from velithon.params.dispatcher import dispatch
 from velithon.requests import Request
 from velithon.responses import JSONResponse, Response
-from velithon.datastructures import Protocol, Scope
 
-from velithon.params.dispatcher import dispatch
 
 class HTTPEndpoint:
     def __init__(self, scope: Scope, protocol: Protocol) -> None:

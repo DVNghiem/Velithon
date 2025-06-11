@@ -1,7 +1,9 @@
+import logging
+
 from pydantic import BaseModel, Field
+
 from velithon.endpoint import HTTPEndpoint
 from velithon.responses import PlainTextResponse
-import logging
 
 logger = logging.getLogger(__name__)
 

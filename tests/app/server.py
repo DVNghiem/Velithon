@@ -12,9 +12,9 @@ from ..app.params_inject import (
     InjectRequestEndpoint,
 )
 from .container import container
+from .di import TestAsyncFactoryProvider, TestFactoryProvider, TestSingletonProvider
 from .endpoint import TestEndpoint
 from .validate import TestValidate
-from .di import TestAsyncFactoryProvider, TestFactoryProvider, TestSingletonProvider
 
 logger = logging.getLogger(__name__)
 
