@@ -20,6 +20,7 @@ from velithon.middleware.base import (
 from velithon.middleware.compression import CompressionLevel, CompressionMiddleware
 from velithon.middleware.cors import CORSMiddleware
 from velithon.middleware.logging import LoggingMiddleware
+from velithon.middleware.proxy import ProxyMiddleware
 from velithon.middleware.session import (
     MemorySessionInterface,
     Session,
@@ -42,6 +43,7 @@ __all__ = [
     "CompressionLevel",
     "CORSMiddleware",
     "LoggingMiddleware",
+    "ProxyMiddleware",
     "RustLoggingMiddleware",
     "FastLoggingMiddleware",
     "RustMiddlewareOptimizer",

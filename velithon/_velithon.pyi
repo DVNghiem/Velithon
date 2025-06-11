@@ -380,3 +380,43 @@ class _RoutePatternMatcher:
     def clear(self) -> None:
         """Clear all patterns in the matcher."""
         ...
+
+# Proxy classes
+class ProxyClient:
+    """High-performance HTTP proxy client with circuit breaker pattern."""
+    
+    def __init__(
+        self,
+        target_url: str,
+        timeout_ms: int = 30000,
+        max_retries: int = 3,
+        max_failures: int = 5,
+        recovery_timeout_ms: int = 60000,
+    ) -> None: ...
+    
+    async def forward_request(
+        self,
+        method: str,
+        path: str,
+        headers: typing.Optional[typing.Dict[str, str]] = None,
+        body: typing.Optional[bytes] = None,
+        query_params: typing.Optional[typing.Dict[str, str]] = None,
+    ) -> typing.Tuple[int, typing.Dict[str, str], bytes]: ...
+    
+    async def get_circuit_breaker_status(self) -> typing.Tuple[str, int, typing.Optional[int]]: ...
+    async def reset_circuit_breaker(self) -> None: ...
+
+class ProxyLoadBalancer:
+    """Load balancer for multiple proxy targets with health checking."""
+    
+    def __init__(
+        self,
+        targets: typing.List[str],
+        strategy: str = "round_robin",
+        weights: typing.Optional[typing.List[int]] = None,
+        health_check_url: typing.Optional[str] = None,
+    ) -> None: ...
+    
+    async def get_next_target(self) -> str: ...
+    async def health_check(self) -> None: ...
+    async def get_health_status(self) -> typing.List[typing.Tuple[str, bool]]: ...
