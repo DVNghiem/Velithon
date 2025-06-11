@@ -4,7 +4,7 @@ Tests for background task functionality.
 import pytest
 import asyncio
 import time
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import MagicMock
 
 from velithon.background import BackgroundTask, BackgroundTasks
 from velithon.responses import JSONResponse

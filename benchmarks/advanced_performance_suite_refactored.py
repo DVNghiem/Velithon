@@ -9,7 +9,6 @@ import time
 import sys
 import os
 from typing import Dict, Any
-from unittest.mock import MagicMock
 
 # Add the project root to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -18,7 +17,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from velithon.application import Velithon
 from velithon.responses import JSONResponse, PlainTextResponse
 from velithon.requests import Request
-from velithon.datastructures import Scope, Protocol
 
 # Try importing optimizations
 try:
@@ -345,12 +343,12 @@ async def main():
         
         # Save results
         suite.save_results('advanced_benchmark_results.json')
-        print(f"\n📄 Detailed results saved to: advanced_benchmark_results.json")
+        print("\n📄 Detailed results saved to: advanced_benchmark_results.json")
         
         # Performance assessment
         optimization_impact = results.get('optimization_impact', 1.0)
         
-        print(f"\n🏆 FINAL ASSESSMENT")
+        print("\n🏆 FINAL ASSESSMENT")
         print("=" * 40)
         
         if optimization_impact >= 2.0:

@@ -3,7 +3,7 @@ import pytest
 
 from velithon import Velithon
 from velithon.requests import Request
-from velithon.responses import JSONResponse, PlainTextResponse
+from velithon.responses import JSONResponse
 
 @pytest.fixture
 def app():

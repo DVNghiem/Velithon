@@ -2,13 +2,11 @@
 Tests for security features and middleware.
 """
 import pytest
-import hmac
-import hashlib
 import base64
 from unittest.mock import MagicMock, AsyncMock
 
 from velithon.middleware.session import SignedCookieSessionInterface
-from velithon.responses import JSONResponse, PlainTextResponse
+from velithon.responses import JSONResponse
 from velithon.exceptions import HTTPException
 
 

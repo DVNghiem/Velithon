@@ -6,7 +6,6 @@ Refactored to use base benchmark classes and eliminate duplication.
 
 import asyncio
 import time
-import statistics
 import sys
 import os
 from typing import Dict, Any
@@ -15,9 +14,8 @@ from typing import Dict, Any
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from velithon import Velithon
-from velithon.responses import JSONResponse, PlainTextResponse
+from velithon.responses import JSONResponse
 from velithon.params.dispatcher import _get_cached_signature
-from velithon._utils import set_thread_pool
 
 # Base benchmark imports
 from base_benchmark import (
@@ -259,7 +257,7 @@ async def run_performance_comparison():
     
     # Save results
     benchmark.save_results('performance_benchmark_results.json')
-    print(f"\n📄 Detailed results saved to: performance_benchmark_results.json")
+    print("\n📄 Detailed results saved to: performance_benchmark_results.json")
     
     return results
 
@@ -272,7 +270,7 @@ async def main():
         # Performance assessment
         overall_avg = results.get('overall_avg_ms', 0)
         
-        print(f"\n🎯 PERFORMANCE ASSESSMENT")
+        print("\n🎯 PERFORMANCE ASSESSMENT")
         print("=" * 40)
         print(f"Overall average operation time: {overall_avg:.3f}ms")
         

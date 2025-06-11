@@ -1,6 +1,5 @@
 """Tests for response classes including StreamingResponse and FileResponse."""
 
-import asyncio
 import tempfile
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch

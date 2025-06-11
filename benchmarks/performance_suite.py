@@ -227,7 +227,6 @@ class PerformanceBenchmark:
         async def simulate_request():
             # Simulate request processing without actual HTTP
             from velithon.requests import Request
-            from velithon.datastructures import Scope, Protocol
             
             # Create mock scope and protocol for testing
             scope = type('MockScope', (), {

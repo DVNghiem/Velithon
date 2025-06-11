@@ -318,7 +318,7 @@ class AdvancedBenchmarkSuite:
         with open('advanced_benchmark_results.json', 'w') as f:
             json.dump(results_data, f, indent=2)
         
-        print(f"\n📄 Detailed results saved to: advanced_benchmark_results.json")
+        print("\n📄 Detailed results saved to: advanced_benchmark_results.json")
         
         return results_data
 

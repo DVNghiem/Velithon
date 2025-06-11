@@ -6,7 +6,6 @@ Refactored to use base benchmark classes.
 
 import asyncio
 import time
-import json
 from typing import Dict, Any
 
 # Velithon imports
@@ -14,8 +13,7 @@ from velithon.responses import JSONResponse
 
 # Base benchmark imports
 from base_benchmark import (
-    BaseBenchmark, ResponseBenchmarkMixin, TimingResult,
-    generate_test_api_response
+    BaseBenchmark, ResponseBenchmarkMixin, TimingResult
 )
 
 
@@ -191,7 +189,7 @@ async def compare_with_baseline():
         }
     }
     
-    print(f"\n📄 Results saved to: simple_benchmark_results.json")
+    print("\n📄 Results saved to: simple_benchmark_results.json")
     return comparison
 
 
@@ -203,7 +201,7 @@ async def main():
     throughput_ratio = comparison['improvements']['throughput_ratio']
     json_improvement = comparison['improvements']['json_improvement']
     
-    print(f"\n🎯 FINAL SUMMARY:")
+    print("\n🎯 FINAL SUMMARY:")
     print(f"Throughput: {throughput_ratio:.2f}x baseline")
     print(f"JSON Speed: {json_improvement:.2f}x baseline")
     

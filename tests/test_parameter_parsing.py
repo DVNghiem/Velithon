@@ -6,9 +6,7 @@ from unittest.mock import MagicMock
 from pydantic import BaseModel, Field, ValidationError
 
 from velithon.requests import Request
-from velithon.datastructures import Scope, Protocol, Headers
-from velithon.params import Query, Path, Body, Header
-from velithon.exceptions import HTTPException
+from velithon.datastructures import Headers
 
 
 class TestParameterParsing:

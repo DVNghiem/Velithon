@@ -3,10 +3,9 @@ Tests for application lifecycle and integration scenarios.
 """
 import pytest
 import asyncio
-from unittest.mock import MagicMock, AsyncMock, patch
 
 from velithon import Velithon
-from velithon.responses import JSONResponse, PlainTextResponse
+from velithon.responses import JSONResponse
 from velithon.requests import Request
 from velithon.middleware import Middleware
 from velithon.di import ServiceContainer, Provide
