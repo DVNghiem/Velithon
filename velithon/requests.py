@@ -167,10 +167,8 @@ class Request(HTTPConnection):
         return Session()
 
     async def stream(self) -> typing.AsyncGenerator[bytes, None]:
-        if hasattr(self, "_body"):
-            yield self._body
-            return
-        yield await self.protocol()
+        async for chunk in self.protocol:
+            yield chunk
 
     async def body(self) -> bytes:
         if not hasattr(self, "_body"):

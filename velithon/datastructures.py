@@ -103,8 +103,8 @@ class Protocol:
     async def __call__(self, *args, **kwds) -> bytes:
         return await self._protocol(*args, **kwds)
 
-    async def __aiter__(self) -> typing.AsyncIterator[bytes]:
-        return await self._protocol.__aiter__()
+    def __aiter__(self) -> typing.AsyncIterator[bytes]:
+        return self._protocol.__aiter__()
 
     async def client_disconnect(self) -> None:
         await self._protocol.client_disconnect()
