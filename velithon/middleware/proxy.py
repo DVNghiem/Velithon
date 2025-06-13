@@ -46,6 +46,7 @@ class ProxyMiddleware(BaseHTTPMiddleware):
         transform_response: Optional[Callable] = None,
         path_prefix: str = "",
         upstream_path_prefix: str = "",
+        enable_health_checks: bool = True,
     ):
         """
         Initialize proxy middleware.
@@ -69,6 +70,7 @@ class ProxyMiddleware(BaseHTTPMiddleware):
             transform_response: Callable to transform response before returning
             path_prefix: URL path prefix that triggers proxy (e.g., "/api/v1")
             upstream_path_prefix: Path prefix to add to upstream requests
+            enable_health_checks: Whether to enable background health checking
         """
         super().__init__(app)
         
@@ -109,6 +111,7 @@ class ProxyMiddleware(BaseHTTPMiddleware):
         self.health_check_interval = health_check_interval
         self.path_prefix = path_prefix.rstrip('/')
         self.upstream_path_prefix = upstream_path_prefix.rstrip('/')
+        self.enable_health_checks = enable_health_checks
         
         # Header processing
         self.strip_request_headers = set(h.lower() for h in (strip_request_headers or []))
@@ -130,9 +133,10 @@ class ProxyMiddleware(BaseHTTPMiddleware):
             'transfer-encoding', 'connection', 'upgrade'
         })
         
-        # Start health checking task
+        # Start health checking task only if enabled
         self._health_check_task = None
-        self._start_health_checking()
+        if self.enable_health_checks:
+            self._start_health_checking()
         
     def _start_health_checking(self):
         """Start background health checking task."""
@@ -146,7 +150,8 @@ class ProxyMiddleware(BaseHTTPMiddleware):
                     await asyncio.sleep(self.health_check_interval)
         
         try:
-            loop = asyncio.get_event_loop()
+            # Try to get the running event loop
+            loop = asyncio.get_running_loop()
             self._health_check_task = loop.create_task(health_check_loop())
         except RuntimeError:
             # No event loop running yet, will start later
@@ -281,9 +286,30 @@ class ProxyMiddleware(BaseHTTPMiddleware):
         for client in self.proxy_clients.values():
             await client.reset_circuit_breaker()
     
+    async def cleanup(self):
+        """Async cleanup method for proper task cancellation."""
+        if self._health_check_task and not self._health_check_task.done():
+            self._health_check_task.cancel()
+            try:
+                await self._health_check_task
+            except asyncio.CancelledError:
+                pass
+            except Exception:
+                pass
+    
     def __del__(self):
         """Cleanup health checking task."""
         if self._health_check_task and not self._health_check_task.done():
-            self._health_check_task.cancel()
+            try:
+                # Try to get the current event loop and cancel the task
+                loop = asyncio.get_running_loop()
+                if not loop.is_closed():
+                    self._health_check_task.cancel()
+            except RuntimeError:
+                # Event loop is already closed or not running, task will be cleaned up automatically
+                pass
+            except Exception:
+                # Any other exception, just ignore
+                pass
 
 

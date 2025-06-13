@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 """
 Comprehensive test suite for Velithon proxy feature.
+
 Tests all components: ProxyClient, ProxyLoadBalancer, and ProxyMiddleware.
 """
 import asyncio
 import pytest
-from unittest.mock import Mock, AsyncMock
-from velithon.middleware.proxy import ProxyClient, ProxyLoadBalancer, ProxyMiddleware
+from unittest.mock import Mock
+
+from velithon._velithon import ProxyClient, ProxyLoadBalancer
+from velithon.middleware.proxy import ProxyMiddleware
+
 
 class TestProxyClient:
     """Test cases for ProxyClient."""
@@ -51,6 +55,7 @@ class TestProxyClient:
         status = await client.get_circuit_breaker_status()
         assert status[0] == "closed"
         assert status[1] == 0
+
 
 class TestProxyLoadBalancer:
     """Test cases for ProxyLoadBalancer."""
@@ -140,29 +145,35 @@ class TestProxyLoadBalancer:
         with pytest.raises(Exception):
             ProxyLoadBalancer(["server1", "server2"], strategy="weighted")
 
+
 class TestProxyMiddleware:
     """Test cases for ProxyMiddleware."""
     
-    def test_middleware_creation(self):
+    @pytest.mark.asyncio
+    async def test_middleware_creation(self):
         """Test ProxyMiddleware instantiation."""
         mock_app = Mock()
         middleware = ProxyMiddleware(
             mock_app,
-            targets=["https://api.example.com"]
+            targets=["https://api.example.com"],
+            enable_health_checks=False
         )
         assert middleware is not None
     
-    def test_middleware_with_multiple_targets(self):
+    @pytest.mark.asyncio
+    async def test_middleware_with_multiple_targets(self):
         """Test ProxyMiddleware with multiple targets."""
         mock_app = Mock()
         middleware = ProxyMiddleware(
             mock_app,
             targets=["https://api1.example.com", "https://api2.example.com"],
-            load_balancing_strategy="round_robin"
+            load_balancing_strategy="round_robin",
+            enable_health_checks=False
         )
         assert middleware is not None
     
-    def test_middleware_with_custom_config(self):
+    @pytest.mark.asyncio
+    async def test_middleware_with_custom_config(self):
         """Test ProxyMiddleware with custom configuration."""
         mock_app = Mock()
         middleware = ProxyMiddleware(
@@ -172,9 +183,27 @@ class TestProxyMiddleware:
             max_retries=2,
             health_check_interval=60,
             path_prefix="/api",
-            upstream_path_prefix="/v1"
+            upstream_path_prefix="/v1",
+            enable_health_checks=False
         )
         assert middleware is not None
+    
+    @pytest.mark.asyncio
+    async def test_middleware_health_checks_enabled(self):
+        """Test ProxyMiddleware with health checks enabled."""
+        mock_app = Mock()
+        middleware = ProxyMiddleware(
+            mock_app,
+            targets=["https://api.example.com"],
+            enable_health_checks=True,
+            health_check_interval=1  # Short interval for testing
+        )
+        assert middleware is not None
+        assert middleware.enable_health_checks is True
+        
+        # Clean up the health check task
+        await middleware.cleanup()
+
 
 class TestProxyIntegration:
     """Integration tests for proxy components."""
@@ -198,7 +227,7 @@ class TestProxyIntegration:
         status = await client.get_circuit_breaker_status()
         assert status[0] == "closed"
 
-# Performance and stress tests
+
 class TestProxyPerformance:
     """Performance tests for proxy components."""
     
@@ -242,6 +271,7 @@ class TestProxyPerformance:
         # All should complete successfully
         assert len(results) == 50
         assert all(result in targets for result in results)
+
 
 if __name__ == "__main__":
     # Run tests with pytest
