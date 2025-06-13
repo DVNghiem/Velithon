@@ -469,6 +469,7 @@ class Velithon:
         description: str | None = None,
         name: str | None = None,
         include_in_schema: bool = True,
+        response_model: type | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """
         Decorator to add a GET route to the application.
@@ -480,6 +481,7 @@ class Velithon:
             description: Optional description for documentation
             name: Optional name for the route
             include_in_schema: Whether to include in OpenAPI schema
+            response_model: Optional Pydantic model for response documentation
 
         Returns:
             Decorator function
@@ -492,6 +494,7 @@ class Velithon:
             description=description,
             name=name,
             include_in_schema=include_in_schema,
+            response_model=response_model,
         )
 
     def post(
@@ -503,6 +506,7 @@ class Velithon:
         description: str | None = None,
         name: str | None = None,
         include_in_schema: bool = True,
+        response_model: type | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """
         Decorator to add a POST route to the application.
@@ -514,6 +518,7 @@ class Velithon:
             description: Optional description for documentation
             name: Optional name for the route
             include_in_schema: Whether to include in OpenAPI schema
+            response_model: Optional Pydantic model for response documentation
 
         Returns:
             Decorator function
@@ -526,6 +531,7 @@ class Velithon:
             description=description,
             name=name,
             include_in_schema=include_in_schema,
+            response_model=response_model,
         )
 
     def put(
@@ -537,6 +543,7 @@ class Velithon:
         description: str | None = None,
         name: str | None = None,
         include_in_schema: bool = True,
+        response_model: type | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """
         Decorator to add a PUT route to the application.
@@ -548,6 +555,7 @@ class Velithon:
             description: Optional description for documentation
             name: Optional name for the route
             include_in_schema: Whether to include in OpenAPI schema
+            response_model: Optional Pydantic model for response documentation
 
         Returns:
             Decorator function
@@ -560,6 +568,7 @@ class Velithon:
             description=description,
             name=name,
             include_in_schema=include_in_schema,
+            response_model=response_model,
         )
 
     def delete(
@@ -571,6 +580,7 @@ class Velithon:
         description: str | None = None,
         name: str | None = None,
         include_in_schema: bool = True,
+        response_model: type | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """
         Decorator to add a DELETE route to the application.
@@ -594,6 +604,7 @@ class Velithon:
             description=description,
             name=name,
             include_in_schema=include_in_schema,
+            response_model=response_model,
         )
 
     def patch(
@@ -605,6 +616,7 @@ class Velithon:
         description: str | None = None,
         name: str | None = None,
         include_in_schema: bool = True,
+        response_model: type | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """
         Decorator to add a PATCH route to the application.
@@ -628,6 +640,7 @@ class Velithon:
             description=description,
             name=name,
             include_in_schema=include_in_schema,
+            response_model=response_model,
         )
 
     def options(
@@ -639,6 +652,7 @@ class Velithon:
         description: str | None = None,
         name: str | None = None,
         include_in_schema: bool = True,
+        response_model: type | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """
         Decorator to add an OPTIONS route to the application.
@@ -662,6 +676,7 @@ class Velithon:
             description=description,
             name=name,
             include_in_schema=include_in_schema,
+            response_model=response_model,
         )
 
     def websocket(
@@ -919,6 +934,7 @@ class Velithon:
         description: str | None = None,
         name: str | None = None,
         include_in_schema: bool = True,
+        response_model: type | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """
         Generic factory method for creating HTTP method decorators.
@@ -934,6 +950,7 @@ class Velithon:
                 methods=["OPTIONS"],
                 name=name,
                 include_in_schema=include_in_schema,
+                response_model=response_model,
             )
 
         return getattr(self.router, method.lower())(
@@ -943,4 +960,5 @@ class Velithon:
             description=description,
             name=name,
             include_in_schema=include_in_schema,
+            response_model=response_model,
         )
