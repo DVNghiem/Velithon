@@ -218,16 +218,14 @@ class TestSSEResponse:
             await response(mock_scope, mock_protocol)
 
     @pytest.mark.asyncio
-    async def test_sse_response_old_asgi_version(self, mock_scope, mock_protocol):
-        """Test SSEResponse with older ASGI version."""
-        mock_scope["asgi"]["spec_version"] = "2.0"  # Older version
-        
+    async def test_sse_response_rsgi_protocol(self, mock_scope, mock_protocol):
+        """Test SSEResponse with RSGI protocol."""
         async def generate():
             yield "data"
         
         response = SSEResponse(generate())
         
-        # Should handle older ASGI version gracefully
+        # Should call response_stream directly in RSGI
         await response(mock_scope, mock_protocol)
         
         mock_protocol.response_stream.assert_called_once()

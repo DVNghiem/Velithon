@@ -5,10 +5,8 @@ import mimetypes
 import stat
 import sys
 import typing
-from contextlib import contextmanager
 from datetime import datetime, timezone
 from email.utils import format_datetime
-from functools import partial
 from pathlib import Path
 from urllib.parse import quote
 
@@ -22,25 +20,6 @@ from velithon.performance import HAS_ORJSON, get_json_encoder, get_response_cach
 _optimized_json_encoder = get_json_encoder()
 _response_cache = get_response_cache()
 
-has_exceptiongroups = True
-if sys.version_info < (3, 11):  # pragma: no cover
-    try:
-        from exceptiongroup import (
-            BaseExceptionGroup,  # type: ignore[unused-ignore,import-not-found]
-        )
-    except ImportError:
-        has_exceptiongroups = False
-
-@contextmanager
-def collapse_excgroups() -> typing.Generator[None, None, None]:
-    try:
-        yield
-    except BaseException as exc:
-        if has_exceptiongroups:  # pragma: no cover
-            while isinstance(exc, BaseExceptionGroup) and len(exc.exceptions) == 1:
-                exc = exc.exceptions[0]
-
-        raise exc
 
 class Response:
     media_type = None
@@ -403,21 +382,10 @@ class StreamingResponse(Response):
             await trx.send_bytes(chunk)
 
     async def __call__(self, scope: Scope, protocol: Protocol) -> None:
-        spec_version = tuple(map(int, scope.get("asgi", {}).get("spec_version", "2.0").split(".")))
-
-        if spec_version >= (2, 4):
-            try:
-                await self.stream_response(protocol)
-            except OSError as exc:
-                raise RuntimeError(f"Network error during streaming: {exc}") from exc
-        else:
-            with collapse_excgroups():
-                async with anyio.create_task_group() as task_group:
-
-                    async def wrap(func: typing.Callable[[], typing.Awaitable[None]]) -> None:
-                        await func()
-                        task_group.cancel_scope.cancel()
-                    task_group.start_soon(wrap, partial(self.stream_response, protocol))
+        try:
+            await self.stream_response(protocol)
+        except OSError as exc:
+            raise RuntimeError(f"Network error during streaming: {exc}") from exc
 
         if self.background is not None:
             await self.background()
@@ -573,22 +541,11 @@ class SSEResponse(Response):
                     pass
     
     async def __call__(self, scope: Scope, protocol: Protocol) -> None:
-        """Handle the ASGI call for SSE response."""
-        spec_version = tuple(map(int, scope.get("asgi", {}).get("spec_version", "2.0").split(".")))
-
-        if spec_version >= (2, 4):
-            try:
-                await self.stream_response(protocol)
-            except OSError as exc:
-                raise RuntimeError(f"Network error during SSE streaming: {exc}") from exc
-        else:
-            with collapse_excgroups():
-                async with anyio.create_task_group() as task_group:
-
-                    async def wrap(func: typing.Callable[[], typing.Awaitable[None]]) -> None:
-                        await func()
-                        task_group.cancel_scope.cancel()
-                    task_group.start_soon(wrap, partial(self.stream_response, protocol))
+        """Handle the RSGI call for SSE response."""
+        try:
+            await self.stream_response(protocol)
+        except OSError as exc:
+            raise RuntimeError(f"Network error during SSE streaming: {exc}") from exc
 
         if self.background is not None:
             await self.background()

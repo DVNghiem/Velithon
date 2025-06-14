@@ -333,23 +333,17 @@ class TestStreamingResponse:
             await response(mock_scope, mock_protocol)
 
     @pytest.mark.asyncio
-    async def test_streaming_response_old_asgi_version(self, mock_scope, mock_protocol):
-        """Test StreamingResponse with older ASGI version."""
-        mock_scope["asgi"]["spec_version"] = "2.0"  # Older version
-        
+    async def test_streaming_response_rsgi_protocol(self, mock_scope, mock_protocol):
+        """Test StreamingResponse with RSGI protocol."""
         async def generate():
             yield "data"
         
         response = StreamingResponse(generate())
         
-        with patch('anyio.create_task_group') as mock_task_group:
-            mock_tg = AsyncMock()
-            mock_task_group.return_value.__aenter__.return_value = mock_tg
-            
-            await response(mock_scope, mock_protocol)
-            
-            # Should use task group for older ASGI
-            mock_task_group.assert_called_once()
+        await response(mock_scope, mock_protocol)
+        
+        # Should call response_stream directly in RSGI
+        mock_protocol.response_stream.assert_called_once()
 
 
 class TestRedirectResponse:
