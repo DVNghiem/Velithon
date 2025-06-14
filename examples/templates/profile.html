@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{title}} - User Profile</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .profile-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .profile-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            color: white;
+            font-size: 3em;
+            font-weight: bold;
+        }
+        .user-name {
+            font-size: 2.5em;
+            margin: 0;
+            color: #333;
+        }
+        .user-title {
+            color: #666;
+            font-size: 1.2em;
+            margin: 10px 0;
+        }
+        .profile-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 30px 0;
+        }
+        .info-item {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        .info-label {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .info-value {
+            color: #666;
+            font-size: 1.1em;
+        }
+        .skills {
+            margin: 30px 0;
+        }
+        .skills h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+        .skill-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .skill-tag {
+            background: #667eea;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+        }
+        .projects {
+            margin: 30px 0;
+        }
+        .project-item {
+            background: #f8f9fa;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 10px;
+            border-left: 4px solid #28a745;
+        }
+        .project-name {
+            font-weight: bold;
+            color: #333;
+            font-size: 1.2em;
+        }
+        .project-description {
+            color: #666;
+            margin: 10px 0;
+        }
+        .project-tech {
+            font-size: 0.9em;
+            color: #007acc;
+        }
+        .back-link {
+            text-align: center;
+            margin-top: 30px;
+        }
+        .back-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .back-link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="profile-container">
+        <div class="profile-header">
+            <div class="avatar">
+                {{upper (slice user.name 0 1)}}
+            </div>
+            <h1 class="user-name">{{user.name}}</h1>
+            {{#if user.title}}
+                <p class="user-title">{{user.title}}</p>
+            {{/if}}
+        </div>
+
+        <div class="profile-info">
+            <div class="info-item">
+                <div class="info-label">Email</div>
+                <div class="info-value">{{user.email}}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Location</div>
+                <div class="info-value">{{user.location}}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Joined</div>
+                <div class="info-value">{{format_date user.joined_date}}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Projects</div>
+                <div class="info-value">{{len user.projects}} active</div>
+            </div>
+        </div>
+
+        {{#if user.bio}}
+            <div class="info-item">
+                <div class="info-label">About</div>
+                <div class="info-value">{{user.bio}}</div>
+            </div>
+        {{/if}}
+
+        {{#if user.skills}}
+            <div class="skills">
+                <h3>Skills & Technologies</h3>
+                <div class="skill-tags">
+                    {{#each user.skills}}
+                        <span class="skill-tag">{{this}}</span>
+                    {{/each}}
+                </div>
+            </div>
+        {{/if}}
+
+        {{#if user.projects}}
+            <div class="projects">
+                <h3>Recent Projects</h3>
+                {{#each user.projects}}
+                    <div class="project-item">
+                        <div class="project-name">{{name}}</div>
+                        {{#if description}}
+                            <div class="project-description">{{description}}</div>
+                        {{/if}}
+                        {{#if technologies}}
+                            <div class="project-tech">
+                                Technologies: {{#each technologies}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
+                            </div>
+                        {{/if}}
+                    </div>
+                {{/each}}
+            </div>
+        {{/if}}
+
+        <div class="back-link">
+            <a href="/">&larr; Back to Home</a>
+        </div>
+    </div>
+</body>
+</html>
