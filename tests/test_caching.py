@@ -15,7 +15,7 @@ from velithon.cache import (
     route_cache,
     signature_cache,
 )
-from velithon.performance import MiddlewareOptimizer
+from velithon._utils import MiddlewareOptimizer
 
 
 class TestCacheConfig:

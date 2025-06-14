@@ -14,7 +14,7 @@ import granian
 import granian.http
 from typing_extensions import Doc
 
-from velithon._utils import is_async_callable
+from velithon._utils import get_middleware_optimizer, is_async_callable
 from velithon.datastructures import FunctionInfo, Protocol, Scope
 from velithon.di import ServiceContainer
 from velithon.logging import configure_logger
@@ -23,7 +23,6 @@ from velithon.middleware.di import DIMiddleware
 from velithon.middleware.logging import LoggingMiddleware
 from velithon.middleware.wrapped import WrappedRSGITypeMiddleware
 from velithon.openapi.ui import get_swagger_ui_html
-from velithon.performance import get_middleware_optimizer
 from velithon.requests import Request
 from velithon.responses import HTMLResponse, JSONResponse, Response
 from velithon.routing import BaseRoute, Router

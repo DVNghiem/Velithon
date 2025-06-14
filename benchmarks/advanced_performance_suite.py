@@ -12,7 +12,7 @@ from velithon.responses import JSONResponse, PlainTextResponse
 
 # Try importing optimizations
 try:
-    from velithon.performance import get_json_encoder, get_response_cache
+    from velithon._utils import get_json_encoder, get_response_cache
     HAS_OPTIMIZATIONS = True
     print("✅ Advanced optimizations available")
 except ImportError:
