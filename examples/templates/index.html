@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{title}}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #007acc;
+            padding-bottom: 10px;
+        }
+        .welcome {
+            color: #007acc;
+            font-size: 1.2em;
+            margin: 20px 0;
+        }
+        .feature-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .feature-list li {
+            background: #e8f4f8;
+            margin: 10px 0;
+            padding: 15px;
+            border-left: 4px solid #007acc;
+            border-radius: 4px;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 30px 0;
+        }
+        .stat {
+            text-align: center;
+            padding: 20px;
+            background: #f0f8ff;
+            border-radius: 8px;
+            flex: 1;
+            margin: 0 10px;
+        }
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #007acc;
+        }
+        .user-info {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>{{title}}</h1>
+        
+        {{#if user}}
+            <div class="user-info">
+                <strong>Welcome back, {{upper user.name}}!</strong>
+                <p>Email: {{user.email}}</p>
+                {{#if user.last_login}}
+                    <p>Last login: {{format_date user.last_login}}</p>
+                {{/if}}
+            </div>
+        {{else}}
+            <p class="welcome">Welcome to Velithon Template Engine!</p>
+        {{/if}}
+
+        <p>This is a demonstration of the high-performance Velithon template engine built in Rust with Handlebars syntax.</p>
+
+        <h2>Key Features</h2>
+        <ul class="feature-list">
+            {{#each features}}
+                <li>{{this}}</li>
+            {{/each}}
+        </ul>
+
+        {{#if stats}}
+            <h2>Performance Statistics</h2>
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-number">{{stats.templates_loaded}}</div>
+                    <div>Templates Loaded</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number">{{stats.render_time}}ms</div>
+                    <div>Render Time</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number">{{len features}}</div>
+                    <div>Features</div>
+                </div>
+            </div>
+        {{/if}}
+
+        {{#if items}}
+            <h2>Items ({{len items}} total)</h2>
+            <ul>
+                {{#each items}}
+                    <li>
+                        <strong>{{name}}</strong>
+                        {{#if description}}
+                            - {{description}}
+                        {{/if}}
+                        {{#if price}}
+                            - ${{price}}
+                        {{/if}}
+                    </li>
+                {{/each}}
+            </ul>
+        {{/if}}
+
+        <div class="footer">
+            <p>Powered by Velithon Template Engine | High-performance Rust + Python</p>
+            <p>Generated at: {{current_time}}</p>
+        </div>
+    </div>
+</body>
+</html>
