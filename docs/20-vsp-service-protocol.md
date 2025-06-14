@@ -135,6 +135,45 @@ mesh = ServiceMesh(
 )
 ```
 
+## Multi-Worker Support
+
+VSP now supports running multiple workers on the same port using the `SO_REUSEPORT` socket option. This is essential when running Velithon applications with multiple worker processes.
+
+### Port Sharing Configuration
+
+```python
+from velithon.vsp import VSPManager
+
+# Create VSP manager with port sharing enabled (default)
+manager = VSPManager("service-name", num_workers=4)
+
+# Start server with port reuse (enabled by default)
+await manager.start_server("localhost", 8001, reuse_port=True)
+
+# Disable port reuse if needed (not recommended for multi-worker setups)
+await manager.start_server("localhost", 8001, reuse_port=False)
+```
+
+### Multi-Worker Example
+
+```python
+# This configuration allows multiple worker processes to share the same VSP port
+from velithon import Velithon
+from velithon.vsp import VSPManager
+
+app = Velithon()
+
+# VSP manager with port sharing support
+vsp_manager = VSPManager("web-service", num_workers=4)
+
+@vsp_manager.vsp_service("health")
+async def health_check() -> dict:
+    return {"status": "healthy"}
+
+# The application will automatically enable port reuse when starting VSP
+# This allows multiple workers to bind to the same VSP port
+```
+
 ## Advanced Usage
 
 ### Custom Load Balancing
