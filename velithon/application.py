@@ -760,7 +760,12 @@ class Velithon:
         # internal server startup
         if hasattr(self, "vsp_manager"):
             loop.create_task(
-                self.vsp_manager.start_server(self.vsp_host, self.vsp_port, loop=loop)
+                self.vsp_manager.start_server(
+                    self.vsp_host, 
+                    self.vsp_port, 
+                    loop=loop,
+                    reuse_port=True  # Enable port reuse for multi-worker support
+                )
             )
 
         # run all the startup functions from user setup

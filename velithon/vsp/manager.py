@@ -1,6 +1,7 @@
 import asyncio
 import inspect
 import logging
+import socket
 import time
 from collections import deque
 from concurrent.futures import ProcessPoolExecutor
@@ -99,13 +100,23 @@ class VSPManager:
         return decorator
 
     async def start_server(
-        self, host: str, port: int, loop: Optional[asyncio.AbstractEventLoop] = None
+        self, 
+        host: str, 
+        port: int, 
+        loop: Optional[asyncio.AbstractEventLoop] = None,
+        reuse_port: bool = True
     ) -> None:
-        """Start server with better worker management"""
+        """Start server with port sharing support for multiple workers."""
         if loop is None:
             loop = asyncio.get_event_loop()
         
-        server = await loop.create_server(lambda: VSPProtocol(self), host, port)
+        # Create server with port reuse to allow multiple workers to bind to same port
+        server = await loop.create_server(
+            lambda: VSPProtocol(self), 
+            host, 
+            port,
+            reuse_port=reuse_port
+        )
         
         # Start workers
         self.workers = [
@@ -116,7 +127,7 @@ class VSPManager:
         # cleanup_task = asyncio.create_task(self._background_cleanup())
         
         async with server:
-            logger.info(f"VSP server started on {host}:{port} with {self.num_workers} workers")
+            logger.info(f"VSP server started on {host}:{port} with {self.num_workers} workers (reuse_port={reuse_port})")
             __serving_forever_fut = loop.create_future()
             try:
                 await __serving_forever_fut
