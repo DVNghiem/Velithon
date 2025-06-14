@@ -45,7 +45,7 @@ pyo3-build-config = "=0.25"
 
 [features]
 mimalloc = ["dep:mimalloc"]
-
+default = ["mimalloc"]
 
 [profile.release]
 codegen-units = 1
