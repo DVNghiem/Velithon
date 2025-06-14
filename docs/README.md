@@ -25,6 +25,7 @@ Welcome to the Velithon framework documentation. This comprehensive guide is org
 19. [Quick Reference](19-quick-reference.md) - Handy reference tables
 20. [VSP Service Protocol](20-vsp-service-protocol.md) - Distributed service communication
 21. [VSP Examples](21-vsp-examples.md) - VSP microservice examples
+22. [Deployment Guide](22-deployment.md) - Production deployment strategies
 
 ## Getting Started
 
@@ -40,6 +41,7 @@ If you're new to Velithon, start with:
 - **File Handling**: Check [File Uploads](10-file-uploads.md)
 - **Real-time Features**: Explore [WebSocket Support](14-websocket-support.md)
 - **Performance Optimization**: Read [Performance & Best Practices](17-performance-best-practices.md)
+- **Production Deployment**: Follow [Deployment Guide](22-deployment.md)
 
 ## Framework Features
 
