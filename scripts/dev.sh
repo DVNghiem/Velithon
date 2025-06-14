@@ -94,9 +94,6 @@ COMMAND=$1
 shift
 
 case $COMMAND in
-    "mypy")
-        "$SCRIPT_DIR/mypy.sh" "$@"
-        ;;
     "ruff")
         "$SCRIPT_DIR/ruff.sh" "$@"
         ;;
