@@ -9,6 +9,7 @@ Velithon is a lightweight, high-performance, asynchronous web framework for Pyth
 - **Dependency Injection (DI)**: Seamless DI with `Provide` and `inject` for managing dependencies.
 - **Input Handling**: Robust handling of path and query parameters.
 - **WebSocket Support**: Full WebSocket support with connection management, routing integration, and lifecycle hooks.
+- **Server-Sent Events (SSE)**: Real-time streaming with structured events, keep-alive pings, and automatic reconnection support.
 - **Middleware**: Built-in middleware for logging (`LoggingMiddleware`), CORS (`CORSMiddleware`), compression (`CompressionMiddleware`), proxy (`ProxyMiddleware`), and DI (`DIMiddleware`).
 - **Lifecycle Management**: Application startup and shutdown hooks for initialization and cleanup.
 - **Command Line Interface**: Flexible CLI for running applications with customizable options.
