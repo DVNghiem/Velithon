@@ -90,10 +90,13 @@ class TestBackgroundTask:
 
         task = BackgroundTask(failing_task)
 
-        # Current implementation propagates exceptions
+        # Current implementation propagates exceptions wrapped in RuntimeError
         # TODO: Should be updated to handle exceptions gracefully
-        with pytest.raises(ValueError):
-            await task()  # Currently raises exception
+        with pytest.raises(RuntimeError) as exc_info:
+            await task()  # Currently raises wrapped exception
+        
+        # Verify the original exception is preserved in the message
+        assert "ValueError: Task failed" in str(exc_info.value)
 
     @pytest.mark.asyncio
     async def test_background_task_with_complex_args(self):
@@ -449,9 +452,12 @@ class TestBackgroundTaskEdgeCases:
         """Test background task with None function."""
         # Current implementation allows None but will fail during execution
         task = BackgroundTask(None)
-        # Expect execution to fail rather than constructor
-        with pytest.raises((TypeError, AttributeError)):
+        # Expect execution to fail rather than constructor  
+        with pytest.raises(RuntimeError) as exc_info:
             await task()
+        
+        # Verify the original exception type is preserved in the message
+        assert "TypeError" in str(exc_info.value)
 
     @pytest.mark.asyncio
     async def test_background_task_with_non_callable(self):
@@ -459,8 +465,11 @@ class TestBackgroundTaskEdgeCases:
         # Current implementation allows non-callable but will fail during execution
         task = BackgroundTask('not_a_function')
         # Expect execution to fail rather than constructor
-        with pytest.raises((TypeError, AttributeError)):
+        with pytest.raises(RuntimeError) as exc_info:
             await task()
+        
+        # Verify the original exception type is preserved in the message  
+        assert "TypeError" in str(exc_info.value)
 
     @pytest.mark.asyncio
     async def test_background_task_recursion(self):
@@ -504,10 +513,13 @@ class TestBackgroundTaskEdgeCases:
 
         task = BackgroundTask(failing_task_with_details)
 
-        # Current implementation propagates exceptions
+        # Current implementation propagates exceptions wrapped in RuntimeError
         # TODO: Should be updated to handle exceptions gracefully
-        with pytest.raises(ValueError, match='Detailed error message with context'):
+        with pytest.raises(RuntimeError) as exc_info:
             await task()
+        
+        # Verify the original exception message is preserved
+        assert "ValueError: Detailed error message with context" in str(exc_info.value)
 
     @pytest.mark.asyncio
     async def test_background_tasks_with_mixed_types(self):
