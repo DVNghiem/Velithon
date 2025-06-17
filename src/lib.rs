@@ -24,6 +24,7 @@ mod routing;
 mod templates;
 mod vsp;
 mod error;
+mod json_serializer;
 
 /// Velithon Rust Extensions
 /// High-performance Rust implementations for critical Velithon components
@@ -55,6 +56,9 @@ fn _velithon(m: &Bound<'_, PyModule>) -> PyResult<()> {
     
     // Register VSP (Velithon Service Protocol) components
     vsp::register_vsp(m.py(), m)?;
+    
+    // Register JSON serialization functions and classes
+    json_serializer::register_json_serializer(m.py(), m)?;
     
     Ok(())
 }
