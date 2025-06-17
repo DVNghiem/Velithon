@@ -238,7 +238,7 @@ Rust Layer (src/json_serializer.rs)
     ↓
 Rayon Parallel Processing
     ↓
-serde_json + simd-json
+serde_json
 ```
 
 ### Thread Safety
