@@ -19,16 +19,14 @@ request_id_generator = RequestIDGenerator()
 
 
 class Scope:
-    """
-    Wrapper for the RSGI scope object.
-    """
+    """Wrapper for the RSGI scope object."""
 
     __slots__ = (
-        "_scope",
-        "_path_params",
-        "_request_id",
-        "_di_context",
-        "_session",
+        '_di_context',
+        '_path_params',
+        '_request_id',
+        '_scope',
+        '_session',
     )
 
     def __init__(self, scope: RSGIScope) -> None:
@@ -40,7 +38,7 @@ class Scope:
         self._session = None
 
     @property
-    def proto(self) -> typing.Literal["http", "websocket"]:
+    def proto(self) -> typing.Literal['http', 'websocket']:
         return self._scope.proto
 
     @property
@@ -80,7 +78,7 @@ class Scope:
         return self._scope.headers
 
     @property
-    def authority(self) -> typing.Optional[str]:
+    def authority(self) -> str | None:
         return self._scope.authority
 
     @property
@@ -90,9 +88,9 @@ class Scope:
 
 class Protocol:
     __slots__ = (
-        "_protocol",
-        "_status_code",
-        "_headers",
+        '_headers',
+        '_protocol',
+        '_status_code',
     )
 
     def __init__(self, protocol: HTTPProtocol) -> None:
@@ -109,39 +107,35 @@ class Protocol:
     async def client_disconnect(self) -> None:
         await self._protocol.client_disconnect()
 
-    def update_headers(self, headers: typing.List[tuple[str, str]]) -> None:
+    def update_headers(self, headers: list[tuple[str, str]]) -> None:
         # extend the existing headers with new ones
         self._headers.extend(headers)
 
-    def response_empty(self, status: int, headers: typing.Tuple[str, str]) -> None:
+    def response_empty(self, status: int, headers: tuple[str, str]) -> None:
         self._status_code = status
         self._headers.extend(headers)
         self._protocol.response_empty(status, self._headers)
 
-    def response_str(
-        self, status: int, headers: typing.Tuple[str, str], body: str
-    ) -> None:
+    def response_str(self, status: int, headers: tuple[str, str], body: str) -> None:
         self._status_code = status
         self._headers.extend(headers)
         self._protocol.response_str(status, self._headers, body)
 
     def response_bytes(
-        self, status: int, headers: typing.Tuple[str, str], body: bytes
+        self, status: int, headers: tuple[str, str], body: bytes
     ) -> None:
         self._status_code = status
         self._headers.extend(headers)
         self._protocol.response_bytes(status, self._headers, body)
 
     def response_file(
-        self, status: int, headers: typing.Tuple[str, str], file: typing.Any
+        self, status: int, headers: tuple[str, str], file: typing.Any
     ) -> None:
         self._status_code = status
         self._headers.extend(headers)
         self._protocol.response_file(status, self._headers, file)
 
-    def response_stream(
-        self, status: int, headers: typing.Tuple[str, str]
-    ) -> typing.Any:
+    def response_stream(self, status: int, headers: tuple[str, str]) -> typing.Any:
         self._status_code = status
         self._headers.extend(headers)
         return self._protocol.response_stream(status, self._headers)
@@ -152,17 +146,17 @@ class Address(typing.NamedTuple):
     port: int
 
 
-_KeyType = typing.TypeVar("_KeyType")
+_KeyType = typing.TypeVar('_KeyType')
 # Mapping keys are invariant but their values are covariant since
 # you can only read them
 # that is, you can't do `Mapping[str, Animal]()["fido"] = Dog()`
-_CovariantValueType = typing.TypeVar("_CovariantValueType", covariant=True)
+_CovariantValueType = typing.TypeVar('_CovariantValueType', covariant=True)
 
 
 class URL(UrlDataStructure):
     def __init__(
         self,
-        url: str = "",
+        url: str = '',
         scope: Scope | None = None,
         **components: typing.Any,
     ) -> None:
@@ -176,33 +170,33 @@ class URL(UrlDataStructure):
 
             host_header = None
             for key, value in scope.headers.items():
-                if key == b"host":
-                    host_header = value.decode("latin-1")
+                if key == b'host':
+                    host_header = value.decode('latin-1')
                     break
 
             if host_header is not None:
-                url = f"{scheme}://{host_header}{path}"
+                url = f'{scheme}://{host_header}{path}'
             elif server is None:
                 url = path
             else:
-                host, port = server.split(":")
-                default_port = {"http": 80, "https": 443, "ws": 80, "wss": 443}[scheme]
+                host, port = server.split(':')
+                default_port = {'http': 80, 'https': 443, 'ws': 80, 'wss': 443}[scheme]
                 if port == default_port:
-                    url = f"{scheme}://{host}{path}"
+                    url = f'{scheme}://{host}{path}'
                 else:
-                    url = f"{scheme}://{host}:{port}{path}"
+                    url = f'{scheme}://{host}:{port}{path}'
 
             if query_string:
-                url += "?" + query_string
+                url += '?' + query_string
         elif components:
             assert not url, 'Cannot set both "url" and "**components".'
-            url = URL("").replace(**components).components.geturl()
+            url = URL('').replace(**components).components.geturl()
 
         self._url = url
 
     @property
     def components(self) -> SplitResult:
-        if not hasattr(self, "_components"):
+        if not hasattr(self, '_components'):
             self._components = urlsplit(self._url)
         return self._components
 
@@ -244,37 +238,37 @@ class URL(UrlDataStructure):
 
     @property
     def is_secure(self) -> bool:
-        return self.scheme in ("https", "wss")
+        return self.scheme in ('https', 'wss')
 
     def replace(self, **kwargs: typing.Any) -> URL:
         if (
-            "username" in kwargs
-            or "password" in kwargs
-            or "hostname" in kwargs
-            or "port" in kwargs
+            'username' in kwargs
+            or 'password' in kwargs
+            or 'hostname' in kwargs
+            or 'port' in kwargs
         ):
-            hostname = kwargs.pop("hostname", None)
-            port = kwargs.pop("port", self.port)
-            username = kwargs.pop("username", self.username)
-            password = kwargs.pop("password", self.password)
+            hostname = kwargs.pop('hostname', None)
+            port = kwargs.pop('port', self.port)
+            username = kwargs.pop('username', self.username)
+            password = kwargs.pop('password', self.password)
 
             if hostname is None:
                 netloc = self.netloc
-                _, _, hostname = netloc.rpartition("@")
+                _, _, hostname = netloc.rpartition('@')
 
-                if hostname[-1] != "]":
-                    hostname = hostname.rsplit(":", 1)[0]
+                if hostname[-1] != ']':
+                    hostname = hostname.rsplit(':', 1)[0]
 
             netloc = hostname
             if port is not None:
-                netloc += f":{port}"
+                netloc += f':{port}'
             if username is not None:
                 userpass = username
                 if password is not None:
-                    userpass += f":{password}"
-                netloc = f"{userpass}@{netloc}"
+                    userpass += f':{password}'
+                netloc = f'{userpass}@{netloc}'
 
-            kwargs["netloc"] = netloc
+            kwargs['netloc'] = netloc
 
         components = self.components._replace(**kwargs)
         return self.__class__(components.geturl())
@@ -283,24 +277,23 @@ class URL(UrlDataStructure):
         """Return the URL as a string."""
         return self._url
 
-    def _get_repr_attrs(self) -> typing.Dict[str, typing.Any]:
+    def _get_repr_attrs(self) -> dict[str, typing.Any]:
         """Return attributes to include in __repr__."""
         # URL repr is handled by UrlDataStructure base class
         # This method is required but not used for URL representation
-        return {"url": str(self)}
+        return {'url': str(self)}
 
 
 class URLPath(str):
-    """
-    A URL path string that may also hold an associated protocol and/or host.
+    """A URL path string that may also hold an associated protocol and/or host.
     Used by the routing to return `url_path_for` matches.
     """
 
-    def __new__(cls, path: str, protocol: str = "", host: str = "") -> URLPath:
-        assert protocol in ("http", "websocket", "")
+    def __new__(cls, path: str, protocol: str = '', host: str = '') -> URLPath:
+        assert protocol in ('http', 'websocket', '')
         return str.__new__(cls, path)
 
-    def __init__(self, path: str, protocol: str = "", host: str = "") -> None:
+    def __init__(self, path: str, protocol: str = '', host: str = '') -> None:
         self.protocol = protocol
         self.host = host
 
@@ -309,14 +302,14 @@ class URLPath(str):
             base_url = URL(base_url)
         if self.protocol:
             scheme = {
-                "http": {True: "https", False: "http"},
-                "websocket": {True: "wss", False: "ws"},
+                'http': {True: 'https', False: 'http'},
+                'websocket': {True: 'wss', False: 'ws'},
             }[self.protocol][base_url.is_secure]
         else:
             scheme = base_url.scheme
 
         netloc = self.host or base_url.netloc
-        path = base_url.path.rstrip("/") + str(self)
+        path = base_url.path.rstrip('/') + str(self)
         return URL(scheme=scheme, netloc=netloc, path=path)
 
 
@@ -330,7 +323,7 @@ class ImmutableMultiDict(MultiDictBase, typing.Mapping[_KeyType, _CovariantValue
         | typing.Iterable[tuple[_KeyType, _CovariantValueType]],
         **kwargs: typing.Any,
     ) -> None:
-        assert len(args) < 2, "Too many arguments."
+        assert len(args) < 2, 'Too many arguments.'
 
         value: typing.Any = args[0] if args else []
         if kwargs:
@@ -341,16 +334,16 @@ class ImmutableMultiDict(MultiDictBase, typing.Mapping[_KeyType, _CovariantValue
 
         if not value:
             _items: list[tuple[typing.Any, typing.Any]] = []
-        elif hasattr(value, "multi_items"):
+        elif hasattr(value, 'multi_items'):
             value = typing.cast(
                 ImmutableMultiDict[_KeyType, _CovariantValueType], value
             )
             _items = list(value.multi_items())
-        elif hasattr(value, "items"):
+        elif hasattr(value, 'items'):
             value = typing.cast(typing.Mapping[_KeyType, _CovariantValueType], value)
             _items = list(value.items())
         else:
-            value = typing.cast("list[tuple[typing.Any, typing.Any]]", value)
+            value = typing.cast('list[tuple[typing.Any, typing.Any]]', value)
             _items = list(value)
 
         self._dict = {k: v for k, v in _items}
@@ -443,9 +436,7 @@ class MultiDict(ImmutableMultiDict[typing.Any, typing.Any]):
 
 
 class QueryParams(ImmutableMultiDict[str, str]):
-    """
-    An immutable multidict.
-    """
+    """An immutable multidict."""
 
     def __init__(
         self,
@@ -456,7 +447,7 @@ class QueryParams(ImmutableMultiDict[str, str]):
         | bytes,
         **kwargs: typing.Any,
     ) -> None:
-        assert len(args) < 2, "Too many arguments."
+        assert len(args) < 2, 'Too many arguments.'
 
         value = args[0] if args else []
 
@@ -464,7 +455,7 @@ class QueryParams(ImmutableMultiDict[str, str]):
             super().__init__(parse_qsl(value, keep_blank_values=True), **kwargs)
         elif isinstance(value, bytes):
             super().__init__(
-                parse_qsl(value.decode("latin-1"), keep_blank_values=True), **kwargs
+                parse_qsl(value.decode('latin-1'), keep_blank_values=True), **kwargs
             )
         else:
             super().__init__(*args, **kwargs)  # type: ignore[arg-type]
@@ -476,9 +467,7 @@ class QueryParams(ImmutableMultiDict[str, str]):
 
 
 class UploadFile(RepresentableDataStructure):
-    """
-    An uploaded file included as part of the request data.
-    """
+    """An uploaded file included as part of the request data."""
 
     def __init__(
         self,
@@ -495,12 +484,12 @@ class UploadFile(RepresentableDataStructure):
 
     @property
     def content_type(self) -> str | None:
-        return self.headers.get("content-type", None)
+        return self.headers.get('content-type', None)
 
     @property
     def _in_memory(self) -> bool:
         # check for SpooledTemporaryFile._rolled
-        rolled_to_disk = getattr(self.file, "_rolled", True)
+        rolled_to_disk = getattr(self.file, '_rolled', True)
         return not rolled_to_disk
 
     async def write(self, data: bytes) -> None:
@@ -529,15 +518,13 @@ class UploadFile(RepresentableDataStructure):
         else:
             await run_in_threadpool(self.file.close)
 
-    def _get_repr_attrs(self) -> typing.Dict[str, typing.Any]:
+    def _get_repr_attrs(self) -> dict[str, typing.Any]:
         """Return attributes to include in __repr__."""
-        return {"filename": self.filename, "size": self.size, "headers": self.headers}
+        return {'filename': self.filename, 'size': self.size, 'headers': self.headers}
 
 
 class FormData(ImmutableMultiDict[str, typing.Union[UploadFile, str]]):
-    """
-    An immutable multidict, containing both file uploads and text input.
-    """
+    """An immutable multidict, containing both file uploads and text input."""
 
     def __init__(
         self,
@@ -555,9 +542,7 @@ class FormData(ImmutableMultiDict[str, typing.Union[UploadFile, str]]):
 
 
 class Headers(MultiDictBase, typing.Mapping[str, str]):
-    """
-    An immutable, case-insensitive multidict.
-    """
+    """An immutable, case-insensitive multidict."""
 
     def __init__(
         self,
@@ -605,8 +590,7 @@ class Headers(MultiDictBase, typing.Mapping[str, str]):
         return len(self._list)
 
     def __setitem__(self, key: str, value: str) -> None:
-        """
-        Set the header `key` to `value`, removing any duplicate entries.
+        """Set the header `key` to `value`, removing any duplicate entries.
         Retains insertion order.
         """
         key = key.lower()
@@ -630,8 +614,8 @@ class FunctionInfo(PriorityDataStructure):
     def __init__(
         self,
         func: typing.Callable[..., typing.Any],
-        args: typing.Tuple[typing.Any, ...] | None = None,
-        kwargs: typing.Dict[str, typing.Any] | None = None,
+        args: tuple[typing.Any, ...] | None = None,
+        kwargs: dict[str, typing.Any] | None = None,
         is_async: bool = False,
         priority: int = 0,
     ):
@@ -651,14 +635,14 @@ class FunctionInfo(PriorityDataStructure):
             self.priority,
         )
 
-    def _get_repr_attrs(self) -> typing.Dict[str, typing.Any]:
+    def _get_repr_attrs(self) -> dict[str, typing.Any]:
         """Return attributes to include in __repr__."""
         return {
-            "func": self.func,
-            "args": self.args,
-            "kwargs": self.kwargs,
-            "is_async": self.is_async,
-            "priority": self.priority,
+            'func': self.func,
+            'args': self.args,
+            'kwargs': self.kwargs,
+            'is_async': self.is_async,
+            'priority': self.priority,
         }
 
     def __hash__(self) -> int:

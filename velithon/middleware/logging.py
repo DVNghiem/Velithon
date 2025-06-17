@@ -26,7 +26,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         client_ip = scope.client
         method = scope.method
         path = scope.path
-        user_agent = scope.headers.get("user-agent", "")
+        user_agent = scope.headers.get('user-agent', '')
         status_code = 200
 
         try:
@@ -42,8 +42,8 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                 error_msg = e.to_dict()
             else:
                 error_msg = {
-                    "message": str(e),
-                    "error_code": "INTERNAL_SERVER_ERROR",
+                    'message': str(e),
+                    'error_code': 'INTERNAL_SERVER_ERROR',
                 }
             response = JSONResponse(
                 content=error_msg,
@@ -53,12 +53,12 @@ class LoggingMiddleware(BaseHTTPMiddleware):
 
         # Use a single log statement with pre-built extra dict
         extra = {
-            "request_id": request_id,
-            "method": method,
-            "user_agent": user_agent,
-            "path": path,
-            "client_ip": client_ip,
-            "duration_ms": str(round(duration_ms, 2)),  # Convert to string for Rust
-            "status": str(status_code),  # Convert to string for Rust
+            'request_id': request_id,
+            'method': method,
+            'user_agent': user_agent,
+            'path': path,
+            'client_ip': client_ip,
+            'duration_ms': str(round(duration_ms, 2)),  # Convert to string for Rust
+            'status': str(status_code),  # Convert to string for Rust
         }
-        self._logger.info("Processed %s %s", method, path, extra=extra)
+        self._logger.info('Processed %s %s', method, path, extra=extra)

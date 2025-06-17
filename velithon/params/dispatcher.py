@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from __future__ import annotations
 
 import inspect
@@ -30,8 +29,8 @@ def _get_method_lookup_cache(handler_class: type, method_name: str) -> typing.An
 
 
 # Register caches with the global cache manager
-cache_manager.register_lru_cache("signature_cache", _get_cached_signature)
-cache_manager.register_lru_cache("method_lookup_cache", _get_method_lookup_cache)
+cache_manager.register_lru_cache('signature_cache', _get_cached_signature)
+cache_manager.register_lru_cache('method_lookup_cache', _get_method_lookup_cache)
 
 
 async def dispatch(handler: typing.Any, request: Request) -> Response:
@@ -45,7 +44,7 @@ async def dispatch(handler: typing.Any, request: Request) -> Response:
         # Use cached method lookup
         handler_method = _get_method_lookup_cache(handler, method_name)
         if not handler_method:
-            raise HTTPException(405, "Method Not Allowed", "METHOD_NOT_ALLOWED")
+            raise HTTPException(405, 'Method Not Allowed', 'METHOD_NOT_ALLOWED')
 
         # Create instance only when needed
         endpoint_instance = handler()
@@ -71,9 +70,9 @@ async def dispatch(handler: typing.Any, request: Request) -> Response:
     # Fast response handling
     if not isinstance(response, Response):
         if isinstance(_response_type, type) and issubclass(_response_type, BaseModel):
-            response = _response_type.model_validate(response).model_dump(mode="json")
+            response = _response_type.model_validate(response).model_dump(mode='json')
         response = JSONResponse(
-            content={"message": response},
+            content={'message': response},
             status_code=200,
         )
     return response

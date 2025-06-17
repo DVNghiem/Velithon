@@ -1,6 +1,7 @@
 import logging
+from collections.abc import Callable
 from functools import lru_cache
-from typing import Any, Callable, Dict, Generic, Optional, TypeVar
+from typing import Any, Generic, TypeVar
 
 logger = logging.getLogger(__name__)
 
@@ -24,25 +25,24 @@ class CacheConfig:
     def get_cache_size(cls, cache_type: str) -> int:
         """Get appropriate cache size for different cache types."""
         size_map = {
-            "route": cls.DEFAULT_CACHE_SIZE,
-            "middleware": cls.LARGE_CACHE_SIZE,
-            "signature": cls.SMALL_CACHE_SIZE,
-            "method_lookup": cls.TINY_CACHE_SIZE,
-            "parser": cls.MEDIUM_CACHE_SIZE,
-            "response": cls.RESPONSE_CACHE_SIZE,
-            "message": cls.DEFAULT_CACHE_SIZE,
-            "default": cls.DEFAULT_CACHE_SIZE,
+            'route': cls.DEFAULT_CACHE_SIZE,
+            'middleware': cls.LARGE_CACHE_SIZE,
+            'signature': cls.SMALL_CACHE_SIZE,
+            'method_lookup': cls.TINY_CACHE_SIZE,
+            'parser': cls.MEDIUM_CACHE_SIZE,
+            'response': cls.RESPONSE_CACHE_SIZE,
+            'message': cls.DEFAULT_CACHE_SIZE,
+            'default': cls.DEFAULT_CACHE_SIZE,
         }
         return size_map.get(cache_type, cls.DEFAULT_CACHE_SIZE)
 
 
-K = TypeVar("K")
-V = TypeVar("V")
+K = TypeVar('K')
+V = TypeVar('V')
 
 
 class LRUCache(Generic[K, V]):
-    """
-    A simple LRU cache implementation with consistent eviction policy.
+    """A simple LRU cache implementation with consistent eviction policy.
 
     This provides a unified cache interface across the framework with
     standardized size limits and eviction behavior.
@@ -53,12 +53,12 @@ class LRUCache(Generic[K, V]):
     ):
         self.max_size = max_size
         self.eviction_ratio = eviction_ratio
-        self.cache: Dict[K, V] = {}
+        self.cache: dict[K, V] = {}
         self.access_order: list[K] = []
         self.hits = 0
         self.misses = 0
 
-    def get(self, key: K) -> Optional[V]:
+    def get(self, key: K) -> V | None:
         """Get value from cache, updating access order."""
         if key in self.cache:
             # Move to end (most recently used)
@@ -100,26 +100,25 @@ class LRUCache(Generic[K, V]):
         self.cache.clear()
         self.access_order.clear()
 
-    def stats(self) -> Dict[str, Any]:
+    def stats(self) -> dict[str, Any]:
         """Get cache statistics."""
         total_requests = self.hits + self.misses
         hit_rate = self.hits / total_requests if total_requests > 0 else 0
 
         return {
-            "size": len(self.cache),
-            "max_size": self.max_size,
-            "hits": self.hits,
-            "misses": self.misses,
-            "hit_rate": hit_rate,
-            "load_factor": len(self.cache) / self.max_size,
+            'size': len(self.cache),
+            'max_size': self.max_size,
+            'hits': self.hits,
+            'misses': self.misses,
+            'hit_rate': hit_rate,
+            'load_factor': len(self.cache) / self.max_size,
         }
 
 
 def create_lru_cache(
-    max_size: Optional[int] = None, cache_type: str = "default"
+    max_size: int | None = None, cache_type: str = 'default'
 ) -> Callable:
-    """
-    Create a standardized LRU cache decorator with consistent sizing.
+    """Create a standardized LRU cache decorator with consistent sizing.
 
     Args:
         max_size: Override for cache size, uses standard sizes if None
@@ -127,6 +126,7 @@ def create_lru_cache(
 
     Returns:
         LRU cache decorator with standard configuration
+
     """
     if max_size is None:
         max_size = CacheConfig.get_cache_size(cache_type)
@@ -135,27 +135,26 @@ def create_lru_cache(
 
 
 class CacheManager:
-    """
-    Global cache manager for framework-wide cache coordination.
+    """Global cache manager for framework-wide cache coordination.
 
     Provides centralized cache statistics, cleanup, and management.
     """
 
     def __init__(self):
-        self._caches: Dict[str, LRUCache] = {}
-        self._lru_caches: Dict[str, Any] = {}  # Track lru_cache instances
+        self._caches: dict[str, LRUCache] = {}
+        self._lru_caches: dict[str, Any] = {}  # Track lru_cache instances
 
     def register_cache(self, name: str, cache: LRUCache) -> None:
         """Register a cache instance for management."""
         self._caches[name] = cache
-        logger.debug(f"Registered cache: {name} (max_size: {cache.max_size})")
+        logger.debug(f'Registered cache: {name} (max_size: {cache.max_size})')
 
     def register_lru_cache(self, name: str, cache_func: Any) -> None:
         """Register an lru_cache function for management."""
         self._lru_caches[name] = cache_func
-        logger.debug(f"Registered LRU cache function: {name}")
+        logger.debug(f'Registered LRU cache function: {name}')
 
-    def get_cache_stats(self) -> Dict[str, Any]:
+    def get_cache_stats(self) -> dict[str, Any]:
         """Get statistics for all registered caches."""
         stats = {}
 
@@ -165,14 +164,14 @@ class CacheManager:
 
         # Standard lru_cache functions
         for name, cache_func in self._lru_caches.items():
-            if hasattr(cache_func, "cache_info"):
+            if hasattr(cache_func, 'cache_info'):
                 info = cache_func.cache_info()
                 stats[name] = {
-                    "hits": info.hits,
-                    "misses": info.misses,
-                    "current_size": info.currsize,
-                    "max_size": info.maxsize,
-                    "hit_rate": info.hits / (info.hits + info.misses)
+                    'hits': info.hits,
+                    'misses': info.misses,
+                    'current_size': info.currsize,
+                    'max_size': info.maxsize,
+                    'hit_rate': info.hits / (info.hits + info.misses)
                     if (info.hits + info.misses) > 0
                     else 0,
                 }
@@ -187,18 +186,18 @@ class CacheManager:
         for name, cache in self._caches.items():
             cache.clear()
             cleared_count += 1
-            logger.debug(f"Cleared cache: {name}")
+            logger.debug(f'Cleared cache: {name}')
 
         # Clear lru_cache functions
         for name, cache_func in self._lru_caches.items():
-            if hasattr(cache_func, "cache_clear"):
+            if hasattr(cache_func, 'cache_clear'):
                 cache_func.cache_clear()
                 cleared_count += 1
-                logger.debug(f"Cleared LRU cache: {name}")
+                logger.debug(f'Cleared LRU cache: {name}')
 
-        logger.info(f"Cleared {cleared_count} caches")
+        logger.info(f'Cleared {cleared_count} caches')
 
-    def get_total_memory_usage(self) -> Dict[str, int]:
+    def get_total_memory_usage(self) -> dict[str, int]:
         """Estimate total memory usage of all caches."""
         # This is a rough estimate - actual memory usage will vary
         usage = {}
@@ -210,12 +209,12 @@ class CacheManager:
             total_entries += entries
 
         for name, cache_func in self._lru_caches.items():
-            if hasattr(cache_func, "cache_info"):
+            if hasattr(cache_func, 'cache_info'):
                 entries = cache_func.cache_info().currsize
                 usage[name] = entries
                 total_entries += entries
 
-        usage["total_entries"] = total_entries
+        usage['total_entries'] = total_entries
         return usage
 
 
@@ -224,29 +223,29 @@ cache_manager = CacheManager()
 
 
 # Convenience functions for common cache types
-def route_cache(maxsize: Optional[int] = None) -> Callable:
+def route_cache(maxsize: int | None = None) -> Callable:
     """Create a route-specific cache."""
-    return create_lru_cache(maxsize, "route")
+    return create_lru_cache(maxsize, 'route')
 
 
-def middleware_cache(maxsize: Optional[int] = None) -> Callable:
+def middleware_cache(maxsize: int | None = None) -> Callable:
     """Create a middleware-specific cache."""
-    return create_lru_cache(maxsize, "middleware")
+    return create_lru_cache(maxsize, 'middleware')
 
 
-def signature_cache(maxsize: Optional[int] = None) -> Callable:
+def signature_cache(maxsize: int | None = None) -> Callable:
     """Create a signature-specific cache."""
-    return create_lru_cache(maxsize, "signature")
+    return create_lru_cache(maxsize, 'signature')
 
 
-def parser_cache(maxsize: Optional[int] = None) -> Callable:
+def parser_cache(maxsize: int | None = None) -> Callable:
     """Create a parser-specific cache."""
-    return create_lru_cache(maxsize, "parser")
+    return create_lru_cache(maxsize, 'parser')
 
 
-def response_cache(maxsize: Optional[int] = None) -> Callable:
+def response_cache(maxsize: int | None = None) -> Callable:
     """Create a response-specific cache."""
-    return create_lru_cache(maxsize, "response")
+    return create_lru_cache(maxsize, 'response')
 
 
 # Standard cache size constants for backward compatibility

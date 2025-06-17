@@ -9,9 +9,7 @@ from velithon.datastructures import Protocol, Scope
 
 
 class WrappedRSGITypeMiddleware:
-    """
-    A middleware that wraps a given RSGI type middleware.
-    """
+    """A middleware that wraps a given RSGI type middleware."""
 
     def __init__(self, app):
         self.app = app

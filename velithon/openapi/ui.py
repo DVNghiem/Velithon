@@ -1,15 +1,15 @@
-from typing import Any, Dict
+from typing import Any
 
 import orjson
 
 from velithon.responses import HTMLResponse
 
 swagger_ui_default_parameters = {
-    "dom_id": "#swagger-ui",
-    "layout": "BaseLayout",
-    "deepLinking": True,
-    "showExtensions": True,
-    "showCommonExtensions": True,
+    'dom_id': '#swagger-ui',
+    'layout': 'BaseLayout',
+    'deepLinking': True,
+    'showExtensions': True,
+    'showCommonExtensions': True,
 }
 
 
@@ -17,11 +17,11 @@ def get_swagger_ui_html(
     *,
     openapi_url: str,
     title: str,
-    swagger_js_url: str = "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js",
-    swagger_css_url: str = "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css",
-    swagger_favicon_url: str = "https://res.cloudinary.com/dslpmba3s/image/upload/v1746254848/logo_wgobg2.svg",
+    swagger_js_url: str = 'https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js',
+    swagger_css_url: str = 'https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css',
+    swagger_favicon_url: str = 'https://res.cloudinary.com/dslpmba3s/image/upload/v1746254848/logo_wgobg2.svg',
     oauth2_redirect_url: str | None = None,
-    init_oauth: Dict[str, Any] | None = None,
+    init_oauth: dict[str, Any] | None = None,
 ) -> HTMLResponse:
     html = f"""
     <!DOCTYPE html>
@@ -41,7 +41,7 @@ def get_swagger_ui_html(
         url: '{openapi_url}',
     """
     for key, value in swagger_ui_default_parameters.items():
-        html += f"{orjson.dumps(key).decode()}: {orjson.dumps(value).decode()},\n"
+        html += f'{orjson.dumps(key).decode()}: {orjson.dumps(value).decode()},\n'
 
     if oauth2_redirect_url:
         html += f"oauth2RedirectUrl: window.location.origin + '{oauth2_redirect_url}',"

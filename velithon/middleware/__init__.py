@@ -31,33 +31,35 @@ from velithon.middleware.session import (
 )
 from velithon.types import RSGIApp
 
-P = ParamSpec("P")
+P = ParamSpec('P')
 
 __all__ = [
-    "Middleware",
-    "BaseHTTPMiddleware",
-    "PassThroughMiddleware", 
-    "ConditionalMiddleware",
-    "ProtocolWrapperMiddleware",
-    "CompressionMiddleware", 
-    "CompressionLevel",
-    "CORSMiddleware",
-    "LoggingMiddleware",
-    "ProxyMiddleware",
-    "RustLoggingMiddleware",
-    "FastLoggingMiddleware",
-    "RustMiddlewareOptimizer",
-    "SessionMiddleware",
-    "SessionInterface",
-    "MemorySessionInterface",
-    "SignedCookieSessionInterface",
-    "Session",
-    "get_session",
+    'BaseHTTPMiddleware',
+    'CORSMiddleware',
+    'CompressionLevel',
+    'CompressionMiddleware',
+    'ConditionalMiddleware',
+    'FastLoggingMiddleware',
+    'LoggingMiddleware',
+    'MemorySessionInterface',
+    'Middleware',
+    'PassThroughMiddleware',
+    'ProtocolWrapperMiddleware',
+    'ProxyMiddleware',
+    'RustLoggingMiddleware',
+    'RustMiddlewareOptimizer',
+    'Session',
+    'SessionInterface',
+    'SessionMiddleware',
+    'SignedCookieSessionInterface',
+    'get_session',
 ]
 
 
 class _MiddlewareFactory(Protocol[P]):
-    def __call__(self, app: RSGIApp, /, *args: P.args, **kwargs: P.kwargs) -> RSGIApp: ...  # pragma: no cover
+    def __call__(
+        self, app: RSGIApp, /, *args: P.args, **kwargs: P.kwargs
+    ) -> RSGIApp: ...  # pragma: no cover
 
 
 class Middleware:
@@ -77,8 +79,8 @@ class Middleware:
 
     def __repr__(self) -> str:
         class_name = self.__class__.__name__
-        args_strings = [f"{value!r}" for value in self.args]
-        option_strings = [f"{key}={value!r}" for key, value in self.kwargs.items()]
-        name = getattr(self.cls, "__name__", "")
-        args_repr = ", ".join([name] + args_strings + option_strings)
-        return f"{class_name}({args_repr})"
+        args_strings = [f'{value!r}' for value in self.args]
+        option_strings = [f'{key}={value!r}' for key, value in self.kwargs.items()]
+        name = getattr(self.cls, '__name__', '')
+        args_repr = ', '.join([name] + args_strings + option_strings)
+        return f'{class_name}({args_repr})'

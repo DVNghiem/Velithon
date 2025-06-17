@@ -1,5 +1,4 @@
-"""
-Velithon Template Engine.
+"""Velithon Template Engine.
 
 High-performance template engine with Handlebars-style syntax.
 """
@@ -12,8 +11,8 @@ from .engine import (
 )
 
 __all__ = [
-    "TemplateEngine",
-    "TemplateResponse",
-    "create_template_engine_from_config", 
-    "render_template",
+    'TemplateEngine',
+    'TemplateResponse',
+    'create_template_engine_from_config',
+    'render_template',
 ]

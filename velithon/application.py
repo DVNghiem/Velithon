@@ -1,13 +1,9 @@
 import asyncio
 import logging
+from collections.abc import Awaitable, Callable, Sequence
 from typing import (
     Annotated,
     Any,
-    Awaitable,
-    Callable,
-    Dict,
-    List,
-    Sequence,
 )
 
 import granian
@@ -81,7 +77,7 @@ class Velithon:
                 The version string of OpenAPI.
                 """
             ),
-        ] = "3.0.0",
+        ] = '3.0.0',
         title: Annotated[
             str,
             Doc(
@@ -90,7 +86,7 @@ class Velithon:
                 generation and other purposes.
                 """
             ),
-        ] = "Velithon",
+        ] = 'Velithon',
         summary: Annotated[
             str | None,
             Doc(
@@ -111,7 +107,7 @@ class Velithon:
                 It will be added to the generated OpenAPI (e.g. visible at `/docs`).
                 """
             ),
-        ] = "",
+        ] = '',
         version: Annotated[
             str,
             Doc(
@@ -125,7 +121,7 @@ class Velithon:
 
                 """
             ),
-        ] = "0.1.0",
+        ] = '0.1.0',
         openapi_url: Annotated[
             str | None,
             Doc(
@@ -138,7 +134,7 @@ class Velithon:
 
                 """
             ),
-        ] = "/openapi.json",
+        ] = '/openapi.json',
         swagger_ui_oauth2_redirect_url: Annotated[
             str | None,
             Doc(
@@ -151,9 +147,9 @@ class Velithon:
                 with Swagger UI.
                 """
             ),
-        ] = "/docs/oauth2-redirect",
+        ] = '/docs/oauth2-redirect',
         swagger_ui_init_oauth: Annotated[
-            Dict[str, Any] | None,
+            dict[str, Any] | None,
             Doc(
                 """
                 OAuth2 configuration for the Swagger UI, by default shown at `/docs`.
@@ -164,7 +160,7 @@ class Velithon:
             ),
         ] = None,
         openapi_tags: Annotated[
-            List[Dict[str, Any]] | None,
+            list[dict[str, Any]] | None,
             Doc(
                 """
                 A list of tags used by OpenAPI, these are the same `tags` you can set
@@ -186,7 +182,7 @@ class Velithon:
             ),
         ] = None,
         servers: Annotated[
-            List[Dict[str, str | Any]] | None,
+            list[dict[str, str | Any]] | None,
             Doc(
                 """
                 A `list` of `dict`s with connectivity information to a target server.
@@ -204,7 +200,7 @@ class Velithon:
                 If `openapi_url` is set to `None`, this will be automatically disabled.
                 """
             ),
-        ] = "/docs",
+        ] = '/docs',
         terms_of_service: Annotated[
             str | None,
             Doc(
@@ -217,7 +213,7 @@ class Velithon:
             ),
         ] = None,
         contact: Annotated[
-            Dict[str, str | Any] | None,
+            dict[str, str | Any] | None,
             Doc(
                 """
                 A dictionary with the contact information for the exposed API.
@@ -235,7 +231,7 @@ class Velithon:
             ),
         ] = None,
         license_info: Annotated[
-            Dict[str, str | Any] | None,
+            dict[str, str | Any] | None,
             Doc(
                 """
                 A dictionary with the license information for the exposed API.
@@ -255,7 +251,7 @@ class Velithon:
             ),
         ] = None,
         tags: Annotated[
-            List[Dict[str, str | Any]] | None,
+            list[dict[str, str | Any]] | None,
             Doc(
                 """
                 A list of tags used by OpenAPI, these are the same `tags` you can set
@@ -297,25 +293,25 @@ class Velithon:
         self.contact = contact
         self.license_info = license_info
         self.tags = tags or []
-        self.startup_functions: List[FunctionInfo] = []
-        self.shutdown_functions: List[FunctionInfo] = []
+        self.startup_functions: list[FunctionInfo] = []
+        self.shutdown_functions: list[FunctionInfo] = []
         self.setup()
 
     def register_container(self, container: ServiceContainer) -> None:
-        """
-        Register a ServiceContainer for dependency injection.
+        """Register a ServiceContainer for dependency injection.
 
         Args:
             container: The ServiceContainer instance containing providers.
+
         """
         self.container = container
 
     def register_vps(self, vsp_manager: VSPManager) -> None:
-        """
-        Register a VSPManager for managing VSP services.
+        """Register a VSPManager for managing VSP services.
 
         Args:
             vsp_manager: The VSPManager instance to be used by the application.
+
         """
         self.vsp_manager = vsp_manager
 
@@ -356,15 +352,15 @@ class Velithon:
 
     def setup(self) -> None:
         if self.openapi_url:
-            urls = (server_data.get("url") for server_data in self.servers)
+            urls = (server_data.get('url') for server_data in self.servers)
             server_urls = {url for url in urls if url}
 
             async def openapi(req: Request) -> JSONResponse:
-                root_path = req.scope.server.rstrip("/")
+                root_path = req.scope.server.rstrip('/')
                 if root_path not in server_urls:
                     if root_path:
                         self.servers.insert(
-                            0, {"url": req.scope.scheme + "://" + root_path}
+                            0, {'url': req.scope.scheme + '://' + root_path}
                         )
                         server_urls.add(root_path)
                 return JSONResponse(self.get_openapi())
@@ -377,14 +373,14 @@ class Velithon:
         if self.openapi_url and self.docs_url:
 
             async def swagger_ui_html(req: Request) -> HTMLResponse:
-                root_path = req.scope.scheme + "://" + req.scope.server.rstrip("/")
+                root_path = req.scope.scheme + '://' + req.scope.server.rstrip('/')
                 openapi_url = root_path + self.openapi_url
                 oauth2_redirect_url = self.swagger_ui_oauth2_redirect_url
                 if oauth2_redirect_url:
                     oauth2_redirect_url = root_path + oauth2_redirect_url
                 return get_swagger_ui_html(
                     openapi_url=openapi_url,
-                    title=f"{self.title} - Swagger UI",
+                    title=f'{self.title} - Swagger UI',
                     oauth2_redirect_url=oauth2_redirect_url,
                     init_oauth=self.swagger_ui_init_oauth,
                 )
@@ -397,35 +393,35 @@ class Velithon:
 
     def get_openapi(
         self: RSGIApp,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         main_docs = {
-            "openapi": self.openapi_version,
-            "info": {},
-            "paths": {},
-            "components": {"schemas": {}},
+            'openapi': self.openapi_version,
+            'info': {},
+            'paths': {},
+            'components': {'schemas': {}},
         }
-        info: Dict[str, Any] = {"title": self.title, "version": self.version}
+        info: dict[str, Any] = {'title': self.title, 'version': self.version}
         if self.summary:
-            info["summary"] = self.summary
+            info['summary'] = self.summary
         if self.description:
-            info["description"] = self.description
+            info['description'] = self.description
         if self.terms_of_service:
-            info["termsOfService"] = self.terms_of_service
+            info['termsOfService'] = self.terms_of_service
         if self.contact:
-            info["contact"] = self.contact
+            info['contact'] = self.contact
         if self.license_info:
-            info["license"] = self.license_info
+            info['license'] = self.license_info
         if self.servers:
-            main_docs["servers"] = self.servers
+            main_docs['servers'] = self.servers
         for route in self.router.routes or []:
             if not route.include_in_schema:
                 continue
             path, schema = route.openapi()
-            main_docs["paths"].update(path)
-            main_docs["components"]["schemas"].update(schema)
+            main_docs['paths'].update(path)
+            main_docs['components']['schemas'].update(schema)
         if self.tags:
-            main_docs["tags"] = self.tags
-        main_docs["info"] = info
+            main_docs['tags'] = self.tags
+        main_docs['info'] = info
         return main_docs
 
     def add_route(
@@ -470,8 +466,7 @@ class Velithon:
         include_in_schema: bool = True,
         response_model: type | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-        """
-        Decorator to add a GET route to the application.
+        """Decorator to add a GET route to the application.
 
         Args:
             path: The path pattern
@@ -484,9 +479,10 @@ class Velithon:
 
         Returns:
             Decorator function
+
         """
         return self._create_http_method_decorator(
-            "get",
+            'get',
             path,
             tags=tags,
             summary=summary,
@@ -507,8 +503,7 @@ class Velithon:
         include_in_schema: bool = True,
         response_model: type | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-        """
-        Decorator to add a POST route to the application.
+        """Decorator to add a POST route to the application.
 
         Args:
             path: The path pattern
@@ -521,9 +516,10 @@ class Velithon:
 
         Returns:
             Decorator function
+
         """
         return self._create_http_method_decorator(
-            "post",
+            'post',
             path,
             tags=tags,
             summary=summary,
@@ -544,8 +540,7 @@ class Velithon:
         include_in_schema: bool = True,
         response_model: type | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-        """
-        Decorator to add a PUT route to the application.
+        """Decorator to add a PUT route to the application.
 
         Args:
             path: The path pattern
@@ -558,9 +553,10 @@ class Velithon:
 
         Returns:
             Decorator function
+
         """
         return self._create_http_method_decorator(
-            "put",
+            'put',
             path,
             tags=tags,
             summary=summary,
@@ -581,8 +577,7 @@ class Velithon:
         include_in_schema: bool = True,
         response_model: type | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-        """
-        Decorator to add a DELETE route to the application.
+        """Decorator to add a DELETE route to the application.
 
         Args:
             path: The path pattern
@@ -594,9 +589,10 @@ class Velithon:
 
         Returns:
             Decorator function
+
         """
         return self._create_http_method_decorator(
-            "delete",
+            'delete',
             path,
             tags=tags,
             summary=summary,
@@ -617,8 +613,7 @@ class Velithon:
         include_in_schema: bool = True,
         response_model: type | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-        """
-        Decorator to add a PATCH route to the application.
+        """Decorator to add a PATCH route to the application.
 
         Args:
             path: The path pattern
@@ -630,9 +625,10 @@ class Velithon:
 
         Returns:
             Decorator function
+
         """
         return self._create_http_method_decorator(
-            "patch",
+            'patch',
             path,
             tags=tags,
             summary=summary,
@@ -653,8 +649,7 @@ class Velithon:
         include_in_schema: bool = True,
         response_model: type | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-        """
-        Decorator to add an OPTIONS route to the application.
+        """Decorator to add an OPTIONS route to the application.
 
         Args:
             path: The path pattern
@@ -666,9 +661,10 @@ class Velithon:
 
         Returns:
             Decorator function
+
         """
         return self._create_http_method_decorator(
-            "options",
+            'options',
             path,
             tags=tags,
             summary=summary,
@@ -684,8 +680,7 @@ class Velithon:
         *,
         name: str | None = None,
     ) -> Callable[[Any], Any]:
-        """
-        Decorator to add a WebSocket route to the application.
+        """Decorator to add a WebSocket route to the application.
 
         Args:
             path: The WebSocket path pattern
@@ -693,19 +688,21 @@ class Velithon:
 
         Returns:
             Decorator function
+
         """
         return self.router.websocket(path, name=name)
 
     def on_startup(self, priority: int = 0) -> None:
-        """
-        This decorator is used to register a function to be called on startup.
+        """This decorator is used to register a function to be called on startup.
         The function can be either synchronous or asynchronous.
         The function will be called with the application instance as the first
         argument.
         The function will be called in the order of priority, with lower
         priority functions being called first.
+
         Args:
             priority: The priority of the function. Lower numbers are called first.
+
         """
 
         def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -721,8 +718,7 @@ class Velithon:
         return decorator
 
     def on_shutdown(self, priority: int = 0) -> None:
-        """
-        This decorator is used to register a function to be called on shutdown.
+        """This decorator is used to register a function to be called on shutdown.
         The function can be either synchronous or asynchronous.
         The function will be called with the application instance as the first
         argument.
@@ -757,8 +753,7 @@ class Velithon:
         )
 
     def __rsgi_init__(self, loop: asyncio.AbstractEventLoop) -> None:
-        """
-        This method is called when the server is initialized.
+        """This method is called when the server is initialized.
         It is used to set up the server and perform any necessary
         Arg:
             loop: The event loop to be used by the server.
@@ -772,13 +767,13 @@ class Velithon:
         self.config_logger()
 
         # internal server startup
-        if hasattr(self, "vsp_manager"):
+        if hasattr(self, 'vsp_manager'):
             loop.create_task(
                 self.vsp_manager.start_server(
-                    self.vsp_host, 
-                    self.vsp_port, 
+                    self.vsp_host,
+                    self.vsp_port,
                     loop=loop,
-                    reuse_port=True  # Enable port reuse for multi-worker support
+                    reuse_port=True,  # Enable port reuse for multi-worker support
                 )
             )
 
@@ -790,8 +785,7 @@ class Velithon:
         del self.startup_functions
 
     def __rsgi_del__(self, loop: asyncio.AbstractEventLoop) -> None:
-        """
-        This method is called when the server is shutting down.
+        """This method is called when the server is shutting down.
         It is used to clean up the server and perform any necessary
         Arg:
             loop: The event loop to be used by the server.
@@ -861,7 +855,7 @@ class Velithon:
             target=app,  # Velithon application instance
             address=host,
             port=port,
-            interface="rsgi",  # Use RSGI interface
+            interface='rsgi',  # Use RSGI interface
             workers=workers,
             reload=reload,
             log_enabled=False,
@@ -896,36 +890,36 @@ class Velithon:
             ),
         )
         # check log level is debug then log all the parameters
-        if log_level == "DEBUG":
+        if log_level == 'DEBUG':
             logger.debug(
-                f"\n App: {app} \n Host: {host} \n Port: {port} \n Workers: {workers} \n "
-                f"Log File: {log_file} \n Log Level: {log_level} \n Log Format: {log_format} \n "
-                f"Log to File: {log_to_file} \n Max Bytes: {max_bytes} \n Backup Count: {backup_count} \n "
-                f"Blocking Threads: {blocking_threads} \n Blocking Threads Idle Timeout: {blocking_threads_idle_timeout} \n "
-                f"Runtime Threads: {runtime_threads} \n Runtime Blocking Threads: {runtime_blocking_threads} \n "
-                f"Runtime Mode: {runtime_mode} \n Loop: {loop} \n Task Impl: {task_impl} \n "
-                f"HTTP: {http} \n HTTP1 Buffer Size: {http1_buffer_size} \n "
-                f"HTTP1 Header Read Timeout: {http1_header_read_timeout} \n "
-                f"HTTP1 Keep Alive: {http1_keep_alive} \n HTTP1 Pipeline Flush: {http1_pipeline_flush} \n "
-                f"HTTP2 Adaptive Window: {http2_adaptive_window} \n "
-                f"HTTP2 Initial Connection Window Size: {http2_initial_connection_window_size} \n "
-                f"HTTP2 Initial Stream Window Size: {http2_initial_stream_window_size} \n "
-                f"HTTP2 Keep Alive Interval: {http2_keep_alive_interval} \n "
-                f"HTTP2 Keep Alive Timeout: {http2_keep_alive_timeout} \n "
-                f"HTTP2 Max Concurrent Streams: {http2_max_concurrent_streams} \n "
-                f"HTTP2 Max Frame Size: {http2_max_frame_size} \n "
-                f"HTTP2 Max Headers Size: {http2_max_headers_size} \n "
-                f"HTTP2 Max Send Buffer Size: {http2_max_send_buffer_size} \n "
-                f"SSL Certificate: {ssl_certificate} \n SSL Keyfile: {ssl_keyfile} \n "
-                f"SSL Keyfile Password: {'*' * len(ssl_keyfile_password) if ssl_keyfile_password else None} \n "
-                f"Backpressure: {backpressure}"
+                f'\n App: {app} \n Host: {host} \n Port: {port} \n Workers: {workers} \n '
+                f'Log File: {log_file} \n Log Level: {log_level} \n Log Format: {log_format} \n '
+                f'Log to File: {log_to_file} \n Max Bytes: {max_bytes} \n Backup Count: {backup_count} \n '
+                f'Blocking Threads: {blocking_threads} \n Blocking Threads Idle Timeout: {blocking_threads_idle_timeout} \n '
+                f'Runtime Threads: {runtime_threads} \n Runtime Blocking Threads: {runtime_blocking_threads} \n '
+                f'Runtime Mode: {runtime_mode} \n Loop: {loop} \n Task Impl: {task_impl} \n '
+                f'HTTP: {http} \n HTTP1 Buffer Size: {http1_buffer_size} \n '
+                f'HTTP1 Header Read Timeout: {http1_header_read_timeout} \n '
+                f'HTTP1 Keep Alive: {http1_keep_alive} \n HTTP1 Pipeline Flush: {http1_pipeline_flush} \n '
+                f'HTTP2 Adaptive Window: {http2_adaptive_window} \n '
+                f'HTTP2 Initial Connection Window Size: {http2_initial_connection_window_size} \n '
+                f'HTTP2 Initial Stream Window Size: {http2_initial_stream_window_size} \n '
+                f'HTTP2 Keep Alive Interval: {http2_keep_alive_interval} \n '
+                f'HTTP2 Keep Alive Timeout: {http2_keep_alive_timeout} \n '
+                f'HTTP2 Max Concurrent Streams: {http2_max_concurrent_streams} \n '
+                f'HTTP2 Max Frame Size: {http2_max_frame_size} \n '
+                f'HTTP2 Max Headers Size: {http2_max_headers_size} \n '
+                f'HTTP2 Max Send Buffer Size: {http2_max_send_buffer_size} \n '
+                f'SSL Certificate: {ssl_certificate} \n SSL Keyfile: {ssl_keyfile} \n '
+                f'SSL Keyfile Password: {"*" * len(ssl_keyfile_password) if ssl_keyfile_password else None} \n '
+                f'Backpressure: {backpressure}'
             )
 
         logger.info(
-            f"Starting Velithon server at http://{host}:{port} with {workers} workers..."
+            f'Starting Velithon server at http://{host}:{port} with {workers} workers...'
         )
         if reload:
-            logger.debug("Auto-reload enabled.")
+            logger.debug('Auto-reload enabled.')
         server.serve()
 
     def _create_http_method_decorator(
@@ -940,18 +934,17 @@ class Velithon:
         include_in_schema: bool = True,
         response_model: type | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-        """
-        Generic factory method for creating HTTP method decorators.
+        """Generic factory method for creating HTTP method decorators.
         Eliminates code duplication across get, post, put, delete, patch, options methods.
         """
         # Special case for OPTIONS method - use api_route directly
-        if method.upper() == "OPTIONS":
+        if method.upper() == 'OPTIONS':
             return self.router.api_route(
                 path=path,
                 tags=tags,
                 summary=summary,
                 description=description,
-                methods=["OPTIONS"],
+                methods=['OPTIONS'],
                 name=name,
                 include_in_schema=include_in_schema,
                 response_model=response_model,

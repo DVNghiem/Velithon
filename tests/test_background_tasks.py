@@ -1,6 +1,7 @@
 """
 Tests for background task functionality.
 """
+
 import asyncio
 import time
 from unittest.mock import MagicMock
@@ -16,21 +17,23 @@ class TestBackgroundTask:
 
     def test_background_task_creation(self):
         """Test creating a background task."""
+
         def simple_task():
-            return "completed"
+            return 'completed'
 
         task = BackgroundTask(simple_task)
-        
+
         # BackgroundTask doesn't expose internal attributes, just test creation
         assert task is not None
 
     def test_background_task_with_args(self):
         """Test background task with arguments."""
-        def task_with_args(x, y, z=None):
-            return f"x={x}, y={y}, z={z}"
 
-        task = BackgroundTask(task_with_args, (1, 2), {"z": 3})
-        
+        def task_with_args(x, y, z=None):
+            return f'x={x}, y={y}, z={z}'
+
+        task = BackgroundTask(task_with_args, (1, 2), {'z': 3})
+
         # BackgroundTask doesn't expose internal attributes, just test creation
         assert task is not None
 
@@ -40,22 +43,23 @@ class TestBackgroundTask:
         executed = []
 
         def simple_task():
-            executed.append("task_executed")
+            executed.append('task_executed')
 
         task = BackgroundTask(simple_task)
         await task()
-        
-        assert "task_executed" in executed
+
+        assert 'task_executed' in executed
 
     @pytest.mark.asyncio
     async def test_background_task_with_return_value(self):
         """Test background task with return value."""
+
         def task_with_return():
-            return "task_result"
+            return 'task_result'
 
         task = BackgroundTask(task_with_return)
         result = await task()
-        
+
         # Background tasks typically don't return values, but test the execution succeeds
         # The result might be None since background tasks are fire-and-forget
         assert result is None or isinstance(result, (str, type(None)))
@@ -67,11 +71,11 @@ class TestBackgroundTask:
 
         async def async_task():
             await asyncio.sleep(0.01)
-            executed.append("async_task_executed")
+            executed.append('async_task_executed')
 
         task = BackgroundTask(async_task)
         await task()
-        
+
         # TODO: Current Rust implementation doesn't properly await async functions
         # This is a known limitation that needs to be fixed in the Rust code
         # For now, verify that the task runs without error
@@ -80,11 +84,12 @@ class TestBackgroundTask:
     @pytest.mark.asyncio
     async def test_background_task_exception_handling(self):
         """Test background task exception handling."""
+
         def failing_task():
-            raise ValueError("Task failed")
+            raise ValueError('Task failed')
 
         task = BackgroundTask(failing_task)
-        
+
         # Current implementation propagates exceptions
         # TODO: Should be updated to handle exceptions gracefully
         with pytest.raises(ValueError):
@@ -96,27 +101,33 @@ class TestBackgroundTask:
         results = []
 
         def complex_task(data, callback=None, **options):
-            results.append({
-                "data": data,
-                "callback": callback.__name__ if callback else None,
-                "options": options
-            })
+            results.append(
+                {
+                    'data': data,
+                    'callback': callback.__name__ if callback else None,
+                    'options': options,
+                }
+            )
 
         def dummy_callback():
             pass
 
         task = BackgroundTask(
             complex_task,
-            ({"key": "value"},),  # args as tuple
-            {"callback": dummy_callback, "option1": "value1", "option2": 42}  # kwargs as dict
+            ({'key': 'value'},),  # args as tuple
+            {
+                'callback': dummy_callback,
+                'option1': 'value1',
+                'option2': 42,
+            },  # kwargs as dict
         )
-        
+
         await task()
-        
+
         assert len(results) == 1
-        assert results[0]["data"] == {"key": "value"}
-        assert results[0]["callback"] == "dummy_callback"
-        assert results[0]["options"] == {"option1": "value1", "option2": 42}
+        assert results[0]['data'] == {'key': 'value'}
+        assert results[0]['callback'] == 'dummy_callback'
+        assert results[0]['options'] == {'option1': 'value1', 'option2': 42}
 
 
 class TestBackgroundTasks:
@@ -125,50 +136,52 @@ class TestBackgroundTasks:
     def test_background_tasks_creation(self):
         """Test creating BackgroundTasks collection."""
         tasks = BackgroundTasks()
-        
+
         # BackgroundTasks doesn't expose tasks list, just test creation
         assert tasks is not None
 
     def test_add_task_function(self):
         """Test adding task via function."""
         tasks = BackgroundTasks()
-        
+
         def simple_task():
             pass
 
         tasks.add_task(simple_task)
-        
+
         # Cannot directly access tasks list, but should not raise error
         assert tasks is not None
 
     def test_add_task_with_args(self):
         """Test adding task with arguments."""
         tasks = BackgroundTasks()
-        
+
         def task_with_args(x, y, z=None):
             pass
 
-        tasks.add_task(task_with_args, (1, 2), {"z": 3})
-        
+        tasks.add_task(task_with_args, (1, 2), {'z': 3})
+
         # Cannot directly access internal attributes, just test it doesn't fail
         assert tasks is not None
 
     def test_add_background_task_object(self):
         """Test adding BackgroundTask object directly."""
         tasks = BackgroundTasks()
-        
+
         def simple_task():
             pass
 
-        tasks.add_task(simple_task)  # Add the function directly, not the BackgroundTask object
-        
+        tasks.add_task(
+            simple_task
+        )  # Add the function directly, not the BackgroundTask object
+
         # BackgroundTasks doesn't expose internal tasks list
         assert tasks is not None
 
     def test_add_multiple_tasks(self):
         """Test adding multiple tasks."""
         tasks = BackgroundTasks()
-        
+
         def task1():
             pass
 
@@ -181,7 +194,7 @@ class TestBackgroundTasks:
         tasks.add_task(task1)
         tasks.add_task(task2)
         tasks.add_task(task3)
-        
+
         # BackgroundTasks doesn't expose internal tasks list
         assert tasks is not None
 
@@ -192,25 +205,25 @@ class TestBackgroundTasks:
         tasks = BackgroundTasks()
 
         def task1():
-            executed_tasks.append("task1")
+            executed_tasks.append('task1')
 
         def task2():
-            executed_tasks.append("task2")
+            executed_tasks.append('task2')
 
         async def async_task():
             await asyncio.sleep(0.01)
-            executed_tasks.append("async_task")
+            executed_tasks.append('async_task')
 
         tasks.add_task(task1)
         tasks.add_task(task2)
         tasks.add_task(async_task)
-        
+
         await tasks()
-        
-        assert "task1" in executed_tasks
-        assert "task2" in executed_tasks
+
+        assert 'task1' in executed_tasks
+        assert 'task2' in executed_tasks
         # TODO: async tasks not properly awaited in current implementation
-        # assert "async_task" in executed_tasks  
+        # assert "async_task" in executed_tasks
         assert len(executed_tasks) == 2  # Only sync tasks execute properly
 
     @pytest.mark.asyncio
@@ -231,9 +244,9 @@ class TestBackgroundTasks:
         tasks.add_task(task1)
         tasks.add_task(task2)
         tasks.add_task(task3)
-        
+
         await tasks()
-        
+
         # Tasks execute concurrently, so order is not guaranteed
         # Just verify all tasks executed
         assert 1 in execution_order
@@ -245,7 +258,7 @@ class TestBackgroundTasks:
     async def test_empty_tasks_collection(self):
         """Test executing empty tasks collection."""
         tasks = BackgroundTasks()
-        
+
         # Should not raise any errors
         await tasks()
 
@@ -256,23 +269,23 @@ class TestBackgroundTasks:
         tasks = BackgroundTasks()
 
         def good_task1():
-            executed_tasks.append("good1")
+            executed_tasks.append('good1')
 
         def failing_task():
-            raise ValueError("This task fails")
+            raise ValueError('This task fails')
 
         def good_task2():
-            executed_tasks.append("good2")
+            executed_tasks.append('good2')
 
         tasks.add_task(good_task1)
         tasks.add_task(failing_task)
         tasks.add_task(good_task2)
-        
+
         await tasks()
-        
+
         # Good tasks should still execute despite failure
-        assert "good1" in executed_tasks
-        assert "good2" in executed_tasks
+        assert 'good1' in executed_tasks
+        assert 'good2' in executed_tasks
 
 
 class TestBackgroundTaskIntegration:
@@ -284,23 +297,20 @@ class TestBackgroundTaskIntegration:
         executed = []
 
         def cleanup_task():
-            executed.append("cleanup")
+            executed.append('cleanup')
 
         task = BackgroundTask(cleanup_task)
-        response = JSONResponse(
-            content={"message": "success"},
-            background=task
-        )
-        
+        response = JSONResponse(content={'message': 'success'}, background=task)
+
         # Simulate response execution
         mock_scope = MagicMock()
         mock_protocol = MagicMock()
         mock_protocol.response_bytes = MagicMock()
-        
+
         await response(mock_scope, mock_protocol)
-        
+
         # Background task should have executed
-        assert "cleanup" in executed
+        assert 'cleanup' in executed
 
     @pytest.mark.asyncio
     async def test_response_with_background_tasks(self):
@@ -308,13 +318,13 @@ class TestBackgroundTaskIntegration:
         executed = []
 
         def log_task():
-            executed.append("logged")
+            executed.append('logged')
 
         def cleanup_task():
-            executed.append("cleaned")
+            executed.append('cleaned')
 
         def notify_task():
-            executed.append("notified")
+            executed.append('notified')
 
         # Create a single background task that executes all our functions
         def combined_task():
@@ -323,22 +333,19 @@ class TestBackgroundTaskIntegration:
             notify_task()
 
         task = BackgroundTask(combined_task)
-        response = JSONResponse(
-            content={"message": "success"},
-            background=task
-        )
-        
+        response = JSONResponse(content={'message': 'success'}, background=task)
+
         # Simulate response execution
         mock_scope = MagicMock()
         mock_protocol = MagicMock()
         mock_protocol.response_bytes = MagicMock()
-        
+
         await response(mock_scope, mock_protocol)
-        
+
         # All background tasks should have executed
-        assert "logged" in executed
-        assert "cleaned" in executed
-        assert "notified" in executed
+        assert 'logged' in executed
+        assert 'cleaned' in executed
+        assert 'notified' in executed
 
     @pytest.mark.asyncio
     async def test_background_task_after_response(self):
@@ -349,22 +356,19 @@ class TestBackgroundTaskIntegration:
             execution_times.append(time.time())
 
         task = BackgroundTask(background_task)
-        response = JSONResponse(
-            content={"message": "success"},
-            background=task
-        )
-        
+        response = JSONResponse(content={'message': 'success'}, background=task)
+
         # Mock protocol that records when response_bytes is called
         mock_protocol = MagicMock()
         mock_protocol.response_bytes = MagicMock()
-        
+
         def record_response_time(*args, **kwargs):
             execution_times.append(time.time())
-        
+
         mock_protocol.response_bytes.side_effect = record_response_time
-        
+
         await response(MagicMock(), mock_protocol)
-        
+
         # Should have recorded times for both response and background task
         assert len(execution_times) >= 1
 
@@ -414,7 +418,7 @@ class TestBackgroundTaskPerformance:
             tasks.add_task(increment_counter)
 
         await tasks()
-        
+
         assert executed_count == 100
 
     @pytest.mark.asyncio
@@ -452,8 +456,8 @@ class TestBackgroundTaskEdgeCases:
     @pytest.mark.asyncio
     async def test_background_task_with_non_callable(self):
         """Test background task with non-callable object."""
-        # Current implementation allows non-callable but will fail during execution  
-        task = BackgroundTask("not_a_function")
+        # Current implementation allows non-callable but will fail during execution
+        task = BackgroundTask('not_a_function')
         # Expect execution to fail rather than constructor
         with pytest.raises((TypeError, AttributeError)):
             await task()
@@ -464,7 +468,7 @@ class TestBackgroundTaskEdgeCases:
         executed = []
 
         def recursive_task(depth):
-            executed.append(f"depth_{depth}")
+            executed.append(f'depth_{depth}')
             if depth > 0:
                 # In a real scenario, this would need to be handled carefully
                 # to avoid infinite recursion
@@ -472,8 +476,8 @@ class TestBackgroundTaskEdgeCases:
 
         task = BackgroundTask(recursive_task, args=(3,))
         await task()
-        
-        assert "depth_3" in executed
+
+        assert 'depth_3' in executed
 
     @pytest.mark.asyncio
     async def test_background_task_with_generator(self):
@@ -487,21 +491,22 @@ class TestBackgroundTaskEdgeCases:
 
         task = BackgroundTask(generator_task)
         await task()
-        
+
         # Generator should have been executed
         assert len(results) >= 0  # Behavior may vary depending on implementation
 
     @pytest.mark.asyncio
     async def test_background_task_exception_details(self):
         """Test background task exception handling details."""
+
         def failing_task_with_details():
-            raise ValueError("Detailed error message with context")
+            raise ValueError('Detailed error message with context')
 
         task = BackgroundTask(failing_task_with_details)
-        
+
         # Current implementation propagates exceptions
         # TODO: Should be updated to handle exceptions gracefully
-        with pytest.raises(ValueError, match="Detailed error message with context"):
+        with pytest.raises(ValueError, match='Detailed error message with context'):
             await task()
 
     @pytest.mark.asyncio
@@ -511,15 +516,15 @@ class TestBackgroundTaskEdgeCases:
         tasks = BackgroundTasks()
 
         def sync_task():
-            executed.append("sync")
+            executed.append('sync')
 
         async def async_task():
             await asyncio.sleep(0.01)
-            executed.append("async")
+            executed.append('async')
 
         class CallableClass:
             def __call__(self):
-                executed.append("callable_class")
+                executed.append('callable_class')
 
         tasks.add_task(sync_task)
         tasks.add_task(async_task)
@@ -527,11 +532,11 @@ class TestBackgroundTaskEdgeCases:
 
         await tasks()
 
-        assert "sync" in executed
+        assert 'sync' in executed
         # TODO: async tasks not properly awaited in current implementation
         # assert "async" in executed
-        assert "callable_class" in executed
+        assert 'callable_class' in executed
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     pytest.main([__file__])

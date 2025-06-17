@@ -12,9 +12,9 @@ from ._velithon import (
 )
 
 CONVERTOR_TYPES: dict[str, Convertor[typing.Any]] = {
-    "str": StringConvertor(),
-    "path": PathConvertor(),
-    "int": IntegerConvertor(),
-    "float": FloatConvertor(),
-    "uuid": UUIDConvertor(),
+    'str': StringConvertor(),
+    'path': PathConvertor(),
+    'int': IntegerConvertor(),
+    'float': FloatConvertor(),
+    'uuid': UUIDConvertor(),
 }

@@ -76,11 +76,12 @@ class RepresentableDataStructure(ABC):
     """Base class for data structures that need consistent string representation."""
 
     @abstractmethod
-    def _get_repr_attrs(self) -> typing.Dict[str, typing.Any]:
+    def _get_repr_attrs(self) -> dict[str, typing.Any]:
         """Return attributes to include in __repr__.
 
         Returns:
             Dict mapping attribute names to values for representation
+
         """
         pass
 
@@ -94,16 +95,16 @@ class RepresentableDataStructure(ABC):
         for key, value in attrs.items():
             # Handle special formatting for different types
             if isinstance(value, str):
-                attr_strs.append(f"{key}={value!r}")
+                attr_strs.append(f'{key}={value!r}')
             elif isinstance(value, (list, tuple)) and len(value) > 3:
                 # Truncate long sequences in repr
-                truncated = list(value[:3]) + ["..."]
-                attr_strs.append(f"{key}={truncated}")
+                truncated = list(value[:3]) + ['...']
+                attr_strs.append(f'{key}={truncated}')
             else:
-                attr_strs.append(f"{key}={value!r}")
+                attr_strs.append(f'{key}={value!r}')
 
-        attr_str = ", ".join(attr_strs)
-        return f"{class_name}({attr_str})"
+        attr_str = ', '.join(attr_strs)
+        return f'{class_name}({attr_str})'
 
 
 class DataStructureBase(ComparableDataStructure, RepresentableDataStructure):
@@ -131,11 +132,11 @@ class UrlDataStructure(DataStructureBase):
     def __repr__(self) -> str:
         """URL representation with password masking."""
         url_str = str(self)
-        if hasattr(self, "password") and self.password:
+        if hasattr(self, 'password') and self.password:
             # Mask password in representation
-            masked_url = url_str.replace(f":{self.password}@", ":********@")
-            return f"{self.__class__.__name__}({masked_url!r})"
-        return f"{self.__class__.__name__}({url_str!r})"
+            masked_url = url_str.replace(f':{self.password}@', ':********@')
+            return f'{self.__class__.__name__}({masked_url!r})'
+        return f'{self.__class__.__name__}({url_str!r})'
 
 
 class MultiDictBase(DataStructureBase):
@@ -143,24 +144,24 @@ class MultiDictBase(DataStructureBase):
 
     def _get_comparison_key(self) -> typing.Any:
         """Multi-dicts are compared by their sorted list representation."""
-        if hasattr(self, "_list"):
+        if hasattr(self, '_list'):
             return tuple(sorted(self._list))
-        elif hasattr(self, "multi_items"):
+        elif hasattr(self, 'multi_items'):
             return tuple(sorted(self.multi_items()))
         else:
             # Fallback to dict items
             return tuple(sorted(self.items()))
 
-    def _get_repr_attrs(self) -> typing.Dict[str, typing.Any]:
+    def _get_repr_attrs(self) -> dict[str, typing.Any]:
         """Show the list of items in representation."""
-        if hasattr(self, "multi_items"):
+        if hasattr(self, 'multi_items'):
             items = self.multi_items()
-        elif hasattr(self, "_list"):
+        elif hasattr(self, '_list'):
             items = self._list
         else:
             items = list(self.items())
 
-        return {"items": items}
+        return {'items': items}
 
 
 class PriorityDataStructure(OrderedDataStructure, RepresentableDataStructure):
@@ -168,7 +169,7 @@ class PriorityDataStructure(OrderedDataStructure, RepresentableDataStructure):
 
     def _get_ordering_key(self) -> typing.Any:
         """Order by priority attribute."""
-        if hasattr(self, "priority"):
+        if hasattr(self, 'priority'):
             return self.priority
         else:
             raise AttributeError(

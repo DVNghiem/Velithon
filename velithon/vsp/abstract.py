@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import List
 
 from velithon._velithon import ServiceInfo
 
@@ -37,7 +36,7 @@ class Discovery(ABC):
         pass
 
     @abstractmethod
-    async def query(self, service_name: str) -> List[ServiceInfo]:
+    async def query(self, service_name: str) -> list[ServiceInfo]:
         """Query service instances."""
         pass
 
@@ -45,4 +44,3 @@ class Discovery(ABC):
     def close(self) -> None:
         """Close discovery resources."""
         pass
-

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import inspect
 from collections.abc import Mapping, Sequence
-from typing import Annotated, Any, Dict, Optional, Union, get_args, get_origin
+from typing import Annotated, Any, Optional, Union, get_args, get_origin
 
 import orjson
 from pydantic import BaseModel, ValidationError
@@ -26,7 +26,7 @@ _TYPE_CONVERTERS = {
     int: int,
     float: float,
     str: str,
-    bool: lambda v: str(v).lower() in ("true", "1", "yes", "on"),
+    bool: lambda v: str(v).lower() in ('true', '1', 'yes', 'on'),
     bytes: lambda v: v.encode() if isinstance(v, str) else v,
 }
 
@@ -50,27 +50,27 @@ class ParameterResolver:
             dict: self._parse_special,
         }
         self.param_types = {
-            Query: "query_params",
-            Path: "path_params",
-            Body: "json_body",
-            Form: "form_data",
-            File: "file_data",
+            Query: 'query_params',
+            Path: 'path_params',
+            Body: 'json_body',
+            Form: 'form_data',
+            File: 'file_data',
         }
 
     async def _fetch_data(self, param_type: str) -> Any:
         """Fetch and cache request data for the given parameter type."""
         if param_type not in self.data_cache:
             parsers = {
-                "query_params": lambda: self.request.query_params,
-                "path_params": lambda: self.request.path_params,
-                "form_data": self._get_form_data,
-                "json_body": self.request.json,
-                "file_data": self.request.files,
+                'query_params': lambda: self.request.query_params,
+                'path_params': lambda: self.request.path_params,
+                'form_data': self._get_form_data,
+                'json_body': self.request.json,
+                'file_data': self.request.files,
             }
             parser = parsers.get(param_type)
             if not parser:
                 raise BadRequestException(
-                    details={"message": f"Invalid parameter type: {param_type}"}
+                    details={'message': f'Invalid parameter type: {param_type}'}
                 )
 
             result = parser()
@@ -119,7 +119,7 @@ class ParameterResolver:
                 return default
             if is_required:
                 raise BadRequestException(
-                    details={"message": f"Missing required parameter: {param_name}"}
+                    details={'message': f'Missing required parameter: {param_name}'}
                 )
 
         try:
@@ -135,8 +135,8 @@ class ParameterResolver:
         except (ValueError, TypeError) as e:
             raise ValidationException(
                 details={
-                    "field": param_name,
-                    "msg": f"Invalid value for type {annotation}: {str(e)}",
+                    'field': param_name,
+                    'msg': f'Invalid value for type {annotation}: {e!s}',
                 }
             )
 
@@ -157,7 +157,7 @@ class ParameterResolver:
             return default
         if not values and is_required:
             raise BadRequestException(
-                details={"message": f"Missing required parameter: {param_name}"}
+                details={'message': f'Missing required parameter: {param_name}'}
             )
 
         if item_type in (int, float, str, bool, bytes):
@@ -165,7 +165,7 @@ class ParameterResolver:
                 str: lambda vs: vs,
                 int: lambda vs: [int(v) for v in vs],
                 float: lambda vs: [float(v) for v in vs],
-                bool: lambda vs: [v.lower() in ("true", "1", "yes") for v in vs],
+                bool: lambda vs: [v.lower() in ('true', '1', 'yes') for v in vs],
                 bytes: lambda vs: [v[0] if isinstance(v, tuple) else v for v in vs],
             }
             try:
@@ -173,8 +173,8 @@ class ParameterResolver:
             except (ValueError, TypeError) as e:
                 raise ValidationException(
                     details={
-                        "field": param_name,
-                        "msg": f"Invalid list item type {item_type}: {str(e)}",
+                        'field': param_name,
+                        'msg': f'Invalid list item type {item_type}: {e!s}',
                     }
                 )
         elif isinstance(item_type, type) and issubclass(item_type, BaseModel):
@@ -184,12 +184,12 @@ class ParameterResolver:
                 invalid_fields = orjson.loads(e.json())
                 raise ValidationException(
                     details=[
-                        {"field": get(item, "loc")[0], "msg": get(item, "msg")}
+                        {'field': get(item, 'loc')[0], 'msg': get(item, 'msg')}
                         for item in invalid_fields
                     ]
                 )
         raise BadRequestException(
-            details={"message": f"Unsupported list item type: {item_type}"}
+            details={'message': f'Unsupported list item type: {item_type}'}
         )
 
     async def _parse_model(
@@ -205,18 +205,18 @@ class ParameterResolver:
             return default
         if not data and is_required:
             raise BadRequestException(
-                details={"message": f"Missing required parameter: {param_name}"}
+                details={'message': f'Missing required parameter: {param_name}'}
             )
         try:
             # Accept any Mapping type for Pydantic model
             if isinstance(data, Mapping):
                 return annotation(**data)
-            raise ValueError("Invalid data format for model: expected a mapping")
+            raise ValueError('Invalid data format for model: expected a mapping')
         except ValidationError as e:
             invalid_fields = orjson.loads(e.json())
             raise ValidationException(
                 details=[
-                    {"field": get(item, "loc")[0], "msg": get(item, "msg")}
+                    {'field': get(item, 'loc')[0], 'msg': get(item, 'msg')}
                     for item in invalid_fields
                 ]
             )
@@ -243,7 +243,7 @@ class ParameterResolver:
             result = handler()
             return await result if inspect.iscoroutine(result) else result
         raise BadRequestException(
-            details={"message": f"Unsupported special type: {annotation}"}
+            details={'message': f'Unsupported special type: {annotation}'}
         )
 
     async def _get_file(
@@ -255,13 +255,13 @@ class ParameterResolver:
             return default
         if not files and is_required:
             raise BadRequestException(
-                details={"message": f"Missing required parameter: {param_name}"}
+                details={'message': f'Missing required parameter: {param_name}'}
             )
         if isinstance(files, Sequence) and get_origin(UploadFile) is list:
             if not all(isinstance(f, UploadFile) for f in files):
                 raise BadRequestException(
                     details={
-                        "message": f"Invalid file type for parameter: {param_name}"
+                        'message': f'Invalid file type for parameter: {param_name}'
                     }
                 )
             return files
@@ -277,7 +277,7 @@ class ParameterResolver:
             param.default if param.default is not inspect.Parameter.empty else None
         )
         is_required = default is None and param.default is inspect.Parameter.empty
-        param_type = "query_params"  # Default
+        param_type = 'query_params'  # Default
 
         if get_origin(annotation) is Annotated:
             base_type, *metadata = get_args(annotation)
@@ -292,26 +292,26 @@ class ParameterResolver:
             if not param_metadata:
                 raise InvalidMediaTypeException(
                     details={
-                        "message": f"Unsupported parameter metadata for {param.name}: {annotation}"
+                        'message': f'Unsupported parameter metadata for {param.name}: {annotation}'
                     }
                 )
 
-            if hasattr(param_metadata, "media_type"):
+            if hasattr(param_metadata, 'media_type'):
                 if param_metadata.media_type != self.request.headers.get(
-                    "Content-Type", ""
+                    'Content-Type', ''
                 ):
                     raise InvalidMediaTypeException(
                         details={
-                            "message": f"Invalid media type for parameter: {param.name}"
+                            'message': f'Invalid media type for parameter: {param.name}'
                         }
                     )
 
             if isinstance(param_metadata, Provide):
-                return base_type, "provide", param_metadata, is_required
-            param_type = self.param_types.get(type(param_metadata), "query_params")
+                return base_type, 'provide', param_metadata, is_required
+            param_type = self.param_types.get(type(param_metadata), 'query_params')
             metadata_default = (
                 param_metadata.default
-                if hasattr(param_metadata, "default")
+                if hasattr(param_metadata, 'default')
                 and param_metadata.default is not PydanticUndefined
                 else None
             )
@@ -319,19 +319,19 @@ class ParameterResolver:
             annotation = base_type
             # If Form() is used, ensure param_type remains form_data even for BaseModel
             if isinstance(param_metadata, Form):
-                return annotation, "form_data", default, is_required
+                return annotation, 'form_data', default, is_required
 
         if annotation is inspect._empty:
             param_type = (
-                "path_params"
+                'path_params'
                 if param.name in self.request.path_params
-                else "query_params"
+                else 'query_params'
             )
         elif isinstance(annotation, type) and issubclass(annotation, BaseModel):
             param_type = (
-                "json_body"
-                if self.request.scope.method.upper() != "GET"
-                else "query_params"
+                'json_body'
+                if self.request.scope.method.upper() != 'GET'
+                else 'query_params'
             )
         elif (
             get_origin(annotation) is list
@@ -339,16 +339,16 @@ class ParameterResolver:
             and issubclass(get_args(annotation)[0], BaseModel)
         ):
             param_type = (
-                "json_body"
-                if self.request.scope.method.upper() != "GET"
-                else "query_params"
+                'json_body'
+                if self.request.scope.method.upper() != 'GET'
+                else 'query_params'
             )
         elif param.name in self.request.path_params:
-            param_type = "path_params"
+            param_type = 'path_params'
 
         return annotation, param_type, default, is_required
 
-    async def resolve(self, signature: inspect.Signature) -> Dict[str, Any]:
+    async def resolve(self, signature: inspect.Signature) -> dict[str, Any]:
         """Resolve all parameters for the given function signature."""
         kwargs = {}
         for param in signature.parameters.values():
@@ -357,7 +357,7 @@ class ParameterResolver:
             )
             name = param.name
 
-            if param_type == "provide":
+            if param_type == 'provide':
                 kwargs[name] = default  # Provide dependency injection
                 continue
 
@@ -376,7 +376,7 @@ class ParameterResolver:
                     continue
                 raise UnsupportParameterException(
                     details={
-                        "message": f"Unsupported parameter type for {name}: {annotation}"
+                        'message': f'Unsupported parameter type for {name}: {annotation}'
                     }
                 )
             data = await self._fetch_data(param_type)
@@ -389,5 +389,5 @@ class InputHandler:
     def __init__(self, request: Request):
         self.resolver = ParameterResolver(request)
 
-    async def get_input(self, signature: inspect.Signature) -> Dict[str, Any]:
+    async def get_input(self, signature: inspect.Signature) -> dict[str, Any]:
         return await self.resolver.resolve(signature)

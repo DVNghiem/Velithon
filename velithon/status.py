@@ -1,5 +1,4 @@
-"""
-HTTP codes
+"""HTTP codes
 See HTTP Status Code Registry:
 https://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml
 

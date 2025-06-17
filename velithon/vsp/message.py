@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
 
 from velithon.cache import create_lru_cache
 
@@ -34,29 +34,29 @@ class VSPMessage:
         request_id: str,
         service: str,
         endpoint: str,
-        body: Dict[str, Any],
+        body: dict[str, Any],
         is_response: bool = False,
     ):
         self.header = {
-            "request_id": request_id,
-            "service": service,
-            "endpoint": endpoint,
-            "is_response": is_response,
+            'request_id': request_id,
+            'service': service,
+            'endpoint': endpoint,
+            'is_response': is_response,
         }
         self.body = body
         # Cache serialized form for repeated sends
-        self._serialized_cache: Optional[bytes] = None
+        self._serialized_cache: bytes | None = None
 
-    @create_lru_cache(cache_type="message")
+    @create_lru_cache(cache_type='message')
     def _fast_serialize_header(
         self, request_id: str, service: str, endpoint: str, is_response: bool
     ) -> dict:
         """Cache frequently used header combinations"""
         return {
-            "request_id": request_id,
-            "service": service,
-            "endpoint": endpoint,
-            "is_response": is_response,
+            'request_id': request_id,
+            'service': service,
+            'endpoint': endpoint,
+            'is_response': is_response,
         }
 
     def to_bytes(self) -> bytes:
@@ -64,7 +64,7 @@ class VSPMessage:
         if self._serialized_cache is not None:
             return self._serialized_cache
 
-        data = {"header": self.header, "body": self.body}
+        data = {'header': self.header, 'body': self.body}
 
         try:
             if HAS_ORJSON:
@@ -75,7 +75,7 @@ class VSPMessage:
                 result = msgpack.packb(data, use_bin_type=True)
             else:
                 # Fallback to standard JSON
-                result = json.dumps(data, separators=(",", ":")).encode("utf-8")
+                result = json.dumps(data, separators=(',', ':')).encode('utf-8')
 
             # Cache small messages only to avoid memory bloat
             if len(result) < 1024:  # Only cache messages under 1KB
@@ -83,11 +83,11 @@ class VSPMessage:
 
             return result
         except Exception as e:
-            logger.error(f"Failed to serialize message: {e}")
-            raise VSPError(f"Message serialization failed: {e}")
+            logger.error(f'Failed to serialize message: {e}')
+            raise VSPError(f'Message serialization failed: {e}')
 
     @classmethod
-    def from_bytes(cls, data: bytes) -> "VSPMessage":
+    def from_bytes(cls, data: bytes) -> 'VSPMessage':
         """Deserialization"""
         try:
             if HAS_ORJSON:
@@ -95,18 +95,18 @@ class VSPMessage:
             elif HAS_MSGPACK:
                 unpacked = msgpack.unpackb(data, raw=False)
             else:
-                unpacked = json.loads(data.decode("utf-8"))
+                unpacked = json.loads(data.decode('utf-8'))
 
             return cls(
-                unpacked["header"]["request_id"],
-                unpacked["header"]["service"],
-                unpacked["header"]["endpoint"],
-                unpacked["body"],
-                unpacked["header"].get("is_response", False),
+                unpacked['header']['request_id'],
+                unpacked['header']['service'],
+                unpacked['header']['endpoint'],
+                unpacked['body'],
+                unpacked['header'].get('is_response', False),
             )
         except Exception as e:
-            logger.error(f"Failed to deserialize message: {e}")
-            raise VSPError(f"Message deserialization failed: {e}")
+            logger.error(f'Failed to deserialize message: {e}')
+            raise VSPError(f'Message deserialization failed: {e}')
 
     def clear_cache(self) -> None:
         """Clear serialization cache"""
@@ -114,8 +114,8 @@ class VSPMessage:
 
     def __repr__(self) -> str:
         return (
-            f"VSPMessage(request_id={self.header['request_id']}, "
-            f"service={self.header['service']}, "
-            f"endpoint={self.header['endpoint']}, "
-            f"is_response={self.header['is_response']})"
+            f'VSPMessage(request_id={self.header["request_id"]}, '
+            f'service={self.header["service"]}, '
+            f'endpoint={self.header["endpoint"]}, '
+            f'is_response={self.header["is_response"]})'
         )

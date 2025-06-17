@@ -33,7 +33,7 @@ class SessionInterface:
 
     def generate_session_id(self) -> str:
         """Generate a new session ID."""
-        return base64.urlsafe_b64encode(os.urandom(32)).decode().rstrip("=")
+        return base64.urlsafe_b64encode(os.urandom(32)).decode().rstrip('=')
 
 
 class MemorySessionInterface(SessionInterface):
@@ -71,7 +71,7 @@ class SignedCookieSessionInterface(SessionInterface):
 
     def __init__(self, secret_key: str, max_age: int = 3600):
         if not secret_key:
-            raise ValueError("secret_key is required for signed cookie sessions")
+            raise ValueError('secret_key is required for signed cookie sessions')
         self.secret_key = (
             secret_key.encode() if isinstance(secret_key, str) else secret_key
         )
@@ -80,12 +80,12 @@ class SignedCookieSessionInterface(SessionInterface):
     def _sign_data(self, data: str) -> str:
         """Sign data with HMAC."""
         signature = hmac.new(self.secret_key, data.encode(), hashlib.sha256).hexdigest()
-        return f"{data}.{signature}"
+        return f'{data}.{signature}'
 
     def _unsign_data(self, signed_data: str) -> str | None:
         """Verify and unsign data."""
         try:
-            data, signature = signed_data.rsplit(".", 1)
+            data, signature = signed_data.rsplit('.', 1)
             expected_signature = hmac.new(
                 self.secret_key, data.encode(), hashlib.sha256
             ).hexdigest()
@@ -97,9 +97,9 @@ class SignedCookieSessionInterface(SessionInterface):
 
     def _encode_session(self, session_data: dict[str, typing.Any]) -> str:
         """Encode session data to a signed string."""
-        payload = {"data": session_data, "timestamp": time.time()}
-        json_data = json.dumps(payload, separators=(",", ":"))
-        encoded_data = base64.urlsafe_b64encode(json_data.encode()).decode().rstrip("=")
+        payload = {'data': session_data, 'timestamp': time.time()}
+        json_data = json.dumps(payload, separators=(',', ':'))
+        encoded_data = base64.urlsafe_b64encode(json_data.encode()).decode().rstrip('=')
         return self._sign_data(encoded_data)
 
     def _decode_session(self, signed_data: str) -> dict[str, typing.Any]:
@@ -112,16 +112,16 @@ class SignedCookieSessionInterface(SessionInterface):
             # Add padding if needed
             padding = 4 - len(encoded_data) % 4
             if padding != 4:
-                encoded_data += "=" * padding
+                encoded_data += '=' * padding
 
             json_data = base64.urlsafe_b64decode(encoded_data).decode()
             payload = json.loads(json_data)
 
             # Check expiration
-            if time.time() - payload["timestamp"] > self.max_age:
+            if time.time() - payload['timestamp'] > self.max_age:
                 return {}
 
-            return payload["data"]
+            return payload['data']
         except (ValueError, TypeError, json.JSONDecodeError):
             return {}
 
@@ -257,7 +257,7 @@ class SessionMiddleware(ProtocolWrapperMiddleware):
         self,
         app: typing.Any,
         session_interface: SessionInterface | None = None,
-        cookie_name: str = "velithon_session",
+        cookie_name: str = 'velithon_session',
         cookie_params: dict[str, typing.Any] | None = None,
         secret_key: str | None = None,
         max_age: int = 3600,
@@ -265,10 +265,10 @@ class SessionMiddleware(ProtocolWrapperMiddleware):
         super().__init__(app)
         self.cookie_name = cookie_name
         self.cookie_params = cookie_params or {
-            "path": "/",
-            "httponly": True,
-            "secure": False,
-            "samesite": "lax",
+            'path': '/',
+            'httponly': True,
+            'secure': False,
+            'samesite': 'lax',
         }
         self.max_age = max_age
 
@@ -318,7 +318,7 @@ class SessionMiddleware(ProtocolWrapperMiddleware):
                     **{
                         k: v
                         for k, v in self.cookie_params.items()
-                        if k in ("path", "domain", "secure", "httponly", "samesite")
+                        if k in ('path', 'domain', 'secure', 'httponly', 'samesite')
                     },
                 )
         else:
@@ -331,7 +331,7 @@ class SessionMiddleware(ProtocolWrapperMiddleware):
                     else:
                         # Use existing session ID from request
                         session_id = getattr(
-                            session, "_id", self.session_interface.generate_session_id()
+                            session, '_id', self.session_interface.generate_session_id()
                         )
 
                     # Save session data (async operation needs to be handled differently)
@@ -352,7 +352,7 @@ class SessionMiddleware(ProtocolWrapperMiddleware):
                         **{
                             k: v
                             for k, v in self.cookie_params.items()
-                            if k in ("path", "domain", "secure", "httponly", "samesite")
+                            if k in ('path', 'domain', 'secure', 'httponly', 'samesite')
                         },
                     )
 
@@ -360,6 +360,6 @@ class SessionMiddleware(ProtocolWrapperMiddleware):
 # Helper function to access session from request
 def get_session(request: Request) -> Session:
     """Get session from request object."""
-    if hasattr(request.scope, "_session"):
+    if hasattr(request.scope, '_session'):
         return request.scope._session
     return Session()

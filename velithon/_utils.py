@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import asyncio
 import concurrent.futures
 import functools
@@ -7,7 +6,8 @@ import os
 import random
 import threading
 import time
-from typing import Any, AsyncIterator, Callable, Iterable, Optional, Tuple, TypeVar
+from collections.abc import AsyncIterator, Callable, Iterable
+from typing import Any, TypeVar
 
 from ._velithon import ResponseCache
 from .cache import CacheConfig, LRUCache, cache_manager, middleware_cache
@@ -20,14 +20,14 @@ except ImportError:
     HAS_ORJSON = False
 
 try:
-    import ujson # type: ignore  # noqa: I001
+    import ujson  # type: ignore  # noqa: I001
 
     HAS_UJSON = True
 except ImportError:
     HAS_UJSON = False
 
 
-T = TypeVar("T")
+T = TypeVar('T')
 
 # OPTIMIZED: Better configured thread pool with optimal sizing
 _thread_pool = None
@@ -41,7 +41,7 @@ def set_thread_pool() -> None:
             # Optimal thread count: CPU cores + 4 (for I/O bound tasks)
             max_workers = min(32, (os.cpu_count() or 1) + 4)
             _thread_pool = concurrent.futures.ThreadPoolExecutor(
-                max_workers=max_workers, thread_name_prefix="velithon_optimized"
+                max_workers=max_workers, thread_name_prefix='velithon_optimized'
             )
 
 
@@ -49,7 +49,7 @@ def is_async_callable(obj: Any) -> bool:
     if isinstance(obj, functools.partial):
         obj = obj.func
     return asyncio.iscoroutinefunction(obj) or (
-        callable(obj) and asyncio.iscoroutinefunction(getattr(obj, "__call__", None))
+        callable(obj) and asyncio.iscoroutinefunction(getattr(obj, '__call__', None))
     )
 
 
@@ -64,7 +64,7 @@ async def run_in_threadpool(func: Callable, *args, **kwargs) -> Any:
 async def iterate_in_threadpool(iterator: Iterable[T]) -> AsyncIterator[T]:
     as_iterator = iter(iterator)
 
-    def next_item() -> Tuple[bool, Optional[T]]:
+    def next_item() -> tuple[bool, T | None]:
         try:
             return True, next(as_iterator)
         except StopIteration:
@@ -81,7 +81,7 @@ class RequestIDGenerator:
     """Efficient request ID generator with much less overhead than UUID."""
 
     def __init__(self):
-        self._prefix = f"{random.randint(100, 999)}"
+        self._prefix = f'{random.randint(100, 999)}'
         self._counter = 0
         self._lock = threading.Lock()
 
@@ -91,7 +91,7 @@ class RequestIDGenerator:
 
         with self._lock:
             self._counter = (self._counter + 1) % 100000
-            request_id = f"{self._prefix}-{timestamp}-{self._counter:05d}"
+            request_id = f'{self._prefix}-{timestamp}-{self._counter:05d}'
 
         return request_id
 
@@ -109,8 +109,8 @@ class FastJSONEncoder:
             self._encode = self._encode_stdlib
 
         # Cache for small, common responses using centralized cache
-        self._cache = LRUCache[Any, bytes](CacheConfig.get_cache_size("response"))
-        cache_manager.register_cache("json_encoder", self._cache)
+        self._cache = LRUCache[Any, bytes](CacheConfig.get_cache_size('response'))
+        cache_manager.register_cache('json_encoder', self._cache)
 
     def _encode_orjson(self, obj: Any) -> bytes:
         """Encode with orjson (fastest)."""
@@ -118,19 +118,19 @@ class FastJSONEncoder:
             return orjson.dumps(obj, option=orjson.OPT_SERIALIZE_NUMPY)
         except TypeError:
             # Fall back to standard JSON for types orjson can't handle
-            return json.dumps(obj, separators=(",", ":")).encode("utf-8")
+            return json.dumps(obj, separators=(',', ':')).encode('utf-8')
 
     def _encode_ujson(self, obj: Any) -> bytes:
         """Encode with ujson (faster than stdlib)."""
         try:
-            return ujson.dumps(obj).encode("utf-8")
+            return ujson.dumps(obj).encode('utf-8')
         except TypeError:
             # Fall back to standard JSON for types ujson can't handle
-            return json.dumps(obj, separators=(",", ":")).encode("utf-8")
+            return json.dumps(obj, separators=(',', ':')).encode('utf-8')
 
     def _encode_stdlib(self, obj: Any) -> bytes:
         """Encode with standard library json (always works but slower)."""
-        return json.dumps(obj, separators=(",", ":")).encode("utf-8")
+        return json.dumps(obj, separators=(',', ':')).encode('utf-8')
 
     def encode(self, obj: Any) -> bytes:
         """Encode object to JSON bytes with caching for common values."""
@@ -156,7 +156,7 @@ class FastJSONEncoder:
                 if all(isinstance(k, str) for k in obj.keys()):
                     # Create a stable string representation for the dict
                     items = sorted((str(k), str(v)) for k, v in obj.items())
-                    cache_key = "|".join(f"{k}:{v}" for k, v in items)
+                    cache_key = '|'.join(f'{k}:{v}' for k, v in items)
 
                     cached = self._cache.get(cache_key)
                     if cached is not None:
@@ -192,7 +192,9 @@ class MiddlewareOptimizer:
                 elif len(middleware_tuple) == 2:
                     return middleware_tuple[0](middleware_tuple[1](handler))
                 elif len(middleware_tuple) == 3:
-                    return middleware_tuple[0](middleware_tuple[1](middleware_tuple[2](handler)))
+                    return middleware_tuple[0](
+                        middleware_tuple[1](middleware_tuple[2](handler))
+                    )
 
             # Fall back to loop for longer chains
             wrapped = handler
@@ -228,12 +230,18 @@ class MiddlewareOptimizer:
             # High priority: Critical security middleware that must run first
             # Low priority: Expensive middleware that should run last
             middleware_name = (
-                middleware.__class__.__name__.lower() if hasattr(middleware, "__class__") else str(middleware)
+                middleware.__class__.__name__.lower()
+                if hasattr(middleware, '__class__')
+                else str(middleware)
             )
 
-            if "security" in middleware_name or "auth" in middleware_name:
+            if 'security' in middleware_name or 'auth' in middleware_name:
                 high_priority.append(middleware)
-            elif "log" in middleware_name or "compression" in middleware_name or "cache" in middleware_name:
+            elif (
+                'log' in middleware_name
+                or 'compression' in middleware_name
+                or 'cache' in middleware_name
+            ):
                 low_priority.append(middleware)
             else:
                 normal_priority.append(middleware)
@@ -248,7 +256,9 @@ _response_cache = ResponseCache()
 _middleware_optimizer = MiddlewareOptimizer()
 
 # Register the middleware cache for management
-cache_manager.register_lru_cache("middleware_chain", _middleware_optimizer.cached_middleware_chain)
+cache_manager.register_lru_cache(
+    'middleware_chain', _middleware_optimizer.cached_middleware_chain
+)
 
 
 def get_json_encoder() -> FastJSONEncoder:

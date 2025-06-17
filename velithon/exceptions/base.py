@@ -1,29 +1,29 @@
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any
 
 from velithon.status import HTTP_400_BAD_REQUEST
 
 
 class ResponseFormatter(ABC):
     @abstractmethod
-    def format_error(self, exception: "HTTPException") -> Dict[str, Any]:
+    def format_error(self, exception: 'HTTPException') -> dict[str, Any]:
         """Format exception into response dictionary"""
         pass
 
 
 class DefaultFormatter(ResponseFormatter):
-    def format_error(self, exception: "HTTPException") -> Dict[str, Any]:
+    def format_error(self, exception: 'HTTPException') -> dict[str, Any]:
         return {
-            "error": {
-                "code": exception.error.code if exception.error else "UNKNOWN_ERROR",
-                "message": exception.error.message
+            'error': {
+                'code': exception.error.code if exception.error else 'UNKNOWN_ERROR',
+                'message': exception.error.message
                 if exception.error
-                else "Unknown error occurred",
-                "details": exception.details or {},
-                "timestamp": datetime.now(tz=timezone.utc).isoformat(),
+                else 'Unknown error occurred',
+                'details': exception.details or {},
+                'timestamp': datetime.now(tz=timezone.utc).isoformat(),
             },
-            "status": exception.status_code,
+            'status': exception.status_code,
         }
 
 
@@ -47,10 +47,10 @@ class HTTPException(Exception):
     def __init__(
         self,
         status_code: int = HTTP_400_BAD_REQUEST,
-        error: Optional[VelithonError] = None,
-        details: Optional[Dict[str, Any]] = None,
-        headers: Optional[Dict[str, str]] = None,
-        formatter: Optional[ResponseFormatter] = None,
+        error: VelithonError | None = None,
+        details: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
+        formatter: ResponseFormatter | None = None,
     ):
         self.status_code = status_code
         self.error = error
@@ -58,6 +58,6 @@ class HTTPException(Exception):
         self.headers = headers or {}
         self._instance_formatter = formatter
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         formatter = self._instance_formatter or self._formatter
         return formatter.format_error(self)

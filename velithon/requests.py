@@ -6,10 +6,19 @@ from http import cookies as http_cookies
 import orjson
 from python_multipart.multipart import parse_options_header
 
-from velithon.datastructures import URL, Address, FormData, Headers, Protocol, QueryParams, Scope, UploadFile
+from velithon.datastructures import (
+    URL,
+    Address,
+    FormData,
+    Headers,
+    Protocol,
+    QueryParams,
+    Scope,
+    UploadFile,
+)
 from velithon.formparsers import FormParser, MultiPartException, MultiPartParser
 
-T_co = typing.TypeVar("T_co", covariant=True)
+T_co = typing.TypeVar('T_co', covariant=True)
 
 
 class AwaitableOrContextManager(
@@ -22,12 +31,12 @@ class SupportsAsyncClose(typing.Protocol):
 
 
 SupportsAsyncCloseType = typing.TypeVar(
-    "SupportsAsyncCloseType", bound=SupportsAsyncClose, covariant=False
+    'SupportsAsyncCloseType', bound=SupportsAsyncClose, covariant=False
 )
 
 
 class AwaitableOrContextManagerWrapper(typing.Generic[SupportsAsyncCloseType]):
-    __slots__ = ("aw", "entered")
+    __slots__ = ('aw', 'entered')
 
     def __init__(self, aw: typing.Awaitable[SupportsAsyncCloseType]) -> None:
         self.aw = aw
@@ -45,8 +54,7 @@ class AwaitableOrContextManagerWrapper(typing.Generic[SupportsAsyncCloseType]):
 
 
 def cookie_parser(cookie_string: str) -> dict[str, str]:
-    """
-    This function parses a ``Cookie`` HTTP header into a dict of key/value pairs.
+    """This function parses a ``Cookie`` HTTP header into a dict of key/value pairs.
 
     It attempts to mimic browser cookie parsing behavior: browsers and web servers
     frequently disregard the spec (RFC 6265) when setting and reading cookies,
@@ -57,13 +65,13 @@ def cookie_parser(cookie_string: str) -> dict[str, str]:
     on an outdated spec and will fail on lots of input we want to support
     """
     cookie_dict: dict[str, str] = {}
-    for chunk in cookie_string.split(";"):
-        if "=" in chunk:
-            key, val = chunk.split("=", 1)
+    for chunk in cookie_string.split(';'):
+        if '=' in chunk:
+            key, val = chunk.split('=', 1)
         else:
             # Assume an empty name per
             # https://bugzilla.mozilla.org/show_bug.cgi?id=169091
-            key, val = "", chunk
+            key, val = '', chunk
         key, val = key.strip(), val.strip()
         if key or val:
             # unquote using Python's algorithm.
@@ -72,15 +80,14 @@ def cookie_parser(cookie_string: str) -> dict[str, str]:
 
 
 class HTTPConnection(typing.Mapping[str, typing.Any]):
-    """
-    A base class for incoming HTTP connections, that is used to provide
+    """A base class for incoming HTTP connections, that is used to provide
     any functionality that is common to both `Request` and `WebSocket`.
     """
 
-    __slots__ = ("scope", "protocol")
+    __slots__ = ('protocol', 'scope')
 
     def __init__(self, scope: Scope, protocol: Protocol) -> None:
-        assert scope.proto in ("http", "websocket")
+        assert scope.proto in ('http', 'websocket')
         self.scope = scope
         self.protocol = protocol
 
@@ -101,19 +108,19 @@ class HTTPConnection(typing.Mapping[str, typing.Any]):
 
     @property
     def url(self) -> URL:
-        if not hasattr(self, "_url"):  # pragma: no branch
+        if not hasattr(self, '_url'):  # pragma: no branch
             self._url = URL(scope=self.scope)
         return self._url
 
     @property
     def headers(self) -> Headers:
-        if not hasattr(self, "_headers"):
+        if not hasattr(self, '_headers'):
             self._headers = Headers(headers=self.scope.headers.items())
         return self._headers
 
     @property
     def query_params(self) -> QueryParams:
-        if not hasattr(self, "_query_params"):  # pragma: no branch
+        if not hasattr(self, '_query_params'):  # pragma: no branch
             self._query_params = QueryParams(self.scope.query_string)
         return self._query_params
 
@@ -123,9 +130,9 @@ class HTTPConnection(typing.Mapping[str, typing.Any]):
 
     @property
     def cookies(self) -> dict[str, str]:
-        if not hasattr(self, "_cookies"):
+        if not hasattr(self, '_cookies'):
             cookies: dict[str, str] = {}
-            cookie_header = self.headers.get("cookie")
+            cookie_header = self.headers.get('cookie')
 
             if cookie_header:
                 cookies = cookie_parser(cookie_header)
@@ -135,7 +142,7 @@ class HTTPConnection(typing.Mapping[str, typing.Any]):
     @property
     def client(self) -> Address | None:
         # client is a 2 item tuple of (host, port), None if missing
-        host_port = self.scope.client.split(":")
+        host_port = self.scope.client.split(':')
         if host_port is not None:
             return Address(*host_port)
         return None
@@ -146,9 +153,9 @@ class Request(HTTPConnection):
 
     def __init__(self, scope: Scope, protocol: Protocol) -> None:
         super().__init__(scope, protocol)
-        assert scope.proto == "http"
+        assert scope.proto == 'http'
         self._form = None
-    
+
     @property
     def request_id(self) -> str:
         return self.scope._request_id
@@ -164,6 +171,7 @@ class Request(HTTPConnection):
             return self.scope._session
         # Return empty dict-like object if session middleware is not enabled
         from velithon.middleware.session import Session
+
         return Session()
 
     async def stream(self) -> typing.AsyncGenerator[bytes, None]:
@@ -171,15 +179,15 @@ class Request(HTTPConnection):
             yield chunk
 
     async def body(self) -> bytes:
-        if not hasattr(self, "_body"):
+        if not hasattr(self, '_body'):
             chunks: list[bytes] = []
             async for chunk in self.stream():
                 chunks.append(chunk)
-            self._body = b"".join(chunks)
+            self._body = b''.join(chunks)
         return self._body
 
     async def json(self) -> typing.Any:
-        if not hasattr(self, "_json"):  # pragma: no branch
+        if not hasattr(self, '_json'):  # pragma: no branch
             body = await self.body()
             self._json = orjson.loads(body)
         return self._json
@@ -193,12 +201,12 @@ class Request(HTTPConnection):
     ) -> FormData:
         if self._form is None:  # pragma: no branch
             assert parse_options_header is not None, (
-                "The `python-multipart` library must be installed to use form parsing."
+                'The `python-multipart` library must be installed to use form parsing.'
             )
-            content_type_header = self.headers.get("Content-Type")
+            content_type_header = self.headers.get('Content-Type')
             content_type: bytes
             content_type, _ = parse_options_header(content_type_header)
-            if content_type == b"multipart/form-data":
+            if content_type == b'multipart/form-data':
                 try:
                     multipart_parser = MultiPartParser(
                         self.headers,
@@ -210,7 +218,7 @@ class Request(HTTPConnection):
                     self._form = await multipart_parser.parse()
                 except MultiPartException as exc:
                     raise exc
-            elif content_type == b"application/x-www-form-urlencoded":
+            elif content_type == b'application/x-www-form-urlencoded':
                 form_parser = FormParser(self.headers, self.stream())
                 self._form = await form_parser.parse()
             else:
@@ -229,10 +237,10 @@ class Request(HTTPConnection):
                 max_files=max_files, max_fields=max_fields, max_part_size=max_part_size
             )
         )
-    
-    async def files(self) -> typing.Dict[str, typing.List[UploadFile]]:
+
+    async def files(self) -> dict[str, list[UploadFile]]:
         async with self.form() as form:
-            files: typing.Dict[str, typing.List[UploadFile]] = {}
+            files: dict[str, list[UploadFile]] = {}
             for field_name, field_value in form.multi_items():
                 if isinstance(field_value, UploadFile):
                     files.setdefault(field_name, []).append(field_value)
@@ -241,7 +249,7 @@ class Request(HTTPConnection):
                         if isinstance(item, UploadFile):
                             files.setdefault(field_name, []).append(item)
             return files
-    
+
     async def close(self) -> None:
         if self._form is not None:  # pragma: no branch
             await self._form.close()

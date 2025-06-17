@@ -13,28 +13,28 @@ class Convertor:
 
 @dataclass(frozen=True)
 class StringConvertor(Convertor):
-    regex = ".*"
+    regex = '.*'
 
     def convert(self, value: str) -> str: ...
     def to_string(self, value: str) -> str: ...
 
 @dataclass(frozen=True)
 class PathConvertor(Convertor):
-    regex = ".*"
+    regex = '.*'
 
     def convert(self, value: str) -> str: ...
     def to_string(self, value: str) -> str: ...
 
 @dataclass(frozen=True)
 class IntegerConvertor(Convertor):
-    regex = "[0-9]+"
+    regex = '[0-9]+'
 
     def convert(self, value: str) -> int: ...
     def to_string(self, value: int) -> str: ...
 
 @dataclass(frozen=True)
 class FloatConvertor(Convertor):
-    regex = r"[0-9]+(\.[0-9]+)?"
+    regex = r'[0-9]+(\.[0-9]+)?'
 
     def convert(self, value: str) -> float: ...
     def to_string(self, value: float) -> str: ...
@@ -42,15 +42,15 @@ class FloatConvertor(Convertor):
 @dataclass(frozen=True)
 class UUIDConvertor(Convertor):
     regex = (
-        "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
+        '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
     )
 
     def convert(self, value: str) -> uuid.UUID: ...
     def to_string(self, value: uuid.UUID) -> str: ...
 
 def compile_path(
-    path: str, convertor_types: typing.Dict[str, Convertor]
-) -> typing.Tuple[str, str, typing.Dict[str, Convertor]]:
+    path: str, convertor_types: dict[str, Convertor]
+) -> tuple[str, str, dict[str, Convertor]]:
     # This function would compile a path using the provided convertor types.
     # The implementation is not provided in the original code snippet.
     ...
@@ -59,10 +59,10 @@ def compile_path(
 @dataclass(frozen=True)
 class ResponseCache:
     max_size: int
-    cache: typing.Dict[str, typing.Any]
-    access_order: typing.List[str]
+    cache: dict[str, typing.Any]
+    access_order: list[str]
 
-    def get(self, key: str) -> typing.Optional[typing.Any]: ...
+    def get(self, key: str) -> typing.Any | None: ...
     def put(self, key: str, value: typing.Any) -> None: ...
 
 # Block for Dependency Injection and caching of signatures.
@@ -72,7 +72,7 @@ def di_cached_signature(func: typing.Callable) -> typing.Any:
 class Provide:
     service: typing.Any
 
-    def __class_getitem__(cls, service: typing.Any) -> "Provide": ...
+    def __class_getitem__(cls, service: typing.Any) -> Provide: ...
 
 @dataclass(frozen=True)
 class Provider:
@@ -86,13 +86,11 @@ class Provider:
 
 @dataclass(frozen=True)
 class SingletonProvider(Provider):
-    cls: typing.Type
-    kwargs: typing.Dict[str, typing.Any] = None
+    cls: type
+    kwargs: dict[str, typing.Any] = None
     lock_key: str
 
-    def __init__(
-        self, cls: typing.Type, kwargs: typing.Dict[str, typing.Any] = None
-    ) -> None: ...
+    def __init__(self, cls: type, kwargs: dict[str, typing.Any] = None) -> None: ...
     def get(
         self,
         scope: typing.Any | None = None,
@@ -101,12 +99,10 @@ class SingletonProvider(Provider):
 
 @dataclass(frozen=True)
 class FactoryProvider(Provider):
-    cls: typing.Type
-    kwargs: typing.Dict[str, typing.Any] = None
+    cls: type
+    kwargs: dict[str, typing.Any] = None
 
-    def __init__(
-        self, cls: typing.Type, kwargs: typing.Dict[str, typing.Any] = None
-    ) -> None: ...
+    def __init__(self, cls: type, kwargs: dict[str, typing.Any] = None) -> None: ...
     def get(
         self,
         scope: typing.Any | None = None,
@@ -115,12 +111,10 @@ class FactoryProvider(Provider):
 
 @dataclass(frozen=True)
 class AsyncFactoryProvider(Provider):
-    cls: typing.Type
-    kwargs: typing.Dict[str, typing.Any] = None
+    cls: type
+    kwargs: dict[str, typing.Any] = None
 
-    def __init__(
-        self, cls: typing.Type, kwargs: typing.Dict[str, typing.Any] = None
-    ) -> None: ...
+    def __init__(self, cls: type, kwargs: dict[str, typing.Any] = None) -> None: ...
     async def get(
         self,
         scope: typing.Any | None = None,
@@ -140,13 +134,13 @@ class ServiceContainer:
 
 # Block for Rust-based logging system.
 class LogLevel(str, enum.Enum):
-    Debug = "DEBUG"
-    Info = "INFO"
-    Warn = "WARNING"
-    Error = "ERROR"
-    Critical = "CRITICAL"
+    Debug = 'DEBUG'
+    Info = 'INFO'
+    Warn = 'WARNING'
+    Error = 'ERROR'
+    Critical = 'CRITICAL'
 
-    def from_str(cls, s: str) -> "LogLevel": ...
+    def from_str(cls, s: str) -> LogLevel: ...
     def to_str(self) -> str: ...
     def to_int(self) -> int: ...
 
@@ -167,7 +161,7 @@ def log_debug_with_extra(
     message: str,
     module: str,
     line: int,
-    extra: typing.Dict[str, typing.Any],
+    extra: dict[str, typing.Any],
 ) -> None: ...
 def log_info(
     message: str,
@@ -178,7 +172,7 @@ def log_info_with_extra(
     message: str,
     module: str,
     line: int,
-    extra: typing.Dict[str, typing.Any],
+    extra: dict[str, typing.Any],
 ) -> None: ...
 def log_warn(
     message: str,
@@ -189,7 +183,7 @@ def log_warn_with_extra(
     message: str,
     module: str,
     line: int,
-    extra: typing.Dict[str, typing.Any],
+    extra: dict[str, typing.Any],
 ) -> None: ...
 def log_error(
     message: str,
@@ -200,7 +194,7 @@ def log_error_with_extra(
     message: str,
     module: str,
     line: int,
-    extra: typing.Dict[str, typing.Any],
+    extra: dict[str, typing.Any],
 ) -> None: ...
 def log_critical(
     message: str,
@@ -211,16 +205,16 @@ def log_critical_with_extra(
     message: str,
     module: str,
     line: int,
-    extra: typing.Dict[str, typing.Any],
+    extra: dict[str, typing.Any],
 ) -> None: ...
 def is_enabled_for(level: str) -> bool: ...
 
 # Block for VSP service management.
 
 class HealthStatus(str, enum.Enum):
-    Healthy = "HealthStatus.Healthy"
-    Unhealthy = "HealthStatus.Unhealthy"
-    Unknown = "HealthStatus.Unknown"
+    Healthy = 'HealthStatus.Healthy'
+    Unhealthy = 'HealthStatus.Unhealthy'
+    Unknown = 'HealthStatus.Unknown'
 
     def __repr__(self) -> str: ...
 
@@ -241,7 +235,7 @@ class ServiceInfo:
 class LoadBalancer:
     """Abstract Load Balancer interface."""
 
-    def select(self, instances: typing.List[ServiceInfo]) -> ServiceInfo:
+    def select(self, instances: list[ServiceInfo]) -> ServiceInfo:
         """Select a service instance."""
         ...
 
@@ -251,13 +245,13 @@ class RoundRobinBalancer(LoadBalancer):
 
     index: int = 0
 
-    def select(self, instances: typing.List[ServiceInfo]) -> ServiceInfo: ...
+    def select(self, instances: list[ServiceInfo]) -> ServiceInfo: ...
 
 @dataclass(frozen=True)
 class WeightedBalancer(LoadBalancer):
     """Weighted Load Balancer based on instance weight."""
 
-    def select(self, instances: typing.List[ServiceInfo]) -> ServiceInfo: ...
+    def select(self, instances: list[ServiceInfo]) -> ServiceInfo: ...
 
 # Block for Background tasks management.
 @dataclass(frozen=True)
@@ -265,8 +259,8 @@ class BackgroundTask:
     """Background task that can be executed asynchronously."""
 
     func: typing.Callable[..., typing.Any]
-    args: typing.Tuple[typing.Any, ...]
-    kwargs: typing.Dict[str, typing.Any]
+    args: tuple[typing.Any, ...]
+    kwargs: dict[str, typing.Any]
     is_async: bool
 
     async def __call__(self) -> None:
@@ -277,7 +271,7 @@ class BackgroundTask:
 class BackgroundTasks:
     """Collection of background tasks to be executed."""
 
-    tasks: typing.List[BackgroundTask]
+    tasks: list[BackgroundTask]
     max_concurrent: int = 10
 
     def add_task(
@@ -312,34 +306,32 @@ class Match(int, enum.Enum):
 @dataclass(frozen=True)
 class _RouteOptimizer:
     path_regex: str
-    param_convertors: typing.Dict[str, Convertor]
-    method: typing.Dict[str, typing.Any]
-    path_cache: typing.Dict[str, typing.Dict[str, typing.Any] | None]
+    param_convertors: dict[str, Convertor]
+    method: dict[str, typing.Any]
+    path_cache: dict[str, dict[str, typing.Any] | None]
     max_cache_size: int
     is_simple_route: bool
     simple_path: str | None
 
     def match(
         self, route_path: str, method: str
-    ) -> typing.Tuple[Match, typing.Dict[str, typing.Any]]:
+    ) -> tuple[Match, dict[str, typing.Any]]:
         """Match a route path against the optimizer's path regex."""
         ...
-    def get_allowed_methods(self) -> typing.List[str]:
+    def get_allowed_methods(self) -> list[str]:
         """Get allowed methods for the route."""
         ...
     def clear_cache(self) -> None:
         """Clear the cache for the route optimizer."""
         ...
-    def cache_stats(self) -> typing.Tuple[int, int]:
+    def cache_stats(self) -> tuple[int, int]:
         """Get cache statistics."""
         ...
 
 @dataclass(frozen=True)
 class _RouterOptimizer:
-    extrac_routes: typing.Dict[str, int]  # path:method -> route index
-    route_lookup: typing.Dict[
-        str, int
-    ]  # path:method -> route index or -1 for not found
+    extrac_routes: dict[str, int]  # path:method -> route index
+    route_lookup: dict[str, int]  # path:method -> route index or -1 for not found
     max_cache_size: int
 
     def cache_route(self, path: str, method: str, route_index: int) -> None:
@@ -351,25 +343,25 @@ class _RouterOptimizer:
     def clear_cache(self) -> None:
         """Clear the cache for the router optimizer."""
         ...
-    def cache_stats(self) -> typing.Tuple[int, int, int]:
+    def cache_stats(self) -> tuple[int, int, int]:
         """Get cache statistics for the router optimizer."""
         ...
 
 @dataclass(frozen=True)
 class _RoutePatternMatcher:
-    patterns: typing.List[typing.Tuple[str, str, typing.Dict[str, Convertor]]]
-    extrac_paths: typing.Dict[str, int]  # path:method -> route index
+    patterns: list[tuple[str, str, dict[str, Convertor]]]
+    extrac_paths: dict[str, int]  # path:method -> route index
 
     def add_pattern(
         self,
         path_regex: str,
         path_format: str,
-        param_convertors: typing.Dict[str, Convertor],
+        param_convertors: dict[str, Convertor],
         is_exact_path: bool,
     ) -> None:
         """Add a new pattern to the matcher."""
         ...
-    def match_path(self, route_path: str) -> typing.Tuple[int, typing.Dict[str, typing.Any]]:
+    def match_path(self, route_path: str) -> tuple[int, dict[str, typing.Any]]:
         """Match a route path against the patterns."""
         # This method would match the route path against the compiled patterns and return the match result.
         ...
@@ -384,7 +376,7 @@ class _RoutePatternMatcher:
 # Proxy classes
 class ProxyClient:
     """High-performance HTTP proxy client with circuit breaker pattern."""
-    
+
     def __init__(
         self,
         target_url: str,
@@ -393,38 +385,35 @@ class ProxyClient:
         max_failures: int = 5,
         recovery_timeout_ms: int = 60000,
     ) -> None: ...
-    
     async def forward_request(
         self,
         method: str,
         path: str,
-        headers: typing.Optional[typing.Dict[str, str]] = None,
-        body: typing.Optional[bytes] = None,
-        query_params: typing.Optional[typing.Dict[str, str]] = None,
-    ) -> typing.Tuple[int, typing.Dict[str, str], bytes]: ...
-    
-    async def get_circuit_breaker_status(self) -> typing.Tuple[str, int, typing.Optional[int]]: ...
+        headers: dict[str, str] | None = None,
+        body: bytes | None = None,
+        query_params: dict[str, str] | None = None,
+    ) -> tuple[int, dict[str, str], bytes]: ...
+    async def get_circuit_breaker_status(self) -> tuple[str, int, int | None]: ...
     async def reset_circuit_breaker(self) -> None: ...
 
 class ProxyLoadBalancer:
     """Load balancer for multiple proxy targets with health checking."""
-    
+
     def __init__(
         self,
-        targets: typing.List[str],
-        strategy: str = "round_robin",
-        weights: typing.Optional[typing.List[int]] = None,
-        health_check_url: typing.Optional[str] = None,
+        targets: list[str],
+        strategy: str = 'round_robin',
+        weights: list[int] | None = None,
+        health_check_url: str | None = None,
     ) -> None: ...
-    
     async def get_next_target(self) -> str: ...
     async def health_check(self) -> None: ...
-    async def get_health_status(self) -> typing.List[typing.Tuple[str, bool]]: ...
+    async def get_health_status(self) -> list[tuple[str, bool]]: ...
 
 # Block for Template Engine classes and functions.
 class _TemplateEngine:
     """High-performance template engine with Handlebars syntax."""
-    
+
     def __init__(
         self,
         template_dir: str,
@@ -432,43 +421,38 @@ class _TemplateEngine:
         cache_enabled: bool = True,
         strict_mode: bool = True,
     ) -> None: ...
-    
     def render(
-        self, 
-        template_name: str, 
-        context: typing.Optional[typing.Dict[str, typing.Any]] = None
+        self, template_name: str, context: dict[str, typing.Any] | None = None
     ) -> str: ...
-    
     def load_template(self, template_name: str) -> None: ...
-    def load_templates(self) -> typing.List[str]: ...
+    def load_templates(self) -> list[str]: ...
     def register_template(self, name: str, content: str) -> None: ...
     def clear_templates(self) -> None: ...
-    def get_template_names(self) -> typing.List[str]: ...
+    def get_template_names(self) -> list[str]: ...
     def is_template_registered(self, name: str) -> bool: ...
     def get_template_dir(self) -> str: ...
     def set_strict_mode(self, strict: bool) -> None: ...
 
 class _TemplateResponse:
     """Template response for convenient HTTP responses."""
-    
+
     def __init__(
         self,
         engine: _TemplateEngine,
         template_name: str,
-        context: typing.Optional[typing.Dict[str, typing.Any]] = None,
-        status_code: typing.Optional[int] = 200,
+        context: dict[str, typing.Any] | None = None,
+        status_code: int | None = 200,
     ) -> None: ...
-    
     def render(self) -> str: ...
     def get_status_code(self) -> int: ...
     def set_status_code(self, status_code: int) -> None: ...
-    def get_headers(self) -> typing.Dict[str, str]: ...
+    def get_headers(self) -> dict[str, str]: ...
     def set_header(self, key: str, value: str) -> None: ...
-    def add_headers(self, headers: typing.Dict[str, str]) -> None: ...
+    def add_headers(self, headers: dict[str, str]) -> None: ...
 
 def create_template_engine(
     template_dir: str,
-    auto_reload: typing.Optional[bool] = True,
-    cache_enabled: typing.Optional[bool] = True,
-    strict_mode: typing.Optional[bool] = True,
+    auto_reload: bool | None = True,
+    cache_enabled: bool | None = True,
+    strict_mode: bool | None = True,
 ) -> _TemplateEngine: ...

@@ -40,14 +40,13 @@ from velithon._velithon import (
 
 
 class RustLoggingHandler(logging.Handler):
-    """
-    Python logging Handler that forwards log records to the Rust logging implementation.
+    """Python logging Handler that forwards log records to the Rust logging implementation.
     This allows standard Python logging calls to use the high-performance Rust backend.
     """
-    
+
     def __init__(self, level=logging.NOTSET):
         super().__init__(level)
-        
+
     def emit(self, record):
         """Process a logging record and forward it to Rust."""
         try:
@@ -56,24 +55,48 @@ class RustLoggingHandler(logging.Handler):
                 msg = record.getMessage()
             else:
                 msg = record.msg
-                
+
             # Get caller info
             module = getattr(record, 'name', 'python')
             line = getattr(record, 'lineno', 0)
-            
+
             # Extract extra fields for structured logging
             extra_fields = {}
             if hasattr(record, '__dict__'):
-                extra_fields = {k: v for k, v in record.__dict__.items() 
-                              if k not in ['name', 'msg', 'args', 'levelname', 'levelno', 
-                                         'pathname', 'filename', 'module', 'lineno', 'funcName',
-                                         'created', 'msecs', 'relativeCreated', 'thread', 
-                                         'threadName', 'processName', 'process', 'getMessage',
-                                         'exc_info', 'exc_text', 'stack_info']}
-            
+                extra_fields = {
+                    k: v
+                    for k, v in record.__dict__.items()
+                    if k
+                    not in [
+                        'name',
+                        'msg',
+                        'args',
+                        'levelname',
+                        'levelno',
+                        'pathname',
+                        'filename',
+                        'module',
+                        'lineno',
+                        'funcName',
+                        'created',
+                        'msecs',
+                        'relativeCreated',
+                        'thread',
+                        'threadName',
+                        'processName',
+                        'process',
+                        'getMessage',
+                        'exc_info',
+                        'exc_text',
+                        'stack_info',
+                    ]
+                }
+
             # Convert extra fields to string dict for Rust compatibility
-            extra_str_dict = {k: str(v) for k, v in extra_fields.items()} if extra_fields else {}
-            
+            extra_str_dict = (
+                {k: str(v) for k, v in extra_fields.items()} if extra_fields else {}
+            )
+
             # Map Python log levels to our Rust functions
             if record.levelno >= logging.CRITICAL:
                 if extra_str_dict:
@@ -100,29 +123,29 @@ class RustLoggingHandler(logging.Handler):
                     rust_log_debug_with_extra(str(msg), module, line, extra_str_dict)
                 else:
                     rust_log_debug(str(msg), module, line)
-                
+
         except Exception as e:
             # Fallback to stderr if logging fails
             import sys
-            print(f"Rust logging error: {e}", file=sys.stderr)
+
+            print(f'Rust logging error: {e}', file=sys.stderr)
 
 
 class RustLogger:
-    """
-    A Python wrapper around the Rust logging implementation.
+    """A Python wrapper around the Rust logging implementation.
     Provides compatibility with Python's logging interface while leveraging
     Rust's performance for the actual logging operations.
     """
 
-    def __init__(self, name: str = "velithon"):
+    def __init__(self, name: str = 'velithon'):
         self.name = name
         self._configured = False
 
     def configure(
         self,
-        log_file: str = "velithon.log",
-        level: str = "INFO",
-        log_format: str = "text",
+        log_file: str = 'velithon.log',
+        level: str = 'INFO',
+        log_format: str = 'text',
         log_to_file: bool = False,
         max_bytes: int = 10 * 1024 * 1024,
         backup_count: int = 7,
@@ -144,7 +167,7 @@ class RustLogger:
         try:
             # Go up the stack to find the actual caller
             caller_frame = frame.f_back.f_back
-            module = caller_frame.f_globals.get("__name__", "unknown")
+            module = caller_frame.f_globals.get('__name__', 'unknown')
             line = caller_frame.f_lineno
             return module, line
         finally:
@@ -162,9 +185,9 @@ class RustLogger:
         if args:
             msg = msg % args
         module, line = self._get_caller_info()
-        
+
         # Handle extra fields for structured logging
-        extra = kwargs.get("extra", {})
+        extra = kwargs.get('extra', {})
         if extra:
             # Convert all values to strings for Rust compatibility
             extra_str = {k: str(v) for k, v in extra.items()}
@@ -200,13 +223,13 @@ class RustLogger:
     def isEnabledFor(self, level: int) -> bool:
         """Check if logging is enabled for the given level."""
         level_map = {
-            10: "DEBUG",
-            20: "INFO", 
-            30: "WARNING",
-            40: "ERROR",
-            50: "CRITICAL",
+            10: 'DEBUG',
+            20: 'INFO',
+            30: 'WARNING',
+            40: 'ERROR',
+            50: 'CRITICAL',
         }
-        level_str = level_map.get(level, "INFO")
+        level_str = level_map.get(level, 'INFO')
         return rust_is_enabled_for(level_str)
 
 
@@ -215,16 +238,15 @@ _rust_logger = RustLogger()
 
 
 def configure_logger(
-    log_file: str = "velithon.log",
-    level: str = "INFO",
-    log_format: str = "text",
+    log_file: str = 'velithon.log',
+    level: str = 'INFO',
+    log_format: str = 'text',
     log_to_file: bool = False,
     max_bytes: int = 10 * 1024 * 1024,
     backup_count: int = 7,
 ) -> None:
-    """
-    Configure the Rust-based logger.
-    
+    """Configure the Rust-based logger.
+
     Args:
         log_file: Path to the log file
         level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
@@ -232,6 +254,7 @@ def configure_logger(
         log_to_file: Whether to log to file in addition to console
         max_bytes: Maximum size of log file before rotation
         backup_count: Number of backup files to keep
+
     """
     # Configure the Rust logger backend
     _rust_logger.configure(
@@ -242,31 +265,31 @@ def configure_logger(
         max_bytes=max_bytes,
         backup_count=backup_count,
     )
-    
+
     # Set up Python logging to use our Rust handler
     root_logger = logging.getLogger()
-    
+
     # Remove existing handlers to avoid duplicates
     for handler in root_logger.handlers[:]:
         root_logger.removeHandler(handler)
-    
+
     # Add our Rust handler
     rust_handler = RustLoggingHandler()
-    
+
     # Map string level to Python logging level
     level_map = {
-        "DEBUG": logging.DEBUG,
-        "INFO": logging.INFO,
-        "WARNING": logging.WARNING,
-        "ERROR": logging.ERROR,
-        "CRITICAL": logging.CRITICAL,
+        'DEBUG': logging.DEBUG,
+        'INFO': logging.INFO,
+        'WARNING': logging.WARNING,
+        'ERROR': logging.ERROR,
+        'CRITICAL': logging.CRITICAL,
     }
     python_level = level_map.get(level.upper(), logging.INFO)
-    
+
     root_logger.setLevel(python_level)
     rust_handler.setLevel(python_level)
     root_logger.addHandler(rust_handler)
-    
+
     # Also configure the velithon logger specifically
     velithon_logger = logging.getLogger('velithon')
     velithon_logger.setLevel(python_level)
@@ -276,20 +299,18 @@ def configure_logger(
     velithon_logger.propagate = False  # Don't propagate to root to avoid double logging
 
 
-def get_logger(name: str = "velithon") -> RustLogger:
-    """
-    Get the configured Rust logger instance.
-    
+def get_logger(name: str = 'velithon') -> RustLogger:
+    """Get the configured Rust logger instance.
+
     Note: Currently returns the global logger instance regardless of name.
     The name parameter is kept for API compatibility but not used.
     """
     return _rust_logger
 
 
-
 # Export the main functions and classes
 __all__ = [
-    "configure_logger",
-    "get_logger", 
-    "RustLogger",
+    'RustLogger',
+    'configure_logger',
+    'get_logger',
 ]

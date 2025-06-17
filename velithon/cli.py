@@ -25,7 +25,7 @@ def import_from_string(import_str: Any) -> Any:
     if not isinstance(import_str, str):
         return import_str
 
-    module_str, _, attrs_str = import_str.partition(":")
+    module_str, _, attrs_str = import_str.partition(':')
     if not module_str or not attrs_str:
         message = (
             'Import string "{import_str}" must be in format "<module>:<attribute>".'
@@ -42,7 +42,7 @@ def import_from_string(import_str: Any) -> Any:
 
     instance = module
     try:
-        for attr_str in attrs_str.split("."):
+        for attr_str in attrs_str.split('.'):
             instance = getattr(instance, attr_str)
     except AttributeError:
         message = 'Attribute "{attrs_str}" not found in module "{module_str}".'
@@ -61,155 +61,155 @@ def cli() -> None:
 
 @cli.command()
 @click.option(
-    "--app",
-    default="simple_app:app",
-    help="Application module and instance (format: module:app_instance).",
+    '--app',
+    default='simple_app:app',
+    help='Application module and instance (format: module:app_instance).',
 )
-@click.option("--host", default="127.0.0.1", help="Host to bind.")
-@click.option("--port", default=8000, type=int, help="Port to bind.")
-@click.option("--workers", default=1, type=int, help="Number of worker processes.")
-@click.option("--log-file", default="velithon.log", help="Log file path.")
+@click.option('--host', default='127.0.0.1', help='Host to bind.')
+@click.option('--port', default=8000, type=int, help='Port to bind.')
+@click.option('--workers', default=1, type=int, help='Number of worker processes.')
+@click.option('--log-file', default='velithon.log', help='Log file path.')
 @click.option(
-    "--log-level",
-    default="INFO",
-    type=click.Choice(["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]),
-    help="Logging level.",
+    '--log-level',
+    default='INFO',
+    type=click.Choice(['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']),
+    help='Logging level.',
 )
 @click.option(
-    "--log-format",
-    default="text",
-    type=click.Choice(["text", "json"]),
-    help="Log format.",
+    '--log-format',
+    default='text',
+    type=click.Choice(['text', 'json']),
+    help='Log format.',
 )
-@click.option("--log-to-file", is_flag=True, help="Enable logging to file.")
+@click.option('--log-to-file', is_flag=True, help='Enable logging to file.')
 @click.option(
-    "--max-bytes",
+    '--max-bytes',
     default=10 * 1024 * 1024,
     type=int,
-    help="Max bytes for log file rotation.",
+    help='Max bytes for log file rotation.',
 )
 @click.option(
-    "--backup-count", default=7, type=int, help="Number of backup log files. (days)"
+    '--backup-count', default=7, type=int, help='Number of backup log files. (days)'
 )
 @click.option(
-    "--blocking-threads", default=None, type=int, help="Number of blocking threads."
+    '--blocking-threads', default=None, type=int, help='Number of blocking threads.'
 )
 @click.option(
-    "--blocking-threads-idle-timeout",
+    '--blocking-threads-idle-timeout',
     default=30,
     type=int,
-    help="Idle timeout for blocking threads.",
+    help='Idle timeout for blocking threads.',
 )
 @click.option(
-    "--runtime-threads", default=1, type=int, help="Number of runtime threads."
+    '--runtime-threads', default=1, type=int, help='Number of runtime threads.'
 )
 @click.option(
-    "--runtime-blocking-threads",
+    '--runtime-blocking-threads',
     default=None,
     type=int,
-    help="Number of blocking threads for runtime.",
+    help='Number of blocking threads for runtime.',
 )
 @click.option(
-    "--runtime-mode",
-    default="st",
-    type=click.Choice(["st", "mt"]),
-    help="Runtime mode (single-threaded or multi-threaded).",
+    '--runtime-mode',
+    default='st',
+    type=click.Choice(['st', 'mt']),
+    help='Runtime mode (single-threaded or multi-threaded).',
 )
 @click.option(
-    "--loop",
-    default="auto",
-    type=click.Choice(["auto", "asyncio", "uvloop", "rloop"]),
-    help="Event loop to use.",
+    '--loop',
+    default='auto',
+    type=click.Choice(['auto', 'asyncio', 'uvloop', 'rloop']),
+    help='Event loop to use.',
 )
 @click.option(
-    "--task-impl",
-    default="asyncio",
-    type=click.Choice(["asyncio", "rust"]),
-    help="Task implementation to use. **Note**: `rust` is only support in python <= 3.12",
+    '--task-impl',
+    default='asyncio',
+    type=click.Choice(['asyncio', 'rust']),
+    help='Task implementation to use. **Note**: `rust` is only support in python <= 3.12',
 )
 @click.option(
-    "--http",
-    default="auto",
-    type=click.Choice(["auto", "1", "2"]),
-    help="HTTP mode to use.",
+    '--http',
+    default='auto',
+    type=click.Choice(['auto', '1', '2']),
+    help='HTTP mode to use.',
 )
 @click.option(
-    "--http1-buffer-size",
+    '--http1-buffer-size',
     type=click.IntRange(8192),
     default=granian.http.HTTP1Settings.max_buffer_size,
-    help="Sets the maximum buffer size for HTTP/1 connections",
+    help='Sets the maximum buffer size for HTTP/1 connections',
 )
 @click.option(
-    "--http1-header-read-timeout",
+    '--http1-header-read-timeout',
     type=click.IntRange(1, 60_000),
     default=granian.http.HTTP1Settings.header_read_timeout,
-    help="Sets a timeout (in milliseconds) to read headers",
+    help='Sets a timeout (in milliseconds) to read headers',
 )
 @click.option(
-    "--http1-keep-alive/--no-http1-keep-alive",
+    '--http1-keep-alive/--no-http1-keep-alive',
     default=granian.http.HTTP1Settings.keep_alive,
-    help="Enables or disables HTTP/1 keep-alive",
+    help='Enables or disables HTTP/1 keep-alive',
 )
 @click.option(
-    "--http1-pipeline-flush/--no-http1-pipeline-flush",
+    '--http1-pipeline-flush/--no-http1-pipeline-flush',
     default=granian.http.HTTP1Settings.pipeline_flush,
-    help="Aggregates HTTP/1 flushes to better support pipelined responses (experimental)",
+    help='Aggregates HTTP/1 flushes to better support pipelined responses (experimental)',
 )
 @click.option(
-    "--http2-adaptive-window/--no-http2-adaptive-window",
+    '--http2-adaptive-window/--no-http2-adaptive-window',
     default=granian.http.HTTP2Settings.adaptive_window,
-    help="Sets whether to use an adaptive flow control for HTTP2",
+    help='Sets whether to use an adaptive flow control for HTTP2',
 )
 @click.option(
-    "--http2-initial-connection-window-size",
+    '--http2-initial-connection-window-size',
     type=click.IntRange(1024),
     default=granian.http.HTTP2Settings.initial_connection_window_size,
-    help="Sets the max connection-level flow control for HTTP2",
+    help='Sets the max connection-level flow control for HTTP2',
 )
 @click.option(
-    "--http2-initial-stream-window-size",
+    '--http2-initial-stream-window-size',
     type=click.IntRange(1024),
     default=granian.http.HTTP2Settings.initial_stream_window_size,
-    help="Sets the `SETTINGS_INITIAL_WINDOW_SIZE` option for HTTP2 stream-level flow control",
+    help='Sets the `SETTINGS_INITIAL_WINDOW_SIZE` option for HTTP2 stream-level flow control',
 )
 @click.option(
-    "--http2-keep-alive-interval",
+    '--http2-keep-alive-interval',
     type=click.IntRange(1, 60_000),
     default=granian.http.HTTP2Settings.keep_alive_interval,
-    help="Sets an interval (in milliseconds) for HTTP2 Ping frames should be sent to keep a connection alive",
+    help='Sets an interval (in milliseconds) for HTTP2 Ping frames should be sent to keep a connection alive',
 )
 @click.option(
-    "--http2-keep-alive-timeout",
+    '--http2-keep-alive-timeout',
     type=click.IntRange(1),
     default=granian.http.HTTP2Settings.keep_alive_timeout,
-    help="Sets a timeout (in seconds) for receiving an acknowledgement of the HTTP2 keep-alive ping",
+    help='Sets a timeout (in seconds) for receiving an acknowledgement of the HTTP2 keep-alive ping',
 )
 @click.option(
-    "--http2-max-concurrent-streams",
+    '--http2-max-concurrent-streams',
     type=click.IntRange(10),
     default=granian.http.HTTP2Settings.max_concurrent_streams,
-    help="Sets the SETTINGS_MAX_CONCURRENT_STREAMS option for HTTP2 connections",
+    help='Sets the SETTINGS_MAX_CONCURRENT_STREAMS option for HTTP2 connections',
 )
 @click.option(
-    "--http2-max-frame-size",
+    '--http2-max-frame-size',
     type=click.IntRange(1024),
     default=granian.http.HTTP2Settings.max_frame_size,
-    help="Sets the maximum frame size to use for HTTP2",
+    help='Sets the maximum frame size to use for HTTP2',
 )
 @click.option(
-    "--http2-max-headers-size",
+    '--http2-max-headers-size',
     type=click.IntRange(1),
     default=granian.http.HTTP2Settings.max_headers_size,
-    help="Sets the max size of received header frames",
+    help='Sets the max size of received header frames',
 )
 @click.option(
-    "--http2-max-send-buffer-size",
+    '--http2-max-send-buffer-size',
     type=click.IntRange(1024),
     default=granian.http.HTTP2Settings.max_send_buffer_size,
-    help="Set the maximum write buffer size for each HTTP/2 stream",
+    help='Set the maximum write buffer size for each HTTP/2 stream',
 )
 @click.option(
-    "--ssl-certificate",
+    '--ssl-certificate',
     type=click.Path(
         exists=True,
         file_okay=True,
@@ -217,10 +217,10 @@ def cli() -> None:
         readable=True,
         path_type=pathlib.Path,
     ),
-    help="SSL certificate file",
+    help='SSL certificate file',
 )
 @click.option(
-    "--ssl-keyfile",
+    '--ssl-keyfile',
     type=click.Path(
         exists=True,
         file_okay=True,
@@ -228,26 +228,26 @@ def cli() -> None:
         readable=True,
         path_type=pathlib.Path,
     ),
-    help="SSL key file",
+    help='SSL key file',
 )
-@click.option("--ssl-keyfile-password", help="SSL key password")
+@click.option('--ssl-keyfile-password', help='SSL key password')
 @click.option(
-    "--backpressure",
+    '--backpressure',
     default=None,
     type=int,
-    help=" Maximum number of requests to process concurrently (per worker)",
+    help=' Maximum number of requests to process concurrently (per worker)',
 )
-@click.option("--reload", is_flag=True, help="Enable auto-reload for development.")
+@click.option('--reload', is_flag=True, help='Enable auto-reload for development.')
 @click.option(
-    "--vsp-host",
-    default="127.0.0.1",
-    help="Host for the Velithon Server Protocol (VSP) server.",
+    '--vsp-host',
+    default='127.0.0.1',
+    help='Host for the Velithon Server Protocol (VSP) server.',
 )
 @click.option(
-    "--vsp-port",
+    '--vsp-port',
     default=8001,
     type=int,
-    help="Port for the Velithon Server Protocol (VSP) server.",
+    help='Port for the Velithon Server Protocol (VSP) server.',
 )
 def run(
     app,
@@ -292,12 +292,10 @@ def run(
     """Run the Velithon application."""
     try:
         app_instance = import_from_string(app)
-        print(f"Importing application from: {app}")
         if not callable(app_instance):
             raise ImportFromStringError(
                 f"'{app}' is not a callable application instance."
             )
-        print(f"Starting Velithon server with app: {app_instance}")
         app_instance._serve(
             app,
             host,
@@ -341,11 +339,11 @@ def run(
 
     except ValueError as e:
         traceback.print_exc()
-        logger.error(f"Error: {str(e)}")
+        logger.error(f'Error: {e!s}')
     except Exception as e:
         traceback.print_exc()
-        logger.error(f"Failed to start server: {str(e)}")
+        logger.error(f'Failed to start server: {e!s}')
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     cli()

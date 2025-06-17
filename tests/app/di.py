@@ -8,20 +8,27 @@ from .container import MockDatabase, MockUserRepository, MockUserService, contai
 
 logger = logging.getLogger(__name__)
 
+
 class TestSingletonProvider(HTTPEndpoint):
     @inject
     async def get(self, db: MockDatabase = Provide[container.db]):
         assert isinstance(db, MockDatabase)
-        return PlainTextResponse("success")
-    
+        return PlainTextResponse('success')
+
+
 class TestFactoryProvider(HTTPEndpoint):
     @inject
-    async def get(self, user_repository: MockUserRepository = Provide[container.user_repository]):
+    async def get(
+        self, user_repository: MockUserRepository = Provide[container.user_repository]
+    ):
         assert isinstance(user_repository, MockUserRepository)
-        return PlainTextResponse("success")
-    
+        return PlainTextResponse('success')
+
+
 class TestAsyncFactoryProvider(HTTPEndpoint):
     @inject
-    async def get(self, user_service: MockUserService = Provide[container.user_service]):
+    async def get(
+        self, user_service: MockUserService = Provide[container.user_service]
+    ):
         assert isinstance(user_service, MockUserService)
-        return PlainTextResponse("success")
+        return PlainTextResponse('success')

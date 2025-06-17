@@ -3,7 +3,8 @@ import logging
 import random
 import uuid
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 from .mesh import ServiceMesh
 from .message import VSPError, VSPMessage
@@ -25,22 +26,22 @@ class VSPClient:
         self.service_mesh = service_mesh
         self.transport_factory = transport_factory
         self.max_transports = max_transports
-        self.transports: Dict[str, List[Transport]] = defaultdict(list)
-        self.response_queues: Dict[str, asyncio.Queue] = defaultdict(asyncio.Queue)
-        self.manager: Optional[VSPManager] = None
-        self.connection_events: Dict[str, asyncio.Event] = {}
-        self.health_check_tasks: Dict[str, asyncio.Task] = {}
+        self.transports: dict[str, list[Transport]] = defaultdict(list)
+        self.response_queues: dict[str, asyncio.Queue] = defaultdict(asyncio.Queue)
+        self.manager: VSPManager | None = None
+        self.connection_events: dict[str, asyncio.Event] = {}
+        self.health_check_tasks: dict[str, asyncio.Task] = {}
 
-    async def get_service(self, service_name: str) -> Dict[str, Any]:
+    async def get_service(self, service_name: str) -> dict[str, Any]:
         service = await self.service_mesh.query(service_name)
         if not service:
-            logger.error(f"Service {service_name} not found or unhealthy")
-            raise VSPError(f"Service {service_name} not found or unhealthy")
-        return {"host": service.host, "port": service.port}
+            logger.error(f'Service {service_name} not found or unhealthy')
+            raise VSPError(f'Service {service_name} not found or unhealthy')
+        return {'host': service.host, 'port': service.port}
 
     async def ensure_transport(self, service_name: str) -> str:
         service = await self.get_service(service_name)
-        connection_key = f"{service['host']}:{service['port']}"
+        connection_key = f'{service["host"]}:{service["port"]}'
         if connection_key not in self.connection_events:
             self.connection_events[connection_key] = asyncio.Event()
 
@@ -50,18 +51,18 @@ class VSPClient:
         while len(active_transports) < self.max_transports:
             try:
                 transport = self.transport_factory(self.manager)
-                await transport.connect(service["host"], service["port"])
+                await transport.connect(service['host'], service['port'])
                 self.transports[connection_key].append(transport)
                 active_transports.append(transport)
                 logger.debug(
-                    f"Added transport to {connection_key}, total: {len(active_transports)}"
+                    f'Added transport to {connection_key}, total: {len(active_transports)}'
                 )
             except (ConnectionRefusedError, OSError) as e:
-                logger.warning(f"Transport connection failed to {service_name}: {e}")
+                logger.warning(f'Transport connection failed to {service_name}: {e}')
                 for s in await self.service_mesh.discovery.query(service_name):
-                    if s.host == service["host"] and s.port == service["port"]:
+                    if s.host == service['host'] and s.port == service['port']:
                         s.mark_unhealthy()
-                raise VSPError(f"Failed to connect to {service_name}: {e}")
+                raise VSPError(f'Failed to connect to {service_name}: {e}')
         self.connection_events[connection_key].set()
         if connection_key not in self.health_check_tasks:
             self.health_check_tasks[connection_key] = asyncio.create_task(
@@ -69,7 +70,7 @@ class VSPClient:
             )
         return connection_key
 
-    async def get_transport(self, service_name: str) -> Tuple[Transport, str]:
+    async def get_transport(self, service_name: str) -> tuple[Transport, str]:
         connection_key = await self.ensure_transport(service_name)
         active_transports = [
             t for t in self.transports[connection_key] if not t.is_closed()
@@ -85,11 +86,11 @@ class VSPClient:
     async def health_check(self, service_name: str) -> None:
         while True:
             try:
-                await self.call(service_name, "health", {})
+                await self.call(service_name, 'health', {})
                 for s in await self.service_mesh.discovery.query(service_name):
                     s.mark_healthy()
             except VSPError as e:
-                logger.warning(f"Health check failed for {service_name}: {e}")
+                logger.warning(f'Health check failed for {service_name}: {e}')
                 for s in await self.service_mesh.discovery.query(service_name):
                     s.mark_unhealthy()
             await asyncio.sleep(10)  # Reduced health check frequency
@@ -98,9 +99,9 @@ class VSPClient:
         self,
         service_name: str,
         endpoint: str,
-        data: Dict[str, Any],
-        connection_key: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        data: dict[str, Any],
+        connection_key: str | None = None,
+    ) -> dict[str, Any]:
         if not connection_key:
             transport, connection_key = await self.get_transport(service_name)
         else:
@@ -114,27 +115,28 @@ class VSPClient:
         message = VSPMessage(
             request_id=request_id, service=service_name, endpoint=endpoint, body=data
         )
-        data_bytes = len(message.to_bytes()).to_bytes(4, "big") + message.to_bytes()
+        data_bytes = len(message.to_bytes()).to_bytes(4, 'big') + message.to_bytes()
         transport.send(data_bytes)
-        logger.debug(f"Sent request {request_id} to {service_name}.{endpoint}")
+        logger.debug(f'Sent request {request_id} to {service_name}.{endpoint}')
 
         try:
             response = await asyncio.wait_for(
-                self.response_queues[request_id].get(), timeout=30  # Increased timeout
+                self.response_queues[request_id].get(),
+                timeout=30,  # Increased timeout
             )
             del self.response_queues[request_id]
-            if "error" in response:
-                raise VSPError(response["error"])
+            if 'error' in response:
+                raise VSPError(response['error'])
             return response
         except asyncio.TimeoutError:
             # Clean up on timeout
             if request_id in self.response_queues:
                 del self.response_queues[request_id]
             # Don't immediately close all transports - they might be used by other requests
-            logger.error(f"Request {request_id} timed out after 30 seconds")
-            raise VSPError("Request timed out")
+            logger.error(f'Request {request_id} timed out after 30 seconds')
+            raise VSPError('Request timed out')
 
     async def handle_response(self, message: VSPMessage) -> None:
-        request_id = message.header["request_id"]
+        request_id = message.header['request_id']
         await self.response_queues[request_id].put(message.body)
-        logger.debug(f"Received response for request {request_id}")
+        logger.debug(f'Received response for request {request_id}')

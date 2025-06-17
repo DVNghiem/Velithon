@@ -8,20 +8,20 @@ from velithon.websocket.connection import WebSocket, WebSocketDisconnect
 
 class WebSocketEndpoint:
     """Base class for WebSocket endpoints."""
-    
+
     def __init__(self, scope: Scope, protocol: Protocol) -> None:
-        assert scope.proto == "websocket"
+        assert scope.proto == 'websocket'
         self.scope = scope
         self.protocol = protocol
 
     async def __call__(self, websocket: WebSocket) -> None:
         """Handle the WebSocket connection."""
         await self.on_connect(websocket)
-        
+
         try:
             await websocket.accept()
             await self.on_connect_complete(websocket)
-            
+
             # Keep connection alive and handle messages
             while True:
                 try:
@@ -31,7 +31,7 @@ class WebSocketEndpoint:
                 except Exception as e:
                     await self.on_error(websocket, e)
                     break
-                    
+
         except Exception as e:
             await self.on_error(websocket, e)
         finally:
@@ -67,38 +67,37 @@ class WebSocketEndpoint:
 def websocket_response(
     func: typing.Callable[[WebSocket], typing.Awaitable[None]],
 ) -> typing.Callable[[Scope, Protocol], typing.Awaitable[None]]:
-    """
-    Decorator to convert a WebSocket handler function into a WebSocket application.
-    
+    """Decorator to convert a WebSocket handler function into a WebSocket application.
+
     Args:
         func: A function that takes a WebSocket and returns None
-        
+
     Returns:
         A WebSocket application function
+
     """
+
     async def app(scope: Scope, protocol: Protocol) -> None:
         websocket = WebSocket(scope, protocol)
         await func(websocket)
-    
+
     return app
 
 
 class WebSocketRoute:
     """WebSocket route for handling WebSocket connections."""
-    
+
     def __init__(
         self,
         path: str,
-        endpoint: typing.Union[
-            typing.Callable[[WebSocket], typing.Awaitable[None]],
-            type[WebSocketEndpoint]
-        ],
+        endpoint: typing.Callable[[WebSocket], typing.Awaitable[None]]
+        | type[WebSocketEndpoint],
         name: str | None = None,
     ) -> None:
         self.path = path
         self.endpoint = endpoint
-        self.name = name or getattr(endpoint, "__name__", "websocket")
-        
+        self.name = name or getattr(endpoint, '__name__', 'websocket')
+
         # Prepare the application
         if isinstance(endpoint, type) and issubclass(endpoint, WebSocketEndpoint):
             # Class-based endpoint
@@ -106,6 +105,7 @@ class WebSocketRoute:
                 websocket = WebSocket(scope, protocol)
                 endpoint_instance = endpoint(scope, protocol)
                 await endpoint_instance(websocket)
+
             self.app = app
         else:
             # Function-based endpoint
@@ -113,7 +113,7 @@ class WebSocketRoute:
 
     def matches(self, scope: Scope) -> bool:
         """Check if this route matches the given scope."""
-        return scope.proto == "websocket" and scope.path == self.path
+        return scope.proto == 'websocket' and scope.path == self.path
 
     async def handle(self, scope: Scope, protocol: Protocol) -> None:
         """Handle the WebSocket connection."""

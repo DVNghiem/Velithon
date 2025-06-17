@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 
 from velithon._velithon import LoadBalancer, RoundRobinBalancer, ServiceInfo
 
@@ -12,7 +11,7 @@ class ServiceMesh:
     def __init__(
         self,
         discovery_type: DiscoveryType = DiscoveryType.STATIC,
-        load_balancer: Optional[LoadBalancer] = None,
+        load_balancer: LoadBalancer | None = None,
         **discovery_args,
     ):
         self.load_balancer = load_balancer or RoundRobinBalancer()
@@ -22,24 +21,24 @@ class ServiceMesh:
             self.discovery = ConsulDiscovery(**discovery_args)
         else:
             self.discovery = StaticDiscovery()
-        logger.debug(f"Initialized ServiceMesh with {discovery_type} discovery")
+        logger.debug(f'Initialized ServiceMesh with {discovery_type} discovery')
 
     def register(self, service: ServiceInfo) -> None:
         self.discovery.register(service)
-        logger.info(f"Registered {service.name} at {service.host}:{service.port}")
+        logger.info(f'Registered {service.name} at {service.host}:{service.port}')
 
-    async def query(self, service_name: str) -> Optional[ServiceInfo]:
+    async def query(self, service_name: str) -> ServiceInfo | None:
         instances = await self.discovery.query(service_name)
         healthy_instances = [s for s in instances if s.is_healthy]
         if not healthy_instances:
-            logger.debug(f"No healthy instances for {service_name}")
+            logger.debug(f'No healthy instances for {service_name}')
             return None
         selected = self.load_balancer.select(healthy_instances)
         logger.debug(
-            f"Queried {service_name}: selected {selected.host}:{selected.port}"
+            f'Queried {service_name}: selected {selected.host}:{selected.port}'
         )
         return selected
 
     def close(self) -> None:
         self.discovery.close()
-        logger.debug("ServiceMesh closed")
+        logger.debug('ServiceMesh closed')
