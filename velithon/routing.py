@@ -16,6 +16,16 @@ from velithon.convertors import CONVERTOR_TYPES
 from velithon.datastructures import Protocol, Scope
 from velithon.middleware import Middleware
 from velithon.openapi import swagger_generate
+
+# Import improved OpenAPI generation
+try:
+    import sys
+    import os
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)) + '/..')
+    from improved_openapi_docs import swagger_generate_improved
+except ImportError:
+    # Fallback to original function
+    swagger_generate_improved = None
 from velithon.params.dispatcher import dispatch
 from velithon.requests import Request
 from velithon.responses import PlainTextResponse, Response
@@ -90,7 +100,8 @@ class Route(BaseRoute):
         summary: str | None = None,
         description: str | None = None,
         tags: Sequence[str] | None = None,
-        include_in_schema: bool | None = True
+        include_in_schema: bool | None = True,
+        response_model: type | None = None,
     ) -> None:
         assert path.startswith("/"), "Routed paths must start with '/'"
         self.path = path
@@ -100,6 +111,7 @@ class Route(BaseRoute):
         self.summary = summary
         self.tags = tags
         self.include_in_schema = include_in_schema
+        self.response_model = response_model
 
         endpoint_handler = endpoint
         while isinstance(endpoint_handler, functools.partial):
@@ -216,7 +228,14 @@ class Route(BaseRoute):
             if self.methods:
                 for method in self.methods:
                     if method in http_methods:
-                        path, schema = swagger_generate(self.endpoint, method.lower(), self.path)
+                        # Use improved OpenAPI generation if available
+                        if swagger_generate_improved:
+                            path, schema = swagger_generate_improved(
+                                self.endpoint, method.lower(), self.path, self.response_model
+                            )
+                        else:
+                            path, schema = swagger_generate(self.endpoint, method.lower(), self.path)
+                        
                         if self.description:
                             path[self.path][method.lower()]["description"] = self.description
                         if self.tags:
@@ -232,7 +251,14 @@ class Route(BaseRoute):
             for name, func in self.endpoint.__dict__.items():
                 if name.upper() not in http_methods:
                     continue
-                path, schema = swagger_generate(func, name.lower(), self.path)
+                # Use improved OpenAPI generation if available
+                if swagger_generate_improved:
+                    path, schema = swagger_generate_improved(
+                        func, name.lower(), self.path, self.response_model
+                    )
+                else:
+                    path, schema = swagger_generate(func, name.lower(), self.path)
+                
                 if self.description:
                     path[self.path][name.lower()]["description"] = self.description
                 if self.tags:
@@ -438,6 +464,7 @@ class Router:
         tags: Sequence[str] | None = None,
         include_in_schema: bool | None = True,
         route_class_override: Type[BaseRoute] | None = None,
+        response_model: type | None = None,
     ) -> None:
         route_class = route_class_override or self.route_class
         route = route_class(
@@ -450,6 +477,7 @@ class Router:
             middleware=middleware,
             tags=tags,
             include_in_schema=include_in_schema,
+            response_model=response_model,
         )
         self.routes.append(route)
         self._rebuild_rust_optimizations()
@@ -466,6 +494,7 @@ class Router:
         tags: Sequence[str] | None = None,
         include_in_schema: bool | None = True,
         route_class_override: Type[BaseRoute] | None = None,
+        response_model: type | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
             self.add_api_route(
@@ -479,6 +508,7 @@ class Router:
                 name=name,
                 middleware=middleware,
                 include_in_schema=include_in_schema,
+                response_model=response_model,
             )
             return func
 
@@ -494,6 +524,7 @@ class Router:
         description: str | None = None,
         name: str | None = None,
         include_in_schema: bool = True,
+        response_model: type | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """
         Generic factory method for creating HTTP method decorators.
@@ -507,6 +538,7 @@ class Router:
             methods=[method.upper()],
             name=name,
             include_in_schema=include_in_schema,
+            response_model=response_model,
         )
 
     def get(
@@ -518,6 +550,7 @@ class Router:
         description: str | None = None,
         name: str | None = None,
         include_in_schema: bool = True,
+        response_model: type | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """
         Add a *path operation* using an HTTP GET operation.
@@ -539,6 +572,7 @@ class Router:
             description=description,
             name=name,
             include_in_schema=include_in_schema,
+            response_model=response_model,
         )
     
     def post(
@@ -550,6 +584,7 @@ class Router:
         description: str | None = None,
         name: str | None = None,
         include_in_schema: bool = True,
+        response_model: type | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """
         Add a *path operation* using an HTTP POST operation.
@@ -565,7 +600,7 @@ class Router:
         """
         return self._create_http_method_decorator(
             "POST", path, tags=tags, summary=summary, description=description,
-            name=name, include_in_schema=include_in_schema
+            name=name, include_in_schema=include_in_schema, response_model=response_model
         )
     
     def put(
@@ -577,6 +612,7 @@ class Router:
         description: str | None = None,
         name: str | None = None,
         include_in_schema: bool = True,
+        response_model: type | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """
         Add a *path operation* using an HTTP PUT operation.
@@ -592,7 +628,7 @@ class Router:
         """
         return self._create_http_method_decorator(
             "PUT", path, tags=tags, summary=summary, description=description,
-            name=name, include_in_schema=include_in_schema
+            name=name, include_in_schema=include_in_schema, response_model=response_model
         )
     
     def delete(
@@ -604,6 +640,7 @@ class Router:
         description: str | None = None,
         name: str | None = None,
         include_in_schema: bool = True,
+        response_model: type | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """
         Add a *path operation* using an HTTP DELETE operation.
@@ -619,7 +656,7 @@ class Router:
         """
         return self._create_http_method_decorator(
             "DELETE", path, tags=tags, summary=summary, description=description,
-            name=name, include_in_schema=include_in_schema
+            name=name, include_in_schema=include_in_schema, response_model=response_model
         )
     
     def patch(
@@ -631,13 +668,14 @@ class Router:
         description: str | None = None,
         name: str | None = None,
         include_in_schema: bool = True,
+        response_model: type | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """
         Add a *path operation* using an HTTP PATCH operation.
         """
         return self._create_http_method_decorator(
             "PATCH", path, tags=tags, summary=summary, description=description,
-            name=name, include_in_schema=include_in_schema
+            name=name, include_in_schema=include_in_schema, response_model=response_model
         )
     
     def options(
@@ -649,13 +687,14 @@ class Router:
         description: str | None = None,
         name: str | None = None,
         include_in_schema: bool = True,
+        response_model: type | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """
         Add a *path operation* using an HTTP OPTIONS operation.
         """
         return self._create_http_method_decorator(
             "OPTIONS", path, tags=tags, summary=summary, description=description,
-            name=name, include_in_schema=include_in_schema
+            name=name, include_in_schema=include_in_schema, response_model=response_model
         )
     
     def add_websocket_route(
