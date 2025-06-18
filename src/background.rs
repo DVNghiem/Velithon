@@ -65,13 +65,25 @@ impl BackgroundTask {
         future_into_py(py, async move {
             if is_async {
                 // For async functions
-                Python::with_gil(|py| -> PyResult<PyObject> {
+                let result = Python::with_gil(|py| -> PyResult<PyObject> {
                     let func_bound = func.bind(py);
                     let args_bound = args.bind(py).downcast::<PyTuple>()?;
                     let kwargs_bound = kwargs.bind(py).downcast::<PyDict>()?;
                     let result = func_bound.call(args_bound, Some(kwargs_bound))?;
                     Ok(result.unbind())
-                })
+                });
+                
+                match result {
+                    Ok(py_result) => Ok(py_result),
+                    Err(py_err) => {
+                        Python::with_gil(|py| {
+                            let type_name = py_err.get_type(py).name().map(|s| s.to_string()).unwrap_or_else(|_| "UnknownError".to_string());
+                            Err(pyo3::exceptions::PyRuntimeError::new_err(
+                                format!("{}: {}", type_name, py_err)
+                            ))
+                        })
+                    }
+                }
             } else {
                 // For sync functions, run them in a thread pool
                 let result = tokio::task::spawn_blocking(move || {
@@ -85,7 +97,15 @@ impl BackgroundTask {
                 }).await;
                 
                 match result {
-                    Ok(py_result) => py_result,
+                    Ok(Ok(py_result)) => Ok(py_result),
+                    Ok(Err(py_err)) => {
+                        Python::with_gil(|py| {
+                            let type_name = py_err.get_type(py).name().map(|s| s.to_string()).unwrap_or_else(|_| "UnknownError".to_string());
+                            Err(pyo3::exceptions::PyRuntimeError::new_err(
+                                format!("{}: {}", type_name, py_err)
+                            ))
+                        })
+                    },
                     Err(join_err) => Err(pyo3::exceptions::PyRuntimeError::new_err(
                         format!("Task execution failed: {}", join_err)
                     )),
