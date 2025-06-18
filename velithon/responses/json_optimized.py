@@ -11,7 +11,8 @@ from velithon._velithon import (
     ParallelJSONSerializer,
 )
 from velithon.background import BackgroundTask
-from velithon.responses import Response
+
+from .base import Response
 
 
 class OptimizedJSONResponse(Response):
