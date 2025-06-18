@@ -455,6 +455,44 @@ class Velithon:
         """Add a WebSocket route to the application."""
         self.router.add_websocket_route(path, endpoint, name)
 
+    def add_router(
+        self,
+        router: Router,
+        *,
+        prefix: str = "",
+        tags: Sequence[str] | None = None,
+        dependencies: Sequence[Any] | None = None,
+    ) -> None:
+        """Add a sub-router to the application.
+
+        Args:
+            router: The Router instance to add
+            prefix: Path prefix to add to all routes in the router
+            tags: Tags to add to all routes in the router
+            dependencies: Dependencies to add to all routes in the router
+        """
+        self.router.add_router(router, prefix=prefix, tags=tags, dependencies=dependencies)
+
+    def include_router(
+        self,
+        router: Router,
+        *,
+        prefix: str = "",
+        tags: Sequence[str] | None = None,
+        dependencies: Sequence[Any] | None = None,
+    ) -> None:
+        """Include a router in the application.
+
+        Alias for add_router for compatibility with FastAPI-style APIs.
+
+        Args:
+            router: The Router instance to include
+            prefix: Path prefix to add to all routes in the router
+            tags: Tags to add to all routes in the router
+            dependencies: Dependencies to add to all routes in the router
+        """
+        self.add_router(router, prefix=prefix, tags=tags, dependencies=dependencies)
+
     def get(
         self,
         path: str,
