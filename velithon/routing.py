@@ -307,14 +307,16 @@ class Router:
     def __init__(
         self,
         routes: Sequence[BaseRoute] | None = None,
+        *,
+        path: str = "",
         redirect_slashes: bool = True,
         default: RSGIApp | None = None,
         on_startup: Sequence[Callable[[], Any]] | None = None,
         on_shutdown: Sequence[Callable[[], Any]] | None = None,
-        *,
         middleware: Sequence[Middleware] | None = None,
         route_class: type[BaseRoute] = Route,
     ):
+        self.path = path.rstrip("/") if path else ""
         self.routes = [] if routes is None else list(routes)
         self.redirect_slashes = redirect_slashes
         self.default = self.not_found if default is None else default
@@ -332,6 +334,24 @@ class Router:
         )
         self._pattern_matcher = _RoutePatternMatcher()
         self._rebuild_rust_optimizations()
+
+    def _get_full_path(self, path: str) -> str:
+        """Get the full path by combining router path prefix with route path."""
+        if not self.path:
+            return path
+
+        # Ensure path starts with '/'
+        if not path.startswith('/'):
+            path = '/' + path
+
+        # Combine paths
+        full_path = self.path + path
+
+        # Normalize double slashes
+        while '//' in full_path:
+            full_path = full_path.replace('//', '/')
+
+        return full_path
 
     def _rebuild_rust_optimizations(self):
         """Rebuild Rust optimizations for all routes"""
@@ -460,8 +480,9 @@ class Router:
         description: str | None = None,
         tags: Sequence[str] | None = None,
     ) -> None:  # pragma: no cover
+        full_path = self._get_full_path(path)
         route = Route(
-            path,
+            full_path,
             endpoint=endpoint,
             methods=methods,
             name=name,
@@ -489,8 +510,9 @@ class Router:
         response_model: type | None = None,
     ) -> None:
         route_class = route_class_override or self.route_class
+        full_path = self._get_full_path(path)
         route = route_class(
-            path,
+            full_path,
             endpoint=endpoint,
             description=description,
             summary=summary,
@@ -753,7 +775,8 @@ class Router:
         """Add a WebSocket route to the router."""
         from velithon.websocket import WebSocketRoute
 
-        route = WebSocketRoute(path, endpoint, name)
+        full_path = self._get_full_path(path)
+        route = WebSocketRoute(full_path, endpoint, name)
         self.routes.append(route)
         self._rebuild_rust_optimizations()
 
@@ -779,3 +802,72 @@ class Router:
             return func
 
         return decorator
+
+    def add_router(
+        self,
+        router: "Router",
+        *,
+        prefix: str = "",
+        tags: Sequence[str] | None = None,
+        dependencies: Sequence[Any] | None = None,
+    ) -> None:
+        """Add a sub-router to this router.
+        
+        Args:
+            router: The Router instance to add
+            prefix: Path prefix to add to all routes in the router
+            tags: Tags to add to all routes in the router
+            dependencies: Dependencies to add to all routes in the router
+        """
+        # Create new routes with the combined prefix
+        for route in router.routes:
+            if hasattr(route, 'path'):
+                # Start with the route's original path
+                new_path = route.path
+                
+                # If the router being added has a path prefix, that's already included in the route path
+                # So we only need to apply the additional prefix if provided
+                if prefix:
+                    # If prefix is provided, prepend it to the route path
+                    if not prefix.startswith('/'):
+                        prefix = '/' + prefix
+                    prefix = prefix.rstrip('/')
+                    
+                    # If this router has its own path, prepend that too
+                    if self.path:
+                        new_path = self.path + prefix + new_path
+                    else:
+                        new_path = prefix + new_path
+                else:
+                    # No additional prefix, just add this router's path if it exists
+                    if self.path:
+                        new_path = self.path + new_path
+                
+                # Normalize double slashes
+                while '//' in new_path:
+                    new_path = new_path.replace('//', '/')
+                
+                # Create new route with updated path
+                new_route = Route(
+                    new_path,
+                    endpoint=route.endpoint,
+                    methods=route.methods,
+                    name=route.name,
+                    middleware=getattr(route, 'middleware', None),
+                    summary=route.summary,
+                    description=route.description,
+                    tags=list(route.tags) + list(tags) if route.tags and tags else route.tags or tags,
+                    include_in_schema=route.include_in_schema,
+                    response_model=getattr(route, 'response_model', None),
+                )
+                self.routes.append(new_route)
+            else:
+                # Handle other route types (WebSocket, etc.)
+                self.routes.append(route)
+        
+        # Add startup and shutdown handlers
+        self.on_startup.extend(router.on_startup)
+        self.on_shutdown.extend(router.on_shutdown)
+        
+        # Rebuild optimizations
+        self._rebuild_rust_optimizations()
