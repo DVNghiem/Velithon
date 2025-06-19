@@ -20,7 +20,7 @@ except ImportError:
     HAS_ORJSON = False
 
 try:
-    import ujson  # type: ignore  # noqa: I001
+    import ujson  # type: ignore
 
     HAS_UJSON = True
 except ImportError:
@@ -43,7 +43,7 @@ def set_thread_pool() -> None:
             # For web applications, I/O bound operations are more common
             max_workers = min(64, cpu_count * 8)  # Increased multiplier for I/O tasks
             _thread_pool = concurrent.futures.ThreadPoolExecutor(
-                max_workers=max_workers, 
+                max_workers=max_workers,
                 thread_name_prefix='velithon_optimized',
                 initializer=_warm_up_thread,  # Pre-warm threads
             )
@@ -54,6 +54,7 @@ def _warm_up_thread():
     # Pre-allocate some common objects to reduce first-call overhead
     import json
     import time
+
     json.dumps({'warm_up': True})
     time.perf_counter()  # Initialize time measurement
 
@@ -152,16 +153,14 @@ class FastJSONEncoder:
         items = []
         for k, v in sorted(obj.items()):
             # Escape any special characters in keys and values
-            key_str = (str(k)
-                      .replace('\\', '\\\\')
-                      .replace('|', '\\|')
-                      .replace(':', '\\:'))
-            val_str = (str(v)
-                      .replace('\\', '\\\\')
-                      .replace('|', '\\|')
-                      .replace(':', '\\:'))
+            key_str = (
+                str(k).replace('\\', '\\\\').replace('|', '\\|').replace(':', '\\:')
+            )
+            val_str = (
+                str(v).replace('\\', '\\\\').replace('|', '\\|').replace(':', '\\:')
+            )
             # Use length-prefixed format to prevent ambiguity
-            items.append(f"{len(key_str)}:{key_str}={len(val_str)}:{val_str}")
+            items.append(f'{len(key_str)}:{key_str}={len(val_str)}:{val_str}')
 
         return '|'.join(items)
 
@@ -262,12 +261,19 @@ class MiddlewareOptimizer:
             seen.add(middleware_id)
 
             # Optimize middleware categorization with faster string checks
-            middleware_name = getattr(middleware, '__class__', type(middleware)).__name__.lower()
+            middleware_name = getattr(
+                middleware, '__class__', type(middleware)
+            ).__name__.lower()
 
             # Use startswith/endswith for faster string matching
-            if any(pattern in middleware_name for pattern in ('security', 'auth', 'cors')):
+            if any(
+                pattern in middleware_name for pattern in ('security', 'auth', 'cors')
+            ):
                 high_priority.append(middleware)
-            elif any(pattern in middleware_name for pattern in ('log', 'compression', 'cache')):
+            elif any(
+                pattern in middleware_name
+                for pattern in ('log', 'compression', 'cache')
+            ):
                 low_priority.append(middleware)
             else:
                 normal_priority.append(middleware)

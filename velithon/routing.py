@@ -308,7 +308,7 @@ class Router:
         self,
         routes: Sequence[BaseRoute] | None = None,
         *,
-        path: str = "",
+        path: str = '',
         redirect_slashes: bool = True,
         default: RSGIApp | None = None,
         on_startup: Sequence[Callable[[], Any]] | None = None,
@@ -316,7 +316,7 @@ class Router:
         middleware: Sequence[Middleware] | None = None,
         route_class: type[BaseRoute] = Route,
     ):
-        self.path = path.rstrip("/") if path else ""
+        self.path = path.rstrip('/') if path else ''
         self.routes = [] if routes is None else list(routes)
         self.redirect_slashes = redirect_slashes
         self.default = self.not_found if default is None else default
@@ -805,26 +805,27 @@ class Router:
 
     def add_router(
         self,
-        router: "Router",
+        router: 'Router',
         *,
-        prefix: str = "",
+        prefix: str = '',
         tags: Sequence[str] | None = None,
         dependencies: Sequence[Any] | None = None,
     ) -> None:
         """Add a sub-router to this router.
-        
+
         Args:
             router: The Router instance to add
             prefix: Path prefix to add to all routes in the router
             tags: Tags to add to all routes in the router
             dependencies: Dependencies to add to all routes in the router
+
         """
         # Create new routes with the combined prefix
         for route in router.routes:
             if hasattr(route, 'path'):
                 # Start with the route's original path
                 new_path = route.path
-                
+
                 # If the router being added has a path prefix, that's already included in the route path
                 # So we only need to apply the additional prefix if provided
                 if prefix:
@@ -832,7 +833,7 @@ class Router:
                     if not prefix.startswith('/'):
                         prefix = '/' + prefix
                     prefix = prefix.rstrip('/')
-                    
+
                     # If this router has its own path, prepend that too
                     if self.path:
                         new_path = self.path + prefix + new_path
@@ -842,11 +843,11 @@ class Router:
                     # No additional prefix, just add this router's path if it exists
                     if self.path:
                         new_path = self.path + new_path
-                
+
                 # Normalize double slashes
                 while '//' in new_path:
                     new_path = new_path.replace('//', '/')
-                
+
                 # Create new route with updated path
                 new_route = Route(
                     new_path,
@@ -856,7 +857,9 @@ class Router:
                     middleware=getattr(route, 'middleware', None),
                     summary=route.summary,
                     description=route.description,
-                    tags=list(route.tags) + list(tags) if route.tags and tags else route.tags or tags,
+                    tags=list(route.tags) + list(tags)
+                    if route.tags and tags
+                    else route.tags or tags,
                     include_in_schema=route.include_in_schema,
                     response_model=getattr(route, 'response_model', None),
                 )
@@ -864,10 +867,10 @@ class Router:
             else:
                 # Handle other route types (WebSocket, etc.)
                 self.routes.append(route)
-        
+
         # Add startup and shutdown handlers
         self.on_startup.extend(router.on_startup)
         self.on_shutdown.extend(router.on_shutdown)
-        
+
         # Rebuild optimizations
         self._rebuild_rust_optimizations()

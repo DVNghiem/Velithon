@@ -15,7 +15,7 @@ _response_cache = get_response_cache()
 
 class JSONResponse(Response):
     """JSON response with optimized serialization."""
-    
+
     media_type = 'application/json'
 
     def __init__(

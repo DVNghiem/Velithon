@@ -1,5 +1,4 @@
-"""
-Response types for Velithon framework.
+"""Response types for Velithon framework.
 
 This module provides various response types for different use cases while maintaining
 backward compatibility with the existing import structure.
@@ -24,7 +23,6 @@ from .json_optimized import json_response, batch_json_response
 __all__ = [
     # Base response
     'Response',
-    
     # Standard response types
     'HTMLResponse',
     'JSONResponse',
@@ -34,7 +32,6 @@ __all__ = [
     'StreamingResponse',
     'SSEResponse',
     'ProxyResponse',
-    
     # Optimized JSON responses
     'OptimizedJSONResponse',
     'BatchJSONResponse',

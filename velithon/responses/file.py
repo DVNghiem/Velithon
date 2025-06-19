@@ -19,7 +19,7 @@ from .base import Response
 
 class FileResponse(Response):
     """Response for serving files with streaming support."""
-    
+
     chunk_size = 64 * 1024  # 64KB chunks
 
     def __init__(

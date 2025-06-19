@@ -13,7 +13,7 @@ from .base import Response
 
 class RedirectResponse(Response):
     """HTTP redirect response."""
-    
+
     def __init__(
         self,
         url: str | URL,

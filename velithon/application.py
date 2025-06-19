@@ -459,7 +459,7 @@ class Velithon:
         self,
         router: Router,
         *,
-        prefix: str = "",
+        prefix: str = '',
         tags: Sequence[str] | None = None,
         dependencies: Sequence[Any] | None = None,
     ) -> None:
@@ -470,14 +470,17 @@ class Velithon:
             prefix: Path prefix to add to all routes in the router
             tags: Tags to add to all routes in the router
             dependencies: Dependencies to add to all routes in the router
+
         """
-        self.router.add_router(router, prefix=prefix, tags=tags, dependencies=dependencies)
+        self.router.add_router(
+            router, prefix=prefix, tags=tags, dependencies=dependencies
+        )
 
     def include_router(
         self,
         router: Router,
         *,
-        prefix: str = "",
+        prefix: str = '',
         tags: Sequence[str] | None = None,
         dependencies: Sequence[Any] | None = None,
     ) -> None:
@@ -490,6 +493,7 @@ class Velithon:
             prefix: Path prefix to add to all routes in the router
             tags: Tags to add to all routes in the router
             dependencies: Dependencies to add to all routes in the router
+
         """
         self.add_router(router, prefix=prefix, tags=tags, dependencies=dependencies)
 

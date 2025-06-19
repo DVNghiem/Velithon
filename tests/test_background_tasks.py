@@ -94,9 +94,9 @@ class TestBackgroundTask:
         # TODO: Should be updated to handle exceptions gracefully
         with pytest.raises(RuntimeError) as exc_info:
             await task()  # Currently raises wrapped exception
-        
+
         # Verify the original exception is preserved in the message
-        assert "ValueError: Task failed" in str(exc_info.value)
+        assert 'ValueError: Task failed' in str(exc_info.value)
 
     @pytest.mark.asyncio
     async def test_background_task_with_complex_args(self):
@@ -452,12 +452,12 @@ class TestBackgroundTaskEdgeCases:
         """Test background task with None function."""
         # Current implementation allows None but will fail during execution
         task = BackgroundTask(None)
-        # Expect execution to fail rather than constructor  
+        # Expect execution to fail rather than constructor
         with pytest.raises(RuntimeError) as exc_info:
             await task()
-        
+
         # Verify the original exception type is preserved in the message
-        assert "TypeError" in str(exc_info.value)
+        assert 'TypeError' in str(exc_info.value)
 
     @pytest.mark.asyncio
     async def test_background_task_with_non_callable(self):
@@ -467,9 +467,9 @@ class TestBackgroundTaskEdgeCases:
         # Expect execution to fail rather than constructor
         with pytest.raises(RuntimeError) as exc_info:
             await task()
-        
-        # Verify the original exception type is preserved in the message  
-        assert "TypeError" in str(exc_info.value)
+
+        # Verify the original exception type is preserved in the message
+        assert 'TypeError' in str(exc_info.value)
 
     @pytest.mark.asyncio
     async def test_background_task_recursion(self):
@@ -517,9 +517,9 @@ class TestBackgroundTaskEdgeCases:
         # TODO: Should be updated to handle exceptions gracefully
         with pytest.raises(RuntimeError) as exc_info:
             await task()
-        
+
         # Verify the original exception message is preserved
-        assert "ValueError: Detailed error message with context" in str(exc_info.value)
+        assert 'ValueError: Detailed error message with context' in str(exc_info.value)
 
     @pytest.mark.asyncio
     async def test_background_tasks_with_mixed_types(self):

@@ -19,7 +19,7 @@ ContentStream = typing.Union[AsyncContentStream, SyncContentStream]
 
 class StreamingResponse(Response):
     """Response that streams content asynchronously."""
-    
+
     body_iterator: AsyncContentStream
 
     def __init__(

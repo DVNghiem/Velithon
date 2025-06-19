@@ -5,5 +5,5 @@ from .base import Response
 
 class PlainTextResponse(Response):
     """Response for plain text content."""
-    
+
     media_type = 'text/plain'
