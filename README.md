@@ -18,7 +18,7 @@ Velithon is a lightweight, high-performance, asynchronous web framework for Pyth
 
 ### Prerequisites
 
-- Python 3.12 or higher
+- Python 3.10 or higher
 - `pip` for installing dependencies
 
 ### Install Velithon

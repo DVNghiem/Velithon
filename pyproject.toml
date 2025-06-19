@@ -1,6 +1,6 @@
 [project]
 name = "velithon"
-version = "0.3.2"
+version = "0.3.3"
 description = "Velithon is a lightweight, high-performance, asynchronous web framework for Python, built on top of the RSGI protocol"
 authors = [
     {name = "Dang Van Nghiem",email = "vannghiem848@gmail.com"}
