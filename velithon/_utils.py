@@ -38,11 +38,24 @@ def set_thread_pool() -> None:
     global _thread_pool
     with _pool_lock:
         if _thread_pool is None:
-            # Optimal thread count: CPU cores + 4 (for I/O bound tasks)
-            max_workers = min(32, (os.cpu_count() or 1) + 4)
+            # Optimized thread count: I/O bound (higher), CPU bound (lower)
+            cpu_count = os.cpu_count() or 1
+            # For web applications, I/O bound operations are more common
+            max_workers = min(64, cpu_count * 8)  # Increased multiplier for I/O tasks
             _thread_pool = concurrent.futures.ThreadPoolExecutor(
-                max_workers=max_workers, thread_name_prefix='velithon_optimized'
+                max_workers=max_workers, 
+                thread_name_prefix='velithon_optimized',
+                initializer=_warm_up_thread,  # Pre-warm threads
             )
+
+
+def _warm_up_thread():
+    """Warm up worker threads to reduce cold start latency."""
+    # Pre-allocate some common objects to reduce first-call overhead
+    import json
+    import time
+    json.dumps({'warm_up': True})
+    time.perf_counter()  # Initialize time measurement
 
 
 def is_async_callable(obj: Any) -> bool:
@@ -133,39 +146,43 @@ class FastJSONEncoder:
         return json.dumps(obj, separators=(',', ':')).encode('utf-8')
 
     def encode(self, obj: Any) -> bytes:
-        """Encode object to JSON bytes with caching for common values."""
-        # Only cache simple types that are serializable and hashable
+        """Encode object to JSON bytes with optimized caching for common values."""
+        # Fast path for simple types - avoid cache key generation overhead
         if isinstance(obj, (str, int, bool, float, type(None))):
             try:
-                cache_key = obj
-                cached = self._cache.get(cache_key)
+                cached = self._cache.get(obj)
                 if cached is not None:
                     return cached
 
                 result = self._encode(obj)
-                self._cache.put(cache_key, result)
+                # Only cache small objects to prevent memory bloat
+                if len(result) <= 256:  # 256 bytes limit
+                    self._cache.put(obj, result)
                 return result
-            except Exception:
+            except (TypeError, OverflowError):
                 # Fall through to normal encoding on any error
                 pass
 
-        # For small dicts, try to use cache with string key
-        if isinstance(obj, dict) and len(obj) <= 5:
+        # For small dicts, use optimized cache key generation
+        if isinstance(obj, dict) and len(obj) <= 3:  # Reduced from 5 to 3
             try:
-                # Only cache if dict keys are all strings
-                if all(isinstance(k, str) for k in obj.keys()):
-                    # Create a stable string representation for the dict
-                    items = sorted((str(k), str(v)) for k, v in obj.items())
-                    cache_key = '|'.join(f'{k}:{v}' for k, v in items)
-
+                # Only cache if dict keys are all strings and values are simple
+                if (all(isinstance(k, str) for k in obj.keys()) and
+                    all(isinstance(v, (str, int, bool, float, type(None))) 
+                        for v in obj.values())):
+                    # Use more efficient cache key generation
+                    cache_key = repr(sorted(obj.items()))
+                    
                     cached = self._cache.get(cache_key)
                     if cached is not None:
                         return cached
 
                     result = self._encode(obj)
-                    self._cache.put(cache_key, result)
+                    # Only cache small results
+                    if len(result) <= 512:  # 512 bytes limit for dicts
+                        self._cache.put(cache_key, result)
                     return result
-            except Exception:
+            except (TypeError, OverflowError):
                 # Fall through to normal encoding on any error
                 pass
 
@@ -215,7 +232,7 @@ class MiddlewareOptimizer:
         normal_priority = []
         low_priority = []
 
-        # Remove duplicates while categorizing
+        # Use set for faster duplicate detection
         seen = set()
 
         for middleware in middlewares:
@@ -226,22 +243,13 @@ class MiddlewareOptimizer:
 
             seen.add(middleware_id)
 
-            # Categorize by middleware type
-            # High priority: Critical security middleware that must run first
-            # Low priority: Expensive middleware that should run last
-            middleware_name = (
-                middleware.__class__.__name__.lower()
-                if hasattr(middleware, '__class__')
-                else str(middleware)
-            )
+            # Optimize middleware categorization with faster string checks
+            middleware_name = getattr(middleware, '__class__', type(middleware)).__name__.lower()
 
-            if 'security' in middleware_name or 'auth' in middleware_name:
+            # Use startswith/endswith for faster string matching
+            if any(pattern in middleware_name for pattern in ('security', 'auth', 'cors')):
                 high_priority.append(middleware)
-            elif (
-                'log' in middleware_name
-                or 'compression' in middleware_name
-                or 'cache' in middleware_name
-            ):
+            elif any(pattern in middleware_name for pattern in ('log', 'compression', 'cache')):
                 low_priority.append(middleware)
             else:
                 normal_priority.append(middleware)
