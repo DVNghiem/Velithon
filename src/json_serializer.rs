@@ -77,10 +77,16 @@ impl ParallelJSONSerializer {
         
         if let Ok(s) = obj.downcast::<PyString>() {
             let rust_string = s.to_string();
-            let json = serde_json::to_vec(&rust_string).map_err(|e| {
-                PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("JSON serialization error: {}", e))
-            })?;
-            return Ok(Some(json));
+            // Avoid intermediate allocation for small strings
+            if rust_string.len() < 64 {
+                let json = format!("\"{}\"", rust_string.replace('"', "\\\""));
+                return Ok(Some(json.into_bytes()));
+            } else {
+                let json = serde_json::to_vec(&rust_string).map_err(|e| {
+                    PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("JSON serialization error: {}", e))
+                })?;
+                return Ok(Some(json));
+            }
         }
 
         if let Ok(b) = obj.downcast::<PyBool>() {
@@ -90,13 +96,21 @@ impl ParallelJSONSerializer {
 
         if let Ok(i) = obj.downcast::<PyInt>() {
             if let Ok(value) = i.extract::<i64>() {
-                return Ok(Some(value.to_string().into_bytes()));
+                // Use more efficient number serialization for common cases
+                if value >= -999999 && value <= 999999 {
+                    return Ok(Some(value.to_string().into_bytes()));
+                }
             }
         }
 
         if let Ok(f) = obj.downcast::<PyFloat>() {
             let value = f.value();
-            return Ok(Some(value.to_string().into_bytes()));
+            // Fast path for common float values
+            if value.is_finite() && value.fract() == 0.0 && value >= -999999.0 && value <= 999999.0 {
+                return Ok(Some(format!("{:.0}", value).into_bytes()));
+            } else {
+                return Ok(Some(value.to_string().into_bytes()));
+            }
         }
 
         // Check if it's a small collection that doesn't need parallelization
@@ -210,40 +224,63 @@ impl ParallelJSONSerializer {
         Ok(Value::String(str_repr))
     }
 
-    /// Serialize list in parallel chunks
+    /// Serialize list in parallel chunks with optimized memory allocation
     fn serialize_list_parallel(&self, py: Python<'_>, list: &Bound<'_, PyList>) -> PyResult<Vec<u8>> {
+        let list_len = list.len();
+        
+        // Use more efficient approach for small lists
+        if list_len < 50 {
+            let mut result = Vec::with_capacity(list_len * 8 + 2); // Pre-allocate
+            result.push(b'[');
+            
+            for (i, item) in list.iter().enumerate() {
+                if i > 0 {
+                    result.push(b',');
+                }
+                let value = self.python_to_value(py, &item, 0)?;
+                let serialized = serde_json::to_string(&value).map_err(|e| {
+                    PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                        format!("List item serialization error: {}", e)
+                    )
+                })?;
+                result.extend_from_slice(serialized.as_bytes());
+            }
+            
+            result.push(b']');
+            return Ok(result);
+        }
+
+        // For larger lists, use parallel processing
         // First, convert all Python objects to serde_json::Value (thread-safe)
-        let mut values = Vec::with_capacity(list.len());
+        let mut values = Vec::with_capacity(list_len);
         for item in list {
             values.push(self.python_to_value(py, &item, 0)?);
         }
 
-        // Now we can parallelize the actual serialization of thread-safe Values
-        let chunk_size = (values.len() / rayon::current_num_threads()).max(1);
+        // Use optimal chunk size for parallel processing
+        let chunk_size = (list_len / rayon::current_num_threads().max(1)).max(10);
         
         let serialized_chunks: Result<Vec<_>, _> = values
             .par_chunks(chunk_size)
-            .map(|chunk| -> Result<Vec<String>, serde_json::Error> {
-                chunk.iter()
+            .map(|chunk| -> Result<String, serde_json::Error> {
+                let chunk_strings: Result<Vec<String>, _> = chunk.iter()
                     .map(|item| serde_json::to_string(item))
-                    .collect()
+                    .collect();
+                Ok(chunk_strings?.join(","))
             })
             .collect();
 
         match serialized_chunks {
             Ok(chunks) => {
-                let mut result = Vec::new();
+                let total_size = chunks.iter().map(|s| s.len()).sum::<usize>() + 2;
+                let mut result = Vec::with_capacity(total_size);
                 result.push(b'[');
                 
-                let mut first = true;
-                for chunk in chunks {
-                    for item in chunk {
-                        if !first {
-                            result.push(b',');
-                        }
-                        result.extend_from_slice(item.as_bytes());
-                        first = false;
+                for (i, chunk) in chunks.iter().enumerate() {
+                    if i > 0 {
+                        result.push(b',');
                     }
+                    result.extend_from_slice(chunk.as_bytes());
                 }
                 
                 result.push(b']');
