@@ -145,10 +145,30 @@ class FastJSONEncoder:
         """Encode with standard library json (always works but slower)."""
         return json.dumps(obj, separators=(',', ':')).encode('utf-8')
 
+    def _create_dict_cache_key(self, obj: dict[str, Any]) -> str:
+        """Create a collision-resistant cache key for dictionaries."""
+        # Use a deterministic serialization approach that prevents collisions
+        # by properly escaping separators and using length prefixes
+        items = []
+        for k, v in sorted(obj.items()):
+            # Escape any special characters in keys and values
+            key_str = (str(k)
+                      .replace('\\', '\\\\')
+                      .replace('|', '\\|')
+                      .replace(':', '\\:'))
+            val_str = (str(v)
+                      .replace('\\', '\\\\')
+                      .replace('|', '\\|')
+                      .replace(':', '\\:'))
+            # Use length-prefixed format to prevent ambiguity
+            items.append(f"{len(key_str)}:{key_str}={len(val_str)}:{val_str}")
+
+        return '|'.join(items)
+
     def encode(self, obj: Any) -> bytes:
-        """Encode object to JSON bytes with optimized caching for common values."""
-        # Fast path for simple types - avoid cache key generation overhead
-        if isinstance(obj, (str, int, bool, float, type(None))):
+        """Encode object to JSON bytes with caching for common values."""
+        # Only cache simple types that are serializable and hashable
+        if isinstance(obj, str | int | bool | float | type(None)):
             try:
                 cached = self._cache.get(obj)
                 if cached is not None:
@@ -163,16 +183,14 @@ class FastJSONEncoder:
                 # Fall through to normal encoding on any error
                 pass
 
-        # For small dicts, use optimized cache key generation
-        if isinstance(obj, dict) and len(obj) <= 3:  # Reduced from 5 to 3
+        # For small dicts, try to use cache with collision-resistant key
+        if isinstance(obj, dict) and len(obj) <= 5:
             try:
-                # Only cache if dict keys are all strings and values are simple
-                if (all(isinstance(k, str) for k in obj.keys()) and
-                    all(isinstance(v, (str, int, bool, float, type(None))) 
-                        for v in obj.values())):
-                    # Use more efficient cache key generation
-                    cache_key = repr(sorted(obj.items()))
-                    
+                # Only cache if dict keys are all strings
+                if all(isinstance(k, str) for k in obj.keys()):
+                    # Create a collision-resistant cache key
+                    cache_key = self._create_dict_cache_key(obj)
+
                     cached = self._cache.get(cache_key)
                     if cached is not None:
                         return cached
