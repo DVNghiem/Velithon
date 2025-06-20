@@ -4,7 +4,7 @@ Test for Router path parameter functionality.
 
 from velithon import Velithon
 from velithon.responses import JSONResponse
-from velithon.routing import Router
+from velithon.routing import Route, Router
 
 
 def test_router_with_path_parameter():
@@ -115,6 +115,34 @@ def test_nested_router_paths():
     assert routes[0].path == '/api/v1/sub/endpoint'
 
 
+def test_router_init_with_routes_and_path():
+    """Test that Router __init__ applies path prefix to existing routes."""
+
+    def get_profile():
+        return JSONResponse({'message': 'profile'})
+
+    def get_settings():
+        return JSONResponse({'message': 'settings'})
+
+    # Create routes manually
+    profile_route = Route('/profile', get_profile, methods=['GET'])
+    settings_route = Route('/settings', get_settings, methods=['GET'])
+
+    # Create router with path prefix and existing routes
+    router = Router(path='/user', routes=[profile_route, settings_route])
+
+    # Check that path prefix was applied to existing routes
+    assert len(router.routes) == 2
+    assert router.routes[0].path == '/user/profile'
+    assert router.routes[1].path == '/user/settings'
+
+    # Check that the routes still have correct methods and endpoints
+    assert router.routes[0].methods == {'GET', 'HEAD'}
+    assert router.routes[1].methods == {'GET', 'HEAD'}
+    assert router.routes[0].endpoint == get_profile
+    assert router.routes[1].endpoint == get_settings
+
+
 if __name__ == '__main__':
     # Run basic tests
     test_router_with_path_parameter()
@@ -122,4 +150,5 @@ if __name__ == '__main__':
     test_application_add_router()
     test_router_with_no_path()
     test_nested_router_paths()
+    test_router_init_with_routes_and_path()
     print('All tests passed!')

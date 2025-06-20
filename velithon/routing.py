@@ -317,7 +317,6 @@ class Router:
         route_class: type[BaseRoute] = Route,
     ):
         self.path = path.rstrip('/') if path else ''
-        self.routes = [] if routes is None else list(routes)
         self.redirect_slashes = redirect_slashes
         self.default = self.not_found if default is None else default
         self.on_startup = [] if on_startup is None else list(on_startup)
@@ -327,6 +326,47 @@ class Router:
         if middleware:
             for cls, args, kwargs in reversed(middleware):
                 self.middleware_stack = cls(self.middleware_stack, *args, **kwargs)
+
+        # Handle existing routes with path prefix
+        self.routes = []
+        if routes is not None:
+            for route in routes:
+                if hasattr(route, 'path') and hasattr(route, 'endpoint'):
+                    # Check if this is a WebSocket route
+                    if (hasattr(route, 'matches') and hasattr(route, 'handle') 
+                        and not hasattr(route, 'methods')):
+                        # This is likely a WebSocket route - create with prefixed path
+                        from velithon.websocket import WebSocketRoute
+                        if isinstance(route, WebSocketRoute):
+                            full_path = self._get_full_path(route.path)
+                            new_route = WebSocketRoute(
+                                full_path,
+                                endpoint=route.endpoint,
+                                name=getattr(route, 'name', None),
+                            )
+                            self.routes.append(new_route)
+                        else:
+                            # Unknown route type, just copy as-is
+                            self.routes.append(route)
+                    else:
+                        # This is a regular HTTP route - create with prefixed path
+                        full_path = self._get_full_path(route.path)
+                        new_route = self.route_class(
+                            full_path,
+                            endpoint=route.endpoint,
+                            methods=getattr(route, 'methods', None),
+                            name=getattr(route, 'name', None),
+                            middleware=getattr(route, 'middleware', None),
+                            summary=getattr(route, 'summary', None),
+                            description=getattr(route, 'description', None),
+                            tags=getattr(route, 'tags', None),
+                            include_in_schema=getattr(route, 'include_in_schema', True),
+                            response_model=getattr(route, 'response_model', None),
+                        )
+                        self.routes.append(new_route)
+                else:
+                    # Handle other route types - just copy as-is
+                    self.routes.append(route)
 
         # Initialize Rust optimizations
         self._rust_optimizer = _RouterOptimizer(
