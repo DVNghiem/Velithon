@@ -1001,3 +1001,44 @@ class Velithon:
             include_in_schema=include_in_schema,
             response_model=response_model,
         )
+
+    def route(
+        self,
+        path: str,
+        *,
+        methods: list[str] | None = None,
+        name: str | None = None,
+        include_in_schema: bool = True,
+        summary: str | None = None,
+        description: str | None = None,
+        tags: list[str] | None = None,
+    ) -> Callable[[Callable[..., Any]], None]:
+        """Decorator to add a route to the application.
+
+        Args:
+            path: The path pattern
+            methods: List of HTTP methods to accept
+            name: Optional name for the route
+            include_in_schema: Whether to include in OpenAPI schema
+            summary: Optional summary for documentation
+            description: Optional description for documentation
+            tags: Optional tags for documentation
+
+        Returns:
+            Decorator function
+
+        """
+        def decorator(func: Callable[..., Any]) -> None:
+            self.add_route(
+                path=path,
+                route=func,
+                methods=methods,
+                name=name,
+                include_in_schema=include_in_schema,
+                summary=summary,
+                description=description,
+                tags=tags,
+            )
+            return func
+
+        return decorator
