@@ -98,6 +98,117 @@ velithon run --app examples.main:app --host 0.0.0.0 --port 8080 --workers 4 --lo
   velithon run --app examples.main:app --workers 4 --http 2
   ```
 
+## API Documentation Export
+
+Velithon provides a comprehensive API documentation export feature that generates user-friendly, OpenAPI-style documentation from your application. The documentation includes detailed information about routes, parameters, types, Pydantic models, and constraints.
+
+### Additional Dependencies
+
+For PDF export functionality, install additional dependencies:
+
+```bash
+# For Markdown export only (included with Velithon)
+pip install markdown jinja2
+
+# For PDF export (optional)
+pip install weasyprint
+```
+
+### Export Documentation with CLI
+
+Use the `velithon export-docs` command to generate documentation for your application:
+
+```bash
+velithon export-docs --app examples.main:app --output api-docs.md --format markdown --title "My API Documentation"
+```
+
+### Documentation Export Options
+
+- `--app`: Application module and instance (format: `module:app_instance`). **Required**.
+- `--output`: Output file path for the generated documentation (without extension). Default: `api_docs`.
+- `--format`: Documentation format (`markdown`, `pdf`, or `both`). Default: `markdown`.
+- `--title`: Title for the documentation. Default: `API Documentation`.
+- `--description`: Description for the documentation. Default: `Generated API documentation`.
+- `--version`: API version. Default: `1.0.0`.
+- `--contact-name`: Contact name for the API documentation.
+- `--contact-email`: Contact email for the API documentation.
+- `--contact-url`: Contact URL for the API documentation.
+- `--license-name`: License name for the API.
+- `--license-url`: License URL for the API.
+- `--exclude-routes`: Comma-separated list of route paths to exclude from documentation.
+- `--include-only-routes`: Comma-separated list of route paths to include (excludes all others).
+- `--group-by-tags/--no-group-by-tags`: Group routes by tags. Default: `True`.
+- `--include-examples/--no-include-examples`: Include example values for parameters. Default: `True`.
+- `--include-schemas/--no-include-schemas`: Include detailed schema documentation. Default: `True`.
+
+### Documentation Features
+
+The generated documentation includes:
+
+- **Complete Route Coverage**: All HTTP endpoints with methods, paths, and summaries
+- **Parameter Details**: Path, query, header, cookie, form, and file parameters with types and constraints
+- **Pydantic Model Documentation**: Detailed field information including types, constraints, descriptions, and default values
+- **Type Information**: API-friendly type representations (e.g., `string`, `integer`, `file`, `object (ModelName)`)
+- **Parameter Locations**: Clear indication of where each parameter should be provided (Path, Query, Header, etc.)
+- **Validation Rules**: Min/max values, string patterns, required fields, and other constraints
+- **Request/Response Models**: Complete model schemas with field descriptions
+
+### Example Documentation Export Commands
+
+- Generate Markdown documentation with custom title and contact information:
+
+  ```bash
+  velithon export-docs --app myapp:app --output docs/api --title "My REST API" --description "Complete API reference" --contact-name "API Team" --contact-email "api@mycompany.com"
+  ```
+
+- Generate PDF documentation:
+
+  ```bash
+  velithon export-docs --app myapp:app --output docs/api --format pdf --version "2.1.0"
+  ```
+
+- Generate both Markdown and PDF with comprehensive options:
+
+  ```bash
+  velithon export-docs --app myapp:app --output docs/api --format both --include-examples --include-schemas --group-by-tags
+  ```
+
+- Export with route filtering:
+
+  ```bash
+  velithon export-docs --app myapp:app --exclude-routes "/admin,/internal" --output filtered-docs
+  ```
+
+### Programmatic Documentation Generation
+
+You can also generate documentation programmatically:
+
+```python
+from velithon.documentation import DocumentationGenerator, DocumentationConfig
+
+# Create configuration
+config = DocumentationConfig(
+    title="My API Documentation",
+    description="Generated API documentation",
+    version="1.0.0",
+    contact_name="API Team",
+    contact_email="api@example.com",
+    include_examples=True,
+    include_schemas=True,
+    group_by_tags=True
+)
+
+# Generate documentation
+generator = DocumentationGenerator(app, config)
+
+# Export to files
+generator.export_markdown("api_docs.md")
+generator.export_pdf("api_docs.pdf")
+
+# Or get content directly
+docs_content = generator.generate_markdown()
+```
+
 ## Contributing
 
 Contributions are welcome! Please follow these steps:

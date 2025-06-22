@@ -1,3 +1,8 @@
+"""Velithon CLI module providing command-line interface for the framework.
+
+This module provides CLI commands for running the server and exporting documentation.
+"""
+
 import importlib
 import pathlib
 import sys
@@ -18,10 +23,24 @@ if str(project_root) not in sys.path:
 
 
 class ImportFromStringError(Exception):
+    """Exception raised when import from string fails."""
+
     pass
 
 
 def import_from_string(import_str: Any) -> Any:
+    """Import and return an object from a module path string.
+    
+    Args:
+        import_str: String in format "module:attribute"
+        
+    Returns:
+        The imported object
+        
+    Raises:
+        ImportFromStringError: If import fails
+        
+    """
     if not isinstance(import_str, str):
         return import_str
 
@@ -343,6 +362,170 @@ def run(
     except Exception as e:
         traceback.print_exc()
         logger.error(f'Failed to start server: {e!s}')
+
+
+@cli.command()
+@click.option(
+    '--app',
+    default='simple_app:app',
+    help='Application module and instance (format: module:app_instance).',
+)
+@click.option(
+    '--output',
+    default='api_docs',
+    help='Output file path (without extension).',
+)
+@click.option(
+    '--format',
+    'output_format',
+    default='markdown',
+    type=click.Choice(['markdown', 'pdf', 'both']),
+    help='Output format.',
+)
+@click.option(
+    '--title',
+    default='API Documentation',
+    help='Documentation title.',
+)
+@click.option(
+    '--version',
+    default='1.0.0',
+    help='API version.',
+)
+@click.option(
+    '--description',
+    default='Generated API Documentation',
+    help='API description.',
+)
+@click.option(
+    '--contact-name',
+    default='',
+    help='Contact name.',
+)
+@click.option(
+    '--contact-email',
+    default='',
+    help='Contact email.',
+)
+@click.option(
+    '--license-name',
+    default='',
+    help='License name.',
+)
+@click.option(
+    '--license-url',
+    default='',
+    help='License URL.',
+)
+@click.option(
+    '--exclude-routes',
+    help='Comma-separated list of route paths/names to exclude.',
+)
+@click.option(
+    '--include-only-routes',
+    help='Comma-separated list of route paths/names to include (excludes all others).',
+)
+@click.option(
+    '--group-by-tags/--no-group-by-tags',
+    default=True,
+    help='Group routes by tags.',
+)
+@click.option(
+    '--include-examples/--no-include-examples',
+    default=True,
+    help='Include examples in documentation.',
+)
+@click.option(
+    '--include-schemas/--no-include-schemas',
+    default=True,
+    help='Include schemas in documentation.',
+)
+def export_docs(
+    app,
+    output,
+    output_format,
+    title,
+    version,
+    description,
+    contact_name,
+    contact_email,
+    license_name,
+    license_url,
+    exclude_routes,
+    include_only_routes,
+    group_by_tags,
+    include_examples,
+    include_schemas,
+):
+    """Export comprehensive API documentation."""
+    try:
+        from velithon.documentation import DocumentationConfig, DocumentationGenerator
+        
+        # Import the application
+        app_instance = import_from_string(app)
+        if not hasattr(app_instance, 'router'):
+            raise ImportFromStringError(
+                f"'{app}' is not a valid Velithon application instance."
+            )
+        
+        # Parse exclude/include routes
+        exclude_list = []
+        if exclude_routes:
+            exclude_list = [route.strip() for route in exclude_routes.split(',')]
+            
+        include_only_list = None
+        if include_only_routes:
+            include_only_list = [
+                route.strip() for route in include_only_routes.split(',')
+            ]
+        
+        # Create documentation config
+        config = DocumentationConfig(
+            title=title,
+            version=version,
+            description=description,
+            contact_name=contact_name,
+            contact_email=contact_email,
+            license_name=license_name,
+            license_url=license_url,
+            exclude_routes=exclude_list,
+            include_only_routes=include_only_list,
+            group_by_tags=group_by_tags,
+            include_examples=include_examples,
+            include_schemas=include_schemas,
+        )
+        
+        # Generate documentation
+        generator = DocumentationGenerator(app_instance, config)
+        routes_info = generator.collect_routes_info()
+        
+        if not routes_info:
+            click.echo("No routes found to document.", err=True)
+            return
+        
+        click.echo(f"Found {len(routes_info)} routes to document.")
+        
+        # Export based on format
+        if output_format in ('markdown', 'both'):
+            markdown_path = f"{output}.md"
+            generator.export_markdown(markdown_path)
+            click.echo(f"Markdown documentation exported to: {markdown_path}")
+        
+        if output_format in ('pdf', 'both'):
+            pdf_path = f"{output}.pdf"
+            generator.export_pdf(pdf_path)
+            click.echo(f"PDF documentation exported to: {pdf_path}")
+        
+        click.echo("Documentation export completed successfully!")
+        
+    except ImportFromStringError as e:
+        click.echo(f"Import error: {e}", err=True)
+    except ImportError as e:
+        click.echo(f"Missing dependencies: {e}", err=True)
+        click.echo("Install with: pip install markdown weasyprint jinja2", err=True)
+    except Exception as e:
+        traceback.print_exc()
+        logger.error(f'Failed to export documentation: {e!s}')
 
 
 if __name__ == '__main__':
