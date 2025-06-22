@@ -6,6 +6,8 @@ from __future__ import annotations
 import asyncio
 import time
 
+import pytest
+
 # Test data
 SIMPLE_DATA = {'message': 'hello', 'count': 42, 'active': True}
 COMPLEX_DATA = {
@@ -189,6 +191,7 @@ def test_cache_functionality():
         return False
 
 
+@pytest.mark.asyncio
 async def test_async_performance():
     """Test async performance with concurrent requests."""
     try:

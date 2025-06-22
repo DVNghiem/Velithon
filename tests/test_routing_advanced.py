@@ -32,6 +32,7 @@ class TestRouterEdgeCases:
         router = Router()
         assert len(router.routes) == 0
 
+    @pytest.mark.asyncio
     async def test_router_nonexistent_route(self, mock_scope, mock_protocol):
         """Test router behavior with nonexistent route."""
         router = Router()
