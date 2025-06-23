@@ -333,10 +333,14 @@ class Router:
             for route in routes:
                 if hasattr(route, 'path') and hasattr(route, 'endpoint'):
                     # Check if this is a WebSocket route
-                    if (hasattr(route, 'matches') and hasattr(route, 'handle') 
-                        and not hasattr(route, 'methods')):
+                    if (
+                        hasattr(route, 'matches')
+                        and hasattr(route, 'handle')
+                        and not hasattr(route, 'methods')
+                    ):
                         # This is likely a WebSocket route - create with prefixed path
                         from velithon.websocket import WebSocketRoute
+
                         if isinstance(route, WebSocketRoute):
                             full_path = self._get_full_path(route.path)
                             new_route = WebSocketRoute(

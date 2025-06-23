@@ -1028,6 +1028,7 @@ class Velithon:
             Decorator function
 
         """
+
         def decorator(func: Callable[..., Any]) -> None:
             self.add_route(
                 path=path,
