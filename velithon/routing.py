@@ -247,7 +247,7 @@ class Route(BaseRoute):
                             )
                         else:
                             path, schema = swagger_generate(
-                                self.endpoint, method.lower(), self.path
+                                self.endpoint, method.lower(), self.path, self.response_model
                             )
 
                         if self.description:
@@ -273,7 +273,7 @@ class Route(BaseRoute):
                         func, name.lower(), self.path, self.response_model
                     )
                 else:
-                    path, schema = swagger_generate(func, name.lower(), self.path)
+                    path, schema = swagger_generate(func, name.lower(), self.path, self.response_model)
 
                 if self.description:
                     path[self.path][name.lower()]['description'] = self.description
