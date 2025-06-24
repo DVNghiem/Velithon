@@ -18,16 +18,6 @@ from velithon.datastructures import Protocol, Scope
 from velithon.middleware import Middleware
 from velithon.openapi import swagger_generate
 
-# Import improved OpenAPI generation
-try:
-    import os
-    import sys
-
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)) + '/..')
-    from improved_openapi_docs import swagger_generate_improved
-except ImportError:
-    # Fallback to original function
-    swagger_generate_improved = None
 from velithon.params.dispatcher import dispatch
 from velithon.requests import Request
 from velithon.responses import PlainTextResponse, Response
@@ -237,18 +227,10 @@ class Route(BaseRoute):
             if self.methods:
                 for method in self.methods:
                     if method in http_methods:
-                        # Use improved OpenAPI generation if available
-                        if swagger_generate_improved:
-                            path, schema = swagger_generate_improved(
-                                self.endpoint,
-                                method.lower(),
-                                self.path,
-                                self.response_model,
-                            )
-                        else:
-                            path, schema = swagger_generate(
-                                self.endpoint, method.lower(), self.path, self.response_model
-                            )
+                    
+                        path, schema = swagger_generate(
+                            self.endpoint, method.lower(), self.path, self.response_model
+                        )
 
                         if self.description:
                             path[self.path][method.lower()]['description'] = (
@@ -267,13 +249,8 @@ class Route(BaseRoute):
             for name, func in self.endpoint.__dict__.items():
                 if name.upper() not in http_methods:
                     continue
-                # Use improved OpenAPI generation if available
-                if swagger_generate_improved:
-                    path, schema = swagger_generate_improved(
-                        func, name.lower(), self.path, self.response_model
-                    )
-                else:
-                    path, schema = swagger_generate(func, name.lower(), self.path, self.response_model)
+               
+                path, schema = swagger_generate(func, name.lower(), self.path, self.response_model)
 
                 if self.description:
                     path[self.path][name.lower()]['description'] = self.description
