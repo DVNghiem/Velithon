@@ -11,6 +11,7 @@ else:  # pragma: no cover
     from typing_extensions import ParamSpec
 
 # Import middleware classes for easier discovery
+from velithon.middleware.auth import AuthenticationMiddleware, SecurityMiddleware
 from velithon.middleware.base import (
     BaseHTTPMiddleware,
     ConditionalMiddleware,
@@ -34,6 +35,7 @@ from velithon.types import RSGIApp
 P = ParamSpec('P')
 
 __all__ = [
+    'AuthenticationMiddleware',
     'BaseHTTPMiddleware',
     'CORSMiddleware',
     'CompressionLevel',
@@ -48,6 +50,7 @@ __all__ = [
     'ProxyMiddleware',
     'RustLoggingMiddleware',
     'RustMiddlewareOptimizer',
+    'SecurityMiddleware',
     'Session',
     'SessionInterface',
     'SessionMiddleware',
