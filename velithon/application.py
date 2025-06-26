@@ -272,12 +272,25 @@ class Velithon:
                 """
             ),
         ] = None,
+        include_security_middleware: Annotated[
+            bool,
+            Doc(
+                """
+                Whether to include the default security middleware stack.
+                
+                When True, includes AuthenticationMiddleware and SecurityMiddleware
+                for handling authentication errors and adding security headers.
+                Default is False to maintain backwards compatibility.
+                """
+            ),
+        ] = False,
     ):
         self.router = Router(routes, on_startup=on_startup, on_shutdown=on_shutdown)
         self.container = None
 
         self.user_middleware = [] if middleware is None else list(middleware)
         self.middleware_stack: RSGIApp | None = None
+        self.include_security_middleware = include_security_middleware
         self.title = title
         self.summary = summary
         self.description = description
@@ -295,6 +308,15 @@ class Velithon:
         self.tags = tags or []
         self.startup_functions: list[FunctionInfo] = []
         self.shutdown_functions: list[FunctionInfo] = []
+        
+        # Default logging configuration (can be overridden by _serve method)
+        self.log_file = "velithon.log"
+        self.log_level = "INFO"
+        self.log_format = "text"
+        self.log_to_file = False
+        self.max_bytes = 10 * 1024 * 1024  # 10MB
+        self.backup_count = 7
+        
         self.setup()
 
     def register_container(self, container: ServiceContainer) -> None:
@@ -316,12 +338,30 @@ class Velithon:
         self.vsp_manager = vsp_manager
 
     def build_middleware_stack(self) -> RSGIApp:
+        """Build the middleware stack for the application.
+        
+        Returns:
+            The middleware stack as an RSGI application.
+        """
         middleware = [
             Middleware(WrappedRSGITypeMiddleware),
             Middleware(LoggingMiddleware),
         ]
         if self.container:
             middleware.append(Middleware(DIMiddleware, self))
+        
+        # Add security middleware if requested
+        if self.include_security_middleware:
+            from velithon.middleware.auth import (
+                AuthenticationMiddleware,
+                SecurityMiddleware,
+            )
+            
+            middleware.extend([
+                Middleware(SecurityMiddleware),
+                Middleware(AuthenticationMiddleware),
+            ])
+        
         middleware += self.user_middleware
 
         # Extract middleware classes for optimization
@@ -394,11 +434,16 @@ class Velithon:
     def get_openapi(
         self: RSGIApp,
     ) -> dict[str, Any]:
+        from velithon.openapi.docs import get_security_schemes
+        
         main_docs = {
             'openapi': self.openapi_version,
             'info': {},
             'paths': {},
-            'components': {'schemas': {}},
+            'components': {
+                'schemas': {},
+                'securitySchemes': get_security_schemes()
+            },
         }
         info: dict[str, Any] = {'title': self.title, 'version': self.version}
         if self.summary:
