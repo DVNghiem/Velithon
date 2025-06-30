@@ -1,6 +1,6 @@
 [package]
 name = "Velithon"
-version = "0.3.7"
+version = "0.3.8"
 edition = "2024"
 description = "Velithon is a lightweight, high-performance, asynchronous web framework for Python, built on top of the RSGI protocol"
 authors = ["Dang Van Nghiem <martin@smartsolution.id.vn>"]
