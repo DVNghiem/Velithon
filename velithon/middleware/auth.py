@@ -1,5 +1,6 @@
 """Authentication middleware for Velithon framework."""
 
+import typing
 from typing import Any
 
 from velithon.datastructures import Protocol, Scope
@@ -78,11 +79,36 @@ class SecurityProtocol:
         """Initialize security protocol wrapper."""
         self.protocol = protocol
         self.middleware = middleware
-        self._response_sent = False
 
     def __getattr__(self, name: str) -> Any:
         """Delegate all other attributes to the wrapped protocol."""
         return getattr(self.protocol, name)
+
+    def __aiter__(self) -> typing.AsyncIterator[bytes]:
+        """Delegate async iteration to the wrapped protocol."""
+        return self.protocol.__aiter__()
+
+    async def __call__(self, *args, **kwds) -> bytes:
+        """Delegate call to the wrapped protocol."""
+        return await self.protocol(*args, **kwds)
+
+    async def client_disconnect(self) -> None:
+        """Delegate client disconnect to the wrapped protocol."""
+        await self.protocol.client_disconnect()
+
+    def update_headers(self, headers: list[tuple[str, str]]) -> None:
+        """Delegate header updates to the wrapped protocol."""
+        self.protocol.update_headers(headers)
+
+    def response_empty(self, status: int, headers: tuple[str, str]) -> None:
+        """Handle empty response, adding security headers if needed."""
+        headers = self._add_security_headers(headers)
+        return self.protocol.response_empty(status, headers)
+
+    def response_str(self, status: int, headers: tuple[str, str], body: str) -> None:
+        """Handle string response, adding security headers if needed."""
+        headers = self._add_security_headers(headers)
+        return self.protocol.response_str(status, headers, body)
 
     def response_bytes(
         self,
@@ -91,30 +117,49 @@ class SecurityProtocol:
         body: bytes | memoryview,
     ) -> None:
         """Handle response, adding security headers if needed."""
-        if not self._response_sent:
-            self._response_sent = True
-
-            if self.middleware.add_security_headers:
-                # Add security headers
-                security_headers = [
-                    (name.encode(), value.encode())
-                    for name, value in self.middleware.security_headers.items()
-                ]
-                headers.extend(security_headers)
-
+        headers = self._add_security_headers(headers)
         return self.protocol.response_bytes(status, headers, body)
+
+    def response_file(
+        self, status: int, headers: tuple[str, str], file: typing.Any
+    ) -> None:
+        """Handle file response, adding security headers if needed."""
+        headers = self._add_security_headers(headers)
+        return self.protocol.response_file(status, headers, file)
+
+    def response_stream(self, status: int, headers: tuple[str, str]) -> typing.Any:
+        """Handle stream response, adding security headers if needed."""
+        headers = self._add_security_headers(headers)
+        return self.protocol.response_stream(status, headers)
 
     async def response_start(self, status: int, headers: list[tuple[str, str]]) -> None:
         """Handle response start for streaming responses."""
-        if not self._response_sent:
-            self._response_sent = True
-
-            if self.middleware.add_security_headers:
-                # Add security headers
-                security_headers = [
-                    (name.encode(), value.encode())
-                    for name, value in self.middleware.security_headers.items()
-                ]
-                headers.extend(security_headers)
-
+        headers = self._add_security_headers(headers)
         return await self.protocol.response_start(status, headers)
+
+    def _add_security_headers(
+        self,
+        headers: tuple[str, str] | list[tuple[str, str]]
+    ) -> tuple[str, str] | list[tuple[str, str]]:
+        """Add security headers to response headers."""
+        if not self.middleware.add_security_headers:
+            return headers
+
+        # Convert to list if needed
+        if isinstance(headers, tuple):
+            headers_list = list(headers)
+        else:
+            headers_list = headers
+
+        # Add security headers
+        security_headers = [
+            (name, value)
+            for name, value in self.middleware.security_headers.items()
+        ]
+        headers_list.extend(security_headers)
+
+        # Return in the same format as input
+        if isinstance(headers, tuple):
+            return tuple(headers_list)
+        else:
+            return headers_list

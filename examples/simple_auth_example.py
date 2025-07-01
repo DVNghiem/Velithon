@@ -45,7 +45,8 @@ async def get_current_user(request) -> User:
 app = Velithon(
     title="Simple Authentication Demo",
     description="A simple example showing Velithon's authentication features",
-    include_security_middleware=True,  # Enable built-in security middleware
+    # Security middleware is now safe for production use after SecurityProtocol fixes
+    include_security_middleware=True,
 )
 
 
