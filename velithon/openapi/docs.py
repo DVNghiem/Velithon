@@ -482,6 +482,93 @@ def process_response(response_type: type, docs: dict, schemas: dict[str, Any]) -
         }
 
 
+def detect_security_requirements(func: callable) -> list[dict[str, list[str]]]:
+    """Detect security requirements from function dependencies."""
+    security_requirements = []
+    signature = inspect.signature(func)
+    
+    for param in signature.parameters.values():
+        annotation = param.annotation
+        
+        # Check for Annotated types that might contain security dependencies
+        if get_origin(annotation) is Annotated:
+            args = get_args(annotation)
+            for metadata in args[1:]:  # Skip the base type
+                
+                # Check if this is a security dependency
+                if hasattr(metadata, '__class__'):
+                    class_name = metadata.__class__.__name__
+                    module_name = getattr(metadata.__class__, '__module__', '')
+                    
+                    # Check for OAuth2, Bearer, or other security schemes
+                    if 'velithon.security' in module_name or 'security' in class_name.lower():
+                        if 'oauth2' in class_name.lower() or 'bearer' in class_name.lower():
+                            security_requirements.append({"bearerAuth": []})
+                        elif 'apikey' in class_name.lower():
+                            security_requirements.append({"apiKeyAuth": []})
+                        elif 'basic' in class_name.lower():
+                            security_requirements.append({"basicAuth": []})
+                
+                # Check if metadata is a callable (function dependency)
+                if callable(metadata):
+                    func_name = getattr(metadata, '__name__', '').lower()
+                    
+                    # Check function name patterns for authentication
+                    if any(keyword in func_name for keyword in ['auth', 'user', 'token', 'jwt']):
+                        # Try to determine auth type from function name
+                        if 'jwt' in func_name or 'bearer' in func_name:
+                            security_requirements.append({"bearerAuth": []})
+                        elif 'basic' in func_name:
+                            security_requirements.append({"basicAuth": []})
+                        elif 'api_key' in func_name or 'apikey' in func_name:
+                            security_requirements.append({"apiKeyAuth": []})
+                        elif 'oauth2' in func_name:
+                            security_requirements.append({"oauth2": []})
+                        else:
+                            # Default to bearer auth for generic auth functions
+                            security_requirements.append({"bearerAuth": []})
+                    
+                    # Check for permission dependencies
+                    elif 'permission' in func_name or 'require' in func_name:
+                        # Permission requirements typically need authentication first
+                        security_requirements.append({"bearerAuth": []})
+    
+    return security_requirements
+
+
+def get_security_schemes() -> dict[str, Any]:
+    """Get OpenAPI security scheme definitions."""
+    return {
+        "bearerAuth": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT"
+        },
+        "apiKeyAuth": {
+            "type": "apiKey",
+            "in": "header",
+            "name": "X-API-Key"
+        },
+        "basicAuth": {
+            "type": "http",
+            "scheme": "basic"
+        },
+        "oauth2": {
+            "type": "oauth2",
+            "flows": {
+                "password": {
+                    "tokenUrl": "/token",
+                    "scopes": {
+                        "read": "Read access",
+                        "write": "Write access",
+                        "admin": "Admin access"
+                    }
+                }
+            }
+        }
+    }
+
+
 def swagger_generate(
     func: callable,
     request_method: str,
@@ -510,6 +597,11 @@ def swagger_generate(
             'responses': {},
         }
     }
+
+    # Detect security requirements
+    security_requirements = detect_security_requirements(func)
+    if security_requirements:
+        docs[request_method.lower()]['security'] = security_requirements
 
     updated_path = endpoint_path
     for param in signature.parameters.values():
