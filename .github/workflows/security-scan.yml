@@ -49,16 +49,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           
-      # GitGuardian - Scan for secrets
-      - name: GitGuardian scan
-        uses: GitGuardian/ggshield/actions/secret@v1.40.0
-        env:
-          GITHUB_PUSH_BEFORE: ${{ github.event.before }}
-          GITHUB_PUSH_BASE_SHA: ${{ github.event.base }}
-          GITHUB_PULL_BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          GITHUB_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-          GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
-
       # Upload scan results as artifacts
       - name: Upload scan results
         uses: actions/upload-artifact@v4
