@@ -7,12 +7,14 @@ and create a basic protected endpoint.
 from typing import Annotated
 
 from velithon import Velithon
+from velithon.requests import Request
 from velithon.responses import JSONResponse
 from velithon.security import HTTPBearer, AuthenticationError, User, JWTHandler
 
 
-# JWT Configuration
-SECRET_KEY = "your-secret-key-here"
+# JWT Configuration - Use environment variable in production
+import os
+SECRET_KEY = os.getenv("SECRET_KEY", "dev-key-change-in-production")
 jwt_handler = JWTHandler(secret_key=SECRET_KEY)
 bearer_scheme = HTTPBearer()
 
@@ -58,20 +60,57 @@ async def public_endpoint():
 
 
 @app.post("/login")
-async def login(username: str, password: str):
+async def login(request: Request):
     """Simple login endpoint that returns a JWT token."""
-    # In a real app, verify credentials against database
-    if username == "admin" and password == "secret":
-        token = jwt_handler.encode_token({"sub": username})
-        return JSONResponse({
-            "access_token": token,
-            "token_type": "bearer",
-            "message": "Login successful!",
-        })
-    else:
+    # Parse request data (handle both JSON and form data)
+    try:
+        body = await request.body()
+        if body:
+            try:
+                # Try JSON first
+                import json
+                data = json.loads(body.decode())
+                username = data.get("username")
+                password = data.get("password")
+            except json.JSONDecodeError:
+                # Fallback to form data
+                form_data = {}
+                for part in body.decode().split("&"):
+                    if "=" in part:
+                        key, value = part.split("=", 1)
+                        form_data[key] = value
+                username = form_data.get("username")
+                password = form_data.get("password")
+        else:
+            return JSONResponse(
+                {"error": "Missing username and password"},
+                status_code=400
+            )
+        
+        if not username or not password:
+            return JSONResponse(
+                {"error": "Missing username or password"},
+                status_code=400
+            )
+        
+        # In a real app, verify credentials against database
+        if username == "admin" and password == "secret":
+            token = jwt_handler.encode_token({"sub": username})
+            return JSONResponse({
+                "access_token": token,
+                "token_type": "bearer",
+                "message": "Login successful!",
+            })
+        else:
+            return JSONResponse(
+                {"error": "Invalid credentials"},
+                status_code=401,
+            )
+            
+    except Exception as e:
         return JSONResponse(
-            {"error": "Invalid credentials"},
-            status_code=401,
+            {"error": f"Login failed: {e!s}"},
+            status_code=500
         )
 
 

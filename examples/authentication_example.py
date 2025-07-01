@@ -43,7 +43,8 @@ from velithon.security import (
 # =============================================================================
 
 # JWT Configuration
-SECRET_KEY = "your-secret-key-here-change-in-production"
+import os
+SECRET_KEY = os.getenv("SECRET_KEY", "dev-key-change-in-production")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 

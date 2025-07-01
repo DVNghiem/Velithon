@@ -422,6 +422,7 @@ def detect_security_requirements(func: callable) -> list[dict[str, list[str]]]:
         if get_origin(annotation) is Annotated:
             args = get_args(annotation)
             for metadata in args[1:]:  # Skip the base type
+                
                 # Check if this is a security dependency
                 if hasattr(metadata, '__class__'):
                     class_name = metadata.__class__.__name__
@@ -435,6 +436,30 @@ def detect_security_requirements(func: callable) -> list[dict[str, list[str]]]:
                             security_requirements.append({"apiKeyAuth": []})
                         elif 'basic' in class_name.lower():
                             security_requirements.append({"basicAuth": []})
+                
+                # Check if metadata is a callable (function dependency)
+                if callable(metadata):
+                    func_name = getattr(metadata, '__name__', '').lower()
+                    
+                    # Check function name patterns for authentication
+                    if any(keyword in func_name for keyword in ['auth', 'user', 'token', 'jwt']):
+                        # Try to determine auth type from function name
+                        if 'jwt' in func_name or 'bearer' in func_name:
+                            security_requirements.append({"bearerAuth": []})
+                        elif 'basic' in func_name:
+                            security_requirements.append({"basicAuth": []})
+                        elif 'api_key' in func_name or 'apikey' in func_name:
+                            security_requirements.append({"apiKeyAuth": []})
+                        elif 'oauth2' in func_name:
+                            security_requirements.append({"oauth2": []})
+                        else:
+                            # Default to bearer auth for generic auth functions
+                            security_requirements.append({"bearerAuth": []})
+                    
+                    # Check for permission dependencies
+                    elif 'permission' in func_name or 'require' in func_name:
+                        # Permission requirements typically need authentication first
+                        security_requirements.append({"bearerAuth": []})
     
     return security_requirements
 
