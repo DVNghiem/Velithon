@@ -1,0 +1,56 @@
+/* Custom styles for Velithon documentation */
+
+/* Improve code block appearance */
+.highlight {
+    border-radius: 6px;
+}
+
+/* Custom admonition colors */
+.md-typeset .admonition.note {
+    border-left-color: #448aff;
+}
+
+.md-typeset .admonition.tip {
+    border-left-color: #00c853;
+}
+
+.md-typeset .admonition.warning {
+    border-left-color: #ff9100;
+}
+
+/* Performance highlight boxes */
+.performance-box {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1rem;
+    border-radius: 8px;
+    margin: 1rem 0;
+}
+
+/* Feature grid styling */
+.grid.cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.grid.cards > div {
+    border: 1px solid var(--md-default-fg-color--lightest);
+    border-radius: 8px;
+    padding: 1rem;
+    transition: box-shadow 0.2s ease;
+}
+
+.grid.cards > div:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* Velithon branding */
+.velithon-brand {
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: bold;
+}

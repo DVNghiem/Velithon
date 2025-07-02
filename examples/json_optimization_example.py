@@ -8,7 +8,7 @@ classes for efficient JSON serialization with parallel processing.
 
 import time
 import json
-from velithon.json_responses import OptimizedJSONResponse, BatchJSONResponse
+from velithon.responses import OptimizedJSONResponse, BatchJSONResponse
 
 
 def generate_large_dataset(size: int) -> list[dict]:
