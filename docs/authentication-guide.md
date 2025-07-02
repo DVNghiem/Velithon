@@ -94,8 +94,7 @@ async def get_current_user(request) -> User:
     """Extract and validate JWT token from request"""
     try:
         # Extract token from Authorization header
-        credentials = bearer_scheme(request)
-        token = credentials.credentials
+        token = await bearer_scheme(request)
         
         # Decode and validate token
         payload = jwt_handler.decode_token(token)
@@ -173,9 +172,6 @@ async def admin_endpoint(
         "users": list(fake_users_db.keys())
     }
 
-if __name__ == "__main__":
-    import granian
-    granian.Granian("__main__:app").serve()
 ```
 
 This complete example provides:
@@ -194,7 +190,7 @@ Velithon supports multiple authentication schemes that can be used individually 
 The most common authentication method for modern APIs. Supports stateless authentication with signed tokens.
 
 ```python
-from velithon.security import HTTPBearer, HTTPBearerCredentials
+from velithon.security import HTTPBearer
 
 # Initialize Bearer scheme
 bearer_scheme = HTTPBearer(
@@ -206,8 +202,7 @@ bearer_scheme = HTTPBearer(
 # Usage in dependency function
 async def get_current_user_bearer(request) -> User:
     """Extract JWT token from Authorization: Bearer <token> header"""
-    credentials: HTTPBearerCredentials = bearer_scheme(request)
-    token = credentials.credentials
+    token = await bearer_scheme(request)
     
     try:
         # Validate token and extract user info
@@ -245,7 +240,7 @@ async def get_profile(
 Traditional username/password authentication using HTTP Basic Auth. Suitable for simple APIs or internal services.
 
 ```python
-from velithon.security import HTTPBasic, HTTPBasicCredentials
+from velithon.security import HTTPBasic
 import base64
 
 # Initialize Basic Auth scheme
@@ -258,9 +253,9 @@ basic_scheme = HTTPBasic(
 # Usage in dependency function
 async def get_current_user_basic(request) -> User:
     """Extract credentials from Authorization: Basic <base64> header"""
-    credentials: HTTPBasicCredentials = basic_scheme(request)
-    username = credentials.username
-    password = credentials.password
+    credentials = await basic_scheme(request)
+    # credentials is a string in format "username:password"
+    username, password = credentials.split(":", 1)
     
     # Authenticate user
     user = await authenticate_user(username, password)
@@ -341,7 +336,7 @@ async def validate_api_key(api_key: str) -> User:
 # Dependency function
 async def get_current_user_api_key(request) -> User:
     """Extract and validate API key from X-API-Key header"""
-    api_key: str = api_key_scheme(request)
+    api_key = await api_key_scheme(request)
     return await validate_api_key(api_key)
 
 # API endpoint for external services
@@ -439,24 +434,13 @@ async def oauth_token(
         "refresh_token": generate_refresh_token(user.username)
     }
 
-# OAuth2 dependency with scope validation
-async def get_current_user_oauth2(
-    request,
-    required_scopes: list[str] = None
-) -> User:
-    """Extract OAuth2 token and validate scopes"""
-    token: str = oauth2_scheme(request)
+async def get_current_user_oauth2(request) -> User:
+    """Extract OAuth2 token and validate basic authentication"""
+    token = await oauth2_scheme(request)
     
     try:
         payload = jwt_handler.decode_token(token)
         username = payload.get("sub")
-        token_scopes = payload.get("scopes", [])
-        
-        # Validate required scopes
-        if required_scopes:
-            for scope in required_scopes:
-                if scope not in token_scopes:
-                    raise AuthenticationError(f"Insufficient scope: {scope} required")
         
         user = await get_user_by_username(username)
         if not user:
@@ -467,33 +451,31 @@ async def get_current_user_oauth2(
     except Exception as e:
         raise AuthenticationError(f"OAuth2 validation failed: {str(e)}")
 
-# Scope-protected endpoints
+# Basic OAuth2 endpoints (scope validation not fully implemented yet)
 @app.get("/oauth/read-data")
 async def read_data(
-    current_user: Annotated[User, get_current_user_oauth2],
-    _: Annotated[None, require_oauth_scope("read")]
+    current_user: Annotated[User, get_current_user_oauth2]
 ):
-    """Requires 'read' scope"""
+    """Basic OAuth2 protected endpoint"""
     return {"data": "sensitive data", "user": current_user.username}
 
 @app.post("/oauth/write-data") 
 async def write_data(
     current_user: Annotated[User, get_current_user_oauth2],
-    _: Annotated[None, require_oauth_scope("write")],
     data: dict
 ):
-    """Requires 'write' scope"""
+    """Basic OAuth2 protected endpoint"""
     await save_data(data, current_user)
     return {"message": "Data saved successfully"}
 ```
 
 **OAuth2 Features:**
 - Standard OAuth2 password flow
-- Scope-based permissions
-- Refresh token support
+- Basic token authentication
 - OpenAPI OAuth2 documentation
-- Client credentials flow support
 - Token introspection endpoints
+
+*Note: Advanced scope validation and refresh token support are planned for future releases.*
 
 ## User Management
 
@@ -845,7 +827,7 @@ class RedisSessionManager:
 
 ## Permissions and Role-Based Access Control
 
-Velithon provides a flexible permission system supporting both role-based (RBAC) and attribute-based access control (ABAC).
+Velithon provides a basic permission system for role-based access control (RBAC).
 
 ### Basic Permission System
 
@@ -883,380 +865,78 @@ async def delete_user(
     return {"message": f"User {user_id} deleted"}
 ```
 
-### Advanced Role-Based Access Control
+### Basic Role Checking
 
 ```python
-from enum import Enum
-from typing import List, Set
+from typing import List
 
-class Role(str, Enum):
-    """Define application roles"""
-    GUEST = "guest"
-    USER = "user"
-    MODERATOR = "moderator"
-    ADMIN = "admin"
-    SUPER_ADMIN = "super_admin"
+def check_user_role(user: User, required_role: str) -> bool:
+    """Check if user has required role"""
+    return required_role in user.roles
 
-class RolePermissions:
-    """Define permissions for each role"""
-    ROLE_PERMISSIONS = {
-        Role.GUEST: {
-            Permissions.READ
-        },
-        Role.USER: {
-            Permissions.READ,
-            Permissions.WRITE
-        },
-        Role.MODERATOR: {
-            Permissions.READ,
-            Permissions.WRITE,
-            Permissions.DELETE,
-            "content:moderate"
-        },
-        Role.ADMIN: {
-            Permissions.READ,
-            Permissions.WRITE,
-            Permissions.DELETE,
-            Permissions.USER_MANAGE,
-            Permissions.BILLING_READ,
-            "content:moderate",
-            "system:configure"
-        },
-        Role.SUPER_ADMIN: {
-            "*"  # All permissions
-        }
-    }
-    
-    @classmethod
-    def get_permissions_for_role(cls, role: Role) -> Set[str]:
-        """Get all permissions for a role"""
-        return cls.ROLE_PERMISSIONS.get(role, set())
-    
-    @classmethod
-    def user_has_permission(cls, user: User, permission: str) -> bool:
-        """Check if user has specific permission via roles"""
-        user_permissions = set()
-        
-        for role in user.roles:
-            role_perms = cls.get_permissions_for_role(Role(role))
-            if "*" in role_perms:  # Super admin has all permissions
-                return True
-            user_permissions.update(role_perms)
-        
-        # Also check direct permissions
-        user_permissions.update(user.permissions)
-        
-        return permission in user_permissions
+def check_user_permission(user: User, required_permission: str) -> bool:
+    """Check if user has required permission"""
+    return required_permission in user.permissions
 
-# Advanced permission checking
-async def require_role(required_role: Role):
-    """Dependency to require specific role"""
-    async def check_role(current_user: Annotated[User, get_current_user]):
-        if required_role.value not in current_user.roles:
-            raise AuthorizationError(f"Role '{required_role.value}' required")
-        return current_user
-    return check_role
-
-async def require_any_role(required_roles: List[Role]):
-    """Dependency to require any of the specified roles"""
-    async def check_roles(current_user: Annotated[User, get_current_user]):
-        user_roles = set(current_user.roles)
-        required_role_values = {role.value for role in required_roles}
-        
-        if not user_roles.intersection(required_role_values):
-            roles_str = ", ".join(required_role_values)
-            raise AuthorizationError(f"One of these roles required: {roles_str}")
-        return current_user
-    return check_roles
-
-async def require_permission_advanced(permission: str):
-    """Advanced permission checking with role inheritance"""
-    async def check_permission(current_user: Annotated[User, get_current_user]):
-        if not RolePermissions.user_has_permission(current_user, permission):
-            raise AuthorizationError(f"Permission '{permission}' required")
-        return current_user
-    return check_permission
-
-# Usage in endpoints
+# Simple role-based endpoint protection
 @app.get("/admin/dashboard")
 async def admin_dashboard(
-    current_user: Annotated[User, require_role(Role.ADMIN)]
-):
-    """Admin dashboard - requires admin role"""
-    return {"dashboard": "admin_data"}
-
-@app.get("/moderate/content")
-async def moderate_content(
-    current_user: Annotated[User, require_any_role([Role.MODERATOR, Role.ADMIN])]
-):
-    """Content moderation - requires moderator or admin role"""
-    return {"content": await get_content_for_moderation()}
-
-@app.post("/billing/invoice")
-async def create_invoice(
-    current_user: Annotated[User, require_permission_advanced(Permissions.BILLING_WRITE)]
-):
-    """Create invoice - requires billing write permission"""
-    return {"invoice": "created"}
-```
-
-### Resource-Based Permissions
-
-```python
-from typing import Protocol
-
-class ResourceOwnershipChecker(Protocol):
-    """Protocol for checking resource ownership"""
-    async def is_owner(self, user: User, resource_id: str) -> bool:
-        ...
-    
-    async def can_access(self, user: User, resource_id: str, action: str) -> bool:
-        ...
-
-class DocumentOwnershipChecker:
-    """Check document ownership and permissions"""
-    
-    async def is_owner(self, user: User, document_id: str) -> bool:
-        """Check if user owns the document"""
-        doc = await get_document(document_id)
-        return doc and doc.owner_id == user.username
-    
-    async def can_access(self, user: User, document_id: str, action: str) -> bool:
-        """Check if user can perform action on document"""
-        doc = await get_document(document_id)
-        if not doc:
-            return False
-        
-        # Owner can do anything
-        if doc.owner_id == user.username:
-            return True
-        
-        # Check shared permissions
-        if action == "read" and user.username in doc.shared_with:
-            return True
-        
-        # Check role-based permissions
-        if "admin" in user.roles:
-            return True
-        
-        return False
-
-# Resource ownership dependency
-async def require_document_ownership(document_id: str):
-    """Require ownership of specific document"""
-    checker = DocumentOwnershipChecker()
-    
-    async def check_ownership(current_user: Annotated[User, get_current_user]):
-        if not await checker.is_owner(current_user, document_id):
-            raise AuthorizationError("Document ownership required")
-        return current_user
-    return check_ownership
-
-async def require_document_access(document_id: str, action: str = "read"):
-    """Require access to specific document"""
-    checker = DocumentOwnershipChecker()
-    
-    async def check_access(current_user: Annotated[User, get_current_user]):
-        if not await checker.can_access(current_user, document_id, action):
-            raise AuthorizationError(f"Access denied for action '{action}' on document")
-        return current_user
-    return check_access
-
-# Resource-based endpoints
-@app.get("/documents/{document_id}")
-async def get_document(
-    document_id: str,
-    current_user: Annotated[User, require_document_access(document_id, "read")]
-):
-    """Get document - requires read access"""
-    return await fetch_document(document_id)
-
-@app.put("/documents/{document_id}")
-async def update_document(
-    document_id: str,
-    updates: dict,
-    current_user: Annotated[User, require_document_ownership(document_id)]
-):
-    """Update document - requires ownership"""
-    await update_document_data(document_id, updates)
-    return {"message": "Document updated"}
-```
-
-### Advanced Permission Patterns
-
-```python
-from functools import wraps
-from typing import Callable, Any
-
-# Permission decorators for complex logic
-def permission_required(permission: str, resource_check: Callable = None):
-    """Decorator for permission-based access control"""
-    def decorator(func: Callable) -> Callable:
-        @wraps(func)
-        async def wrapper(*args, **kwargs):
-            # Extract current user from function signature
-            current_user = None
-            for arg in args:
-                if isinstance(arg, User):
-                    current_user = arg
-                    break
-            
-            if not current_user:
-                raise AuthorizationError("User context required")
-            
-            # Check basic permission
-            if not RolePermissions.user_has_permission(current_user, permission):
-                raise AuthorizationError(f"Permission '{permission}' required")
-            
-            # Check resource-specific permission if provided
-            if resource_check:
-                resource_id = kwargs.get('resource_id') or kwargs.get('id')
-                if resource_id and not await resource_check(current_user, resource_id):
-                    raise AuthorizationError("Resource access denied")
-            
-            return await func(*args, **kwargs)
-        return wrapper
-    return decorator
-
-# Time-based permissions
-class TimeBasedPermissions:
-    """Handle time-based access controls"""
-    
-    @staticmethod
-    async def is_business_hours() -> bool:
-        """Check if current time is within business hours"""
-        from datetime import datetime, time
-        now = datetime.now().time()
-        return time(9, 0) <= now <= time(17, 0)  # 9 AM to 5 PM
-    
-    @staticmethod
-    async def check_user_access_window(user: User) -> bool:
-        """Check if user is within their allowed access window"""
-        user_settings = await get_user_settings(user.username)
-        if not user_settings.access_schedule:
-            return True
-        
-        # Check against user's allowed time windows
-        now = datetime.now()
-        for window in user_settings.access_schedule:
-            if window.start_time <= now.time() <= window.end_time:
-                return True
-        return False
-
-async def require_business_hours():
-    """Dependency to require business hours access"""
-    async def check_hours(current_user: Annotated[User, get_current_user]):
-        if not await TimeBasedPermissions.is_business_hours():
-            raise AuthorizationError("Access restricted to business hours (9 AM - 5 PM)")
-        return current_user
-    return check_hours
-
-# IP-based restrictions
-class IPRestrictions:
-    """Handle IP-based access controls"""
-    
-    @staticmethod
-    async def is_ip_allowed(user: User, client_ip: str) -> bool:
-        """Check if IP is allowed for user"""
-        user_settings = await get_user_settings(user.username)
-        
-        # If no restrictions, allow all
-        if not user_settings.ip_whitelist:
-            return True
-        
-        # Check against whitelist
-        import ipaddress
-        client_addr = ipaddress.ip_address(client_ip)
-        
-        for allowed_range in user_settings.ip_whitelist:
-            if client_addr in ipaddress.ip_network(allowed_range):
-                return True
-        
-        return False
-
-async def require_ip_whitelist():
-    """Dependency to check IP restrictions"""
-    async def check_ip(request, current_user: Annotated[User, get_current_user]):
-        client_ip = request.client.host
-        
-        if not await IPRestrictions.is_ip_allowed(current_user, client_ip):
-            raise AuthorizationError(f"Access denied from IP {client_ip}")
-        
-        return current_user
-    return check_ip
-
-# Attribute-based access control (ABAC)
-class ABACEvaluator:
-    """Attribute-Based Access Control evaluator"""
-    
-    @staticmethod
-    async def evaluate_policy(user: User, resource: dict, action: str, context: dict) -> bool:
-        """Evaluate ABAC policy"""
-        
-        # Example policy: Users can edit their own profile during business hours
-        if action == "edit" and resource.get("type") == "profile":
-            is_owner = resource.get("owner_id") == user.username
-            is_business_hours = await TimeBasedPermissions.is_business_hours()
-            return is_owner and is_business_hours
-        
-        # Example policy: Admins can access anything except during maintenance
-        if "admin" in user.roles:
-            is_maintenance = context.get("maintenance_mode", False)
-            return not is_maintenance
-        
-        # Example policy: Department access restrictions
-        if resource.get("department") and user.metadata.get("department"):
-            same_department = resource["department"] == user.metadata["department"]
-            if action in ["read", "comment"] and same_department:
-                return True
-        
-        return False
-
-# Complex permission example combining multiple factors
-@app.put("/profiles/{user_id}")
-async def update_profile(
-    user_id: str,
-    profile_data: dict,
-    request,
     current_user: Annotated[User, get_current_user]
 ):
-    """Update user profile with complex access control"""
+    """Admin dashboard - requires admin role"""
+    if "admin" not in current_user.roles:
+        raise AuthenticationError("Admin access required")
     
-    # Get resource information
-    target_profile = await get_user_profile(user_id)
-    if not target_profile:
-        raise NotFoundError("Profile not found")
+    return {"dashboard": "admin_data"}
+
+@app.get("/user/profile")
+async def user_profile(
+    current_user: Annotated[User, get_current_user]
+):
+    """User profile - requires read permission"""
+    if "read" not in current_user.permissions:
+        raise AuthenticationError("Read permission required")
     
-    # Prepare ABAC context
-    context = {
-        "client_ip": request.client.host,
-        "user_agent": request.headers.get("user-agent", ""),
-        "maintenance_mode": await is_maintenance_mode(),
-        "request_time": datetime.utcnow()
-    }
-    
-    # Evaluate ABAC policy
-    resource = {
-        "type": "profile",
-        "owner_id": target_profile.user_id,
-        "department": target_profile.department
-    }
-    
-    can_edit = await ABACEvaluator.evaluate_policy(
-        user=current_user,
-        resource=resource,
-        action="edit",
-        context=context
-    )
-    
-    if not can_edit:
-        raise AuthorizationError("Profile edit access denied")
-    
-    # Update profile
-    await update_user_profile(user_id, profile_data)
-    return {"message": "Profile updated successfully"}
+    return {"profile": current_user.dict()}
 ```
 
+*Note: Advanced RBAC features like role inheritance, attribute-based access control (ABAC), time-based permissions, and IP restrictions are planned for future releases.*
+
+### Basic Permission System
+
+```python
+from velithon.security import require_permission, Permission, PermissionChecker
+from typing import Annotated
+
+# Define permissions as constants
+class Permissions:
+    READ = "read"
+    WRITE = "write" 
+    DELETE = "delete"
+    ADMIN = "admin"
+    USER_MANAGE = "user:manage"
+    BILLING_READ = "billing:read"
+    BILLING_WRITE = "billing:write"
+
+# Simple permission-based authorization
+@app.get("/admin/users")
+async def list_users(
+    current_user: Annotated[User, get_current_user],
+    _: Annotated[None, require_permission(Permissions.USER_MANAGE)]
+):
+    """Only users with 'user:manage' permission can access this"""
+    return {"users": await get_all_users()}
+
+@app.delete("/admin/users/{user_id}")
+async def delete_user(
+    user_id: str,
+    current_user: Annotated[User, get_current_user],
+    _: Annotated[None, require_permission(Permissions.DELETE)]
+):
+    """Requires 'delete' permission"""
+    await delete_user_by_id(user_id)
+    return {"message": f"User {user_id} deleted"}
+```
 ## JWT Token Handling
 
 ### JWT Configuration
@@ -1336,9 +1016,9 @@ app = Velithon(
 
 Velithon automatically integrates authentication schemes with OpenAPI/Swagger documentation, providing interactive authentication in the Swagger UI.
 
-### Automatic Security Scheme Detection
+### Basic OpenAPI Integration
 
-When you enable security middleware, Velithon automatically detects and documents all authentication schemes:
+When you enable security middleware, Velithon provides basic OpenAPI documentation for authentication schemes:
 
 ```python
 from velithon import Velithon
@@ -1374,19 +1054,20 @@ from typing import Annotated
 
 # JWT Bearer authentication
 async def get_current_user_jwt(request) -> User:
-    credentials = bearer_auth(request)
+    token = await bearer_auth(request)
     # ... validation logic
     return user
 
 # Basic authentication
 async def get_current_user_basic(request) -> User:
-    credentials = basic_auth(request)
-    # ... validation logic
+    credentials = await basic_auth(request)
+    # credentials is a string in format "username:password"
+    username, password = credentials.split(":", 1)
     return user
 
 # API Key authentication
 async def get_current_user_api_key(request) -> User:
-    api_key = api_key_auth(request)
+    api_key = await api_key_auth(request)
     # ... validation logic
     return user
 
@@ -1570,21 +1251,18 @@ async def oauth_token(username: str, password: str, scope: str = ""):
         "scope": " ".join(granted_scopes)
     }
 
-# Scope-protected endpoints
 @app.get("/profile",
          summary="Get Profile (OAuth2)",
          description="Get user profile with OAuth2 authentication")
 async def get_profile_oauth2(
-    current_user: Annotated[User, get_current_user_oauth2],
-    _: Annotated[None, require_oauth_scope("profile:read")]
+    current_user: Annotated[User, get_current_user_oauth2]
 ):
     """
-    Requires OAuth2 authentication with 'profile:read' scope.
+    Requires OAuth2 authentication.
     
     **Swagger UI will**:
     - Show this endpoint requires OAuth2
-    - Display the required scope
-    - Allow scope selection during authorization
+    - Allow OAuth2 authorization
     """
     return current_user.dict()
 
@@ -1593,11 +1271,10 @@ async def get_profile_oauth2(
          description="Update user profile with OAuth2 authentication")
 async def update_profile_oauth2(
     profile_data: dict,
-    current_user: Annotated[User, get_current_user_oauth2],
-    _: Annotated[None, require_oauth_scope("profile:write")]
+    current_user: Annotated[User, get_current_user_oauth2]
 ):
     """
-    Requires OAuth2 authentication with 'profile:write' scope.
+    Requires OAuth2 authentication.
     """
     await update_user_profile(current_user.username, profile_data)
     return {"message": "Profile updated successfully"}
@@ -1608,7 +1285,6 @@ async def update_profile_oauth2(
 You can support multiple authentication methods on the same endpoint:
 
 ```python
-# Multiple auth methods for flexibility
 async def get_current_user_flexible(request) -> User:
     """Support multiple authentication methods"""
     
@@ -1663,44 +1339,24 @@ async def flexible_auth_endpoint(
 
 You can customize how security schemes appear in the OpenAPI spec:
 
+### Basic OpenAPI Customization
+
+You can use the standard authentication schemes provided by Velithon:
+
 ```python
-from velithon.security.auth import SecurityScheme
+from velithon.security import APIKeyHeader
 
-class CustomAPIKeyAuth(SecurityScheme):
-    """Custom API Key authentication with enhanced OpenAPI docs"""
-    
-    def __init__(self, name: str = "X-API-Key", description: str = None):
-        self.name = name
-        self.description = description or f"API key in {name} header"
-    
-    def __call__(self, request) -> str:
-        key = request.headers.get(self.name)
-        if not key:
-            raise AuthenticationError(f"Missing {self.name} header")
-        return key
-    
-    def get_openapi_schema(self) -> dict:
-        """Custom OpenAPI schema for enhanced documentation"""
-        return {
-            "type": "apiKey",
-            "in": "header",
-            "name": self.name,
-            "description": self.description,
-            "example": "your-api-key-here",
-            "x-custom-info": "Contact support to get an API key"
-        }
-
-# Enhanced API key scheme
-enhanced_api_key = CustomAPIKeyAuth(
+# API key scheme with custom configuration
+api_key_auth = APIKeyHeader(
     name="X-API-Key",
-    description="Service API key for external integrations. Contact support@company.com to obtain a key."
+    auto_error=True
 )
 
 @app.get("/api/external-data",
          summary="External Data Access",
          description="Access data using service API key")
 async def external_data_access(
-    api_key: Annotated[str, enhanced_api_key]
+    current_user: Annotated[User, get_current_user_api_key]
 ):
     """
     External API endpoint requiring service API key.
@@ -1715,61 +1371,15 @@ async def external_data_access(
     2. Enter your API key in the X-API-Key field
     3. Click Authorize
     """
-    # Validate API key
-    service_info = await validate_service_api_key(api_key)
-    
     return {
         "data": "sensitive external data",
-        "service": service_info["name"],
-        "rate_limit_remaining": service_info["rate_limit_remaining"]
+        "service": current_user.username
     }
 ```
 
 ### Swagger UI Configuration
 
-You can customize the Swagger UI appearance and behavior:
-
-```python
-from velithon.openapi.docs import get_openapi
-
-def custom_openapi():
-    """Custom OpenAPI configuration with enhanced auth documentation"""
-    if app.openapi_schema:
-        return app.openapi_schema
-    
-    openapi_schema = get_openapi(
-        title=app.title,
-        version=app.version,
-        description=app.description,
-        routes=app.routes,
-    )
-    
-    # Enhance security documentation
-    openapi_schema["info"]["x-authentication"] = {
-        "getting_started": "Visit /auth/login to get a JWT token",
-        "documentation": "See /docs/authentication for detailed guide",
-        "support": "Contact support@company.com for API keys"
-    }
-    
-    # Add global security requirements
-    openapi_schema["security"] = [
-        {"bearerAuth": []},  # JWT Bearer
-        {"apiKeyAuth": []},  # API Key
-        {"basicAuth": []},   # Basic Auth
-        {"oauth2": ["profile:read"]}  # OAuth2 with default scope
-    ]
-    
-    app.openapi_schema = openapi_schema
-    return app.openapi_schema
-
-app.openapi = custom_openapi
-
-# Add authentication info to docs
-@app.get("/docs/authentication", include_in_schema=False)
-async def authentication_docs():
-    """Redirect to authentication documentation"""
-    return RedirectResponse(url="/docs#section/Authentication")
-```
+Velithon automatically generates OpenAPI documentation for your authentication schemes when you enable security middleware.
 
 ### Testing Authentication in Swagger UI
 
@@ -2115,3 +1725,37 @@ async def get_current_user(request):
 ```
 
 For complete deployment examples and troubleshooting guides, see the [Velithon Production Deployment Guide](./deployment.md).
+
+## Implementation Status
+
+This guide describes the current and planned features of Velithon's authentication system:
+
+### ✅ Currently Implemented
+- **Core Authentication Schemes**: HTTPBearer, HTTPBasic, APIKeyHeader, APIKeyQuery, APIKeyCookie
+- **OAuth2 Support**: Basic OAuth2PasswordBearer and OAuth2AuthorizationCodeBearer
+- **User Models**: User, UserInDB, UserCreate, Token, TokenData with Pydantic integration
+- **JWT Handling**: Complete JWTHandler class with token creation, validation, and decoding
+- **Password Security**: BCrypt hashing with passlib and PBKDF2 fallback
+- **Basic Permissions**: Permission and PermissionChecker classes with require_permission
+- **Security Middleware**: AuthenticationMiddleware and SecurityMiddleware
+- **OpenAPI Integration**: Basic security scheme documentation in Swagger UI
+- **Exception Handling**: Comprehensive authentication and authorization exceptions
+
+### 🚧 Planned for Future Releases
+- **Advanced OAuth2 Scopes**: Detailed scope validation and enforcement
+- **Complex RBAC**: Role inheritance, hierarchical permissions, wildcard permissions
+- **ABAC Features**: Attribute-based access control with policy evaluation
+- **Time-based Permissions**: Business hours restrictions and access windows
+- **IP-based Security**: IP whitelisting and geolocation restrictions
+- **Advanced OpenAPI**: Custom security scheme documentation and enhanced Swagger UI integration
+- **Rate Limiting**: Built-in rate limiting for authentication endpoints
+- **Session Management**: Redis-based session storage and management
+- **Audit Logging**: Comprehensive authentication event logging
+- **Database Integration**: Pre-built integrations with popular databases
+
+### 📚 Usage Recommendations
+- Use the currently implemented features for production applications
+- Basic JWT authentication with role-based permissions covers most use cases
+- For advanced features, implement custom logic using the existing foundation
+- Monitor this documentation for updates on new feature availability
+
