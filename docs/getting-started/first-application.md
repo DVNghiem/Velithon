@@ -571,10 +571,10 @@ Congratulations! You've built a comprehensive Velithon application with:
 
 Now you're ready to explore advanced features:
 
-- **[WebSocket Support](../user-guide/advanced/websockets.md)** - Real-time communication
-- **[File Uploads](../user-guide/http/file-uploads.md)** - Handle file attachments  
-- **[Background Tasks](../user-guide/advanced/background-tasks.md)** - Async processing
-- **[Authentication](../user-guide/security/authentication.md)** - JWT and OAuth2
-- **[Performance Optimization](../performance/json-optimization.md)** - Advanced optimizations
+- **[WebSocket Support](../user-guide/websocket.md)** - Real-time communication
+- **[File Uploads](../user-guide/file-uploads.md)** - Handle file attachments  
+- **[Background Tasks](../user-guide/background-tasks.md)** - Async processing
+- **[Authentication](../security/authentication.md)** - JWT and OAuth2
+- **[Performance Optimization](../advanced/json-optimization.md)** - Advanced optimizations
 
-**[Explore Core Concepts →](../user-guide/core-concepts/application.md)**
+**[Explore Core Concepts →](../user-guide/core-concepts.md)**

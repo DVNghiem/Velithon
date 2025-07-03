@@ -409,11 +409,3 @@ velithon run \
   --security-headers \
   --no-server-header
 ```
-
-## 📚 Next Steps
-
-- **[Run Command](run.md)** - Detailed run command options
-- **[Export Documentation](export-docs.md)** - Documentation export features
-- **[Configuration Options](configuration.md)** - Complete configuration reference
-- **[Production Deployment](../deployment/production.md)** - Production deployment guide
-- **[Docker Deployment](../deployment/docker.md)** - Docker deployment strategies

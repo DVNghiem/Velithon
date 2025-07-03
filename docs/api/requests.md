@@ -637,5 +637,4 @@ if __name__ == "__main__":
 
 - [Application API](application.md) - Main application class
 - [Responses API](responses.md) - Response handling
-- [Routing API](routing.md) - Route management
 - [File Uploads Guide](../user-guide/file-uploads.md) - File upload handling

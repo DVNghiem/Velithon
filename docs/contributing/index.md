@@ -58,8 +58,8 @@ We are committed to providing a welcoming and inclusive environment for all cont
 If you need help with contributing:
 
 1. Check the [documentation](development.md)
-2. Look through existing [issues](https://github.com/velithon/velithon/issues)
-3. Ask questions in [discussions](https://github.com/velithon/velithon/discussions)
+2. Look through existing [issues](https://github.com/DVNghiem/velithon/issues)
+3. Ask questions in [discussions](https://github.com/DVNghiem/velithon/discussions)
 4. Join our community chat (if available)
 
 ## Recognition

@@ -591,4 +591,4 @@ A well-organized Velithon project should have:
 
 This structure scales from small APIs to large enterprise applications while maintaining code quality and team productivity.
 
-**[Learn Core Concepts →](../user-guide/core-concepts/application.md)**
+**[Learn Core Concepts →](../user-guide/core-concepts.md)**

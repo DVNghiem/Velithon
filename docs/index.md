@@ -7,8 +7,8 @@
   <p>
     <a href="https://pypi.org/project/velithon/"><img src="https://img.shields.io/pypi/v/velithon.svg" alt="PyPI version"></a>
     <a href="https://python.org/downloads/"><img src="https://img.shields.io/pypi/pyversions/velithon.svg" alt="Python versions"></a>
-    <a href="https://github.com/velithon/velithon/blob/main/LICENSE"><img src="https://img.shields.io/github/license/velithon/velithon.svg" alt="License"></a>
-    <a href="https://github.com/velithon/velithon/actions"><img src="https://img.shields.io/github/workflow/status/velithon/velithon/CI.svg" alt="Build status"></a>
+    <a href="https://github.com/DVNghiem/velithon/blob/main/LICENSE"><img src="https://img.shields.io/github/license/DVNghiem/velithon.svg" alt="License"></a>
+    <a href="https://github.com/DVNghiem/velithon/actions"><img src="https://img.shields.io/github/workflow/status/DVNghiem/velithon/CI.svg" alt="Build status"></a>
   </p>
 </div>
 
@@ -201,14 +201,14 @@ Unlike traditional ASGI frameworks, Velithon leverages RSGI for:
 
 ## 🤝 Community & Support
 
-- **[GitHub](https://github.com/velithon/velithon)** - Source code, issues, and discussions
+- **[GitHub](https://github.com/DVNghiem/velithon)** - Source code, issues, and discussions
 - **[PyPI](https://pypi.org/project/velithon/)** - Official Python package
 - **[Documentation](https://velithon.readthedocs.io)** - Comprehensive guides and API reference
 - **[Examples](getting-started/first-application.md)** - Real-world application examples
 
 ## 📄 License
 
-Velithon is released under the [BSD-3-Clause License](https://github.com/velithon/velithon/blob/main/LICENSE).
+Velithon is released under the [BSD-3-Clause License](https://github.com/DVNghiem/velithon/blob/main/LICENSE).
 
 ---
 

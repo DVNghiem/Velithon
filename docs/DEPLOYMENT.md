@@ -267,4 +267,4 @@ Track documentation success with:
 
 ---
 
-**Ready to contribute to Velithon documentation?** Start with the [Getting Started](../getting-started/index.md) guide!
+**Ready to contribute to Velithon documentation?** Start with the [Getting Started](getting-started/index.md) guide!

@@ -217,31 +217,6 @@ app = Velithon(
 )
 ```
 
-## 🗺️ Learning Path
-
-### Beginner Track (Days 1-3)
-1. **[Application Basics](core-concepts/application.md)** - Create your first app
-2. **[Routing](core-concepts/routing.md)** - Define endpoints and parameters
-3. **[Requests & Responses](core-concepts/requests-responses.md)** - Handle HTTP communication
-
-### Intermediate Track (Days 4-7)
-4. **[Dependency Injection](core-concepts/dependency-injection.md)** - Manage services and dependencies
-5. **[Middleware](http/middleware.md)** - Add cross-cutting concerns
-6. **[File Uploads](http/file-uploads.md)** - Handle multipart data
-7. **[Authentication](security/authentication.md)** - Secure your API
-
-### Advanced Track (Week 2)
-8. **[WebSockets](advanced/websockets.md)** - Real-time communication
-9. **[Background Tasks](advanced/background-tasks.md)** - Async processing
-10. **[Performance Optimization](../performance/json-optimization.md)** - Maximum throughput
-11. **[Service Mesh](advanced/vsp-service-protocol.md)** - Microservices architecture
-
-### Expert Track (Week 3+)
-12. **[Custom Middleware](http/middleware.md#custom-middleware)** - Build your own middleware
-13. **[Gateway & Proxy](advanced/proxy-gateway.md)** - API gateway patterns
-14. **[Deployment](../deployment/production-setup.md)** - Production deployment
-15. **[Monitoring](../performance/monitoring.md)** - Observability and metrics
-
 ## 🎓 Prerequisites
 
 Before diving into the user guide, you should have:
@@ -273,6 +248,6 @@ Before diving into the user guide, you should have:
 5. **Security First** - Comprehensive auth/authz system
 6. **Microservice Ready** - Native distributed systems support
 
-Ready to master Velithon? Start with **[Application Concepts](core-concepts/application.md)** and work your way through the comprehensive guides.
+Ready to master Velithon? Start with **[Application Concepts](core-concepts.md)** and work your way through the comprehensive guides.
 
-**[Begin Your Journey →](core-concepts/application.md)**
+**[Begin Your Journey →](core-concepts.md)**

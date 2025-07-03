@@ -21,7 +21,7 @@ git clone https://github.com/YOUR_USERNAME/velithon.git
 cd velithon
 
 # Add the upstream remote
-git remote add upstream https://github.com/velithon/velithon.git
+git remote add upstream https://github.com/DVNghiem/velithon.git
 ```
 
 ### 2. Install Rust
@@ -274,8 +274,8 @@ Recommended settings (`.vscode/settings.json`):
 If you encounter issues:
 
 1. Check the [troubleshooting section](#troubleshooting)
-2. Search existing [GitHub issues](https://github.com/velithon/velithon/issues)
-3. Ask for help in [GitHub discussions](https://github.com/velithon/velithon/discussions)
+2. Search existing [GitHub issues](https://github.com/DVNghiem/velithon/issues)
+3. Ask for help in [GitHub discussions](https://github.com/DVNghiem/velithon/discussions)
 4. Join our community chat (if available)
 
 ## Next Steps

@@ -95,7 +95,7 @@ async def get_batch_data():
     return BatchJSONResponse(objects, parallel_threshold=50)
 ```
 
-**Learn More**: [JSON Optimization Guide](../json-optimization.md)
+**Learn More**: [JSON Optimization Guide](json-optimization.md)
 
 ## 🧩 Advanced Dependency Injection
 

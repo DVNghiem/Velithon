@@ -612,8 +612,5 @@ if __name__ == "__main__":
 
 ## See Also
 
-- [Routing API](routing.md) - Router and route management
 - [Requests API](requests.md) - Request handling
 - [Responses API](responses.md) - Response types
-- [Middleware API](middleware.md) - Middleware system
-- [DI Container API](di.md) - Dependency injection

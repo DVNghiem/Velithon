@@ -3,8 +3,8 @@ site_description: A lightweight, high-performance, asynchronous web framework fo
 site_author: Dang Van Nghiem
 site_url: https://velithon.readthedocs.io
 
-repo_name: velithon/velithon
-repo_url: https://github.com/velithon/velithon
+repo_name: DVNghiem/velithon
+repo_url: https://github.com/DVNghiem/velithon
 edit_uri: edit/main/docs/
 
 theme:
@@ -212,14 +212,12 @@ markdown_extensions:
 extra:
   analytics:
     provider: google
-    property: !ENV GOOGLE_ANALYTICS_KEY
+    property: ${GOOGLE_ANALYTICS_KEY}
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/velithon
+      link: https://github.com/DVNghiem
     - icon: fontawesome/brands/python
       link: https://pypi.org/project/velithon/
-    - icon: fontawesome/brands/twitter
-      link: https://twitter.com/velithon
 
 extra_css:
   - stylesheets/extra.css

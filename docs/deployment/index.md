@@ -791,5 +791,4 @@ spec:
 ## Next Steps
 
 - [Production Configuration →](production.md)
-- [Docker Deployment →](docker.md)
-- [Monitoring Setup →](monitoring.md)
+- [Deployment →](development.md)

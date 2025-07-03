@@ -417,11 +417,11 @@ Ready to dive deeper? Here are your next steps:
     
     Build a more comprehensive application with middleware, authentication, and databases
 
--   **[Core Concepts](../user-guide/core-concepts/application.md)**
+-   **[Core Concepts](../user-guide/core-concepts.md)**
     
     Understand Velithon's architecture and design principles
 
--   **[HTTP Features](../user-guide/http/endpoints.md)**
+-   **[HTTP Features](../user-guide/http-endpoints.md)**
     
     Master advanced HTTP features like file uploads, middleware, and response types
 
