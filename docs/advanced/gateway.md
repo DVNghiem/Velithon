@@ -465,8 +465,10 @@ async def consul_proxy(request: Request):
 ### Authentication Forwarding
 
 ```python
+from typing import Annotated
+
 @app.get("/secure/{path:path}")
-async def secure_proxy(request: Request, current_user: User = Depends(get_current_user)):
+async def secure_proxy(request: Request, current_user: Annotated[User, get_current_user]):
     # Add user context to forwarded request
     headers = dict(request.headers)
     headers["X-User-ID"] = current_user.id

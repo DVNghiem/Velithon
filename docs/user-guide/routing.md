@@ -404,13 +404,13 @@ async def admin_stats():
 Use dependency injection with routes:
 
 ```python
-from velithon.dependencies import Depends
+from typing import Annotated
 
 def get_current_user():
     return {"user_id": 123, "username": "john"}
 
 @app.get("/profile")
-async def get_profile(user=Depends(get_current_user)):
+async def get_profile(user: Annotated[dict, get_current_user]):
     return JSONResponse({"profile": user})
 ```
 

@@ -417,18 +417,24 @@ You can extend this example by adding:
 
 ### 1. User Authentication
 ```python
+from typing import Annotated
 from velithon.security import HTTPBearer
-from velithon.di import inject, Provide
+
+bearer_scheme = HTTPBearer()
+
+async def get_current_user_from_token(request):
+    """Extract and verify user from token."""
+    token = await bearer_scheme(request)
+    # Verify token and return user
+    return verify_token(token)
 
 @app.websocket("/ws/{room}")
-@inject
 async def authenticated_websocket(
     websocket: WebSocket, 
     room: str,
-    token: Provide[HTTPBearer] = Depends(get_token)
+    current_user: Annotated[User, get_current_user_from_token]
 ):
-    user = verify_token(token)
-    await chat_manager.connect_user(websocket, user.username, room)
+    await chat_manager.connect_user(websocket, current_user.username, room)
 ```
 
 ### 2. Message Persistence

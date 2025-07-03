@@ -6,7 +6,7 @@ Velithon provides automatic OpenAPI documentation generation with built-in Swagg
 
 Velithon automatically generates OpenAPI 3.0 documentation based on your route definitions, type hints, and docstrings. The documentation is available through Swagger UI at the `/docs` endpoint.
 
-**Note**: Velithon has its own implementation of OpenAPI documentation that differs from FastAPI. It uses dependency injection through `@inject` and `Provide` rather than `Depends`, and some parameters like `status_code` and `responses` in route decorators are handled differently.
+**Note**: Velithon has its own implementation of OpenAPI documentation that differs from FastAPI. It uses `Annotated` type hints for dependency injection rather than `Depends`, and some parameters like `status_code` and `responses` in route decorators are handled differently.
 
 ## Automatic Documentation
 

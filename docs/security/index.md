@@ -73,6 +73,8 @@ graph TD
 ### Basic JWT Authentication
 
 ```python
+from typing import Annotated
+
 from velithon import Velithon
 from velithon.security import HTTPBearer, JWTHandler
 from velithon.security.dependencies import get_current_user
@@ -106,20 +108,22 @@ async def login(request: Request):
     return {"access_token": access_token, "token_type": "bearer"}
 
 @app.get("/protected")
-async def protected_endpoint(current_user: User = Depends(get_current_user)):
+async def protected_endpoint(current_user: Annotated[User, get_current_user]):
     return {"message": f"Hello, {current_user.username}!"}
 ```
 
 ### API Key Authentication
 
 ```python
+from typing import Annotated
+
 from velithon.security import APIKeyHeader
 
 # API key in header
 api_key_scheme = APIKeyHeader(name="X-API-Key")
 
 @app.get("/api/data")
-async def get_data(api_key: str = Depends(api_key_scheme)):
+async def get_data(api_key: Annotated[str, api_key_scheme]):
     # Validate API key
     if api_key != "valid-api-key":
         raise HTTPException(status_code=401, detail="Invalid API key")
@@ -130,12 +134,14 @@ async def get_data(api_key: str = Depends(api_key_scheme)):
 ### Role-Based Access Control
 
 ```python
+from typing import Annotated
+
 from velithon.security.permissions import require_permission, CommonPermissions
 
 @app.get("/admin/users")
 async def list_all_users(
-    current_user: User = Depends(get_current_user),
-    _: None = Depends(require_permission(CommonPermissions.ADMIN_READ))
+    current_user: Annotated[User, get_current_user],
+    _: Annotated[None, require_permission(CommonPermissions.ADMIN_READ)]
 ):
     # Only accessible to users with admin read permissions
     return {"users": ["all", "users"]}
@@ -143,8 +149,8 @@ async def list_all_users(
 @app.delete("/admin/users/{user_id}")
 async def delete_user(
     request: Request,
-    current_user: User = Depends(get_current_user),
-    _: None = Depends(require_permission(CommonPermissions.ADMIN_WRITE))
+    current_user: Annotated[User, get_current_user],
+    _: Annotated[None, require_permission(CommonPermissions.ADMIN_WRITE)]
 ):
     user_id = request.path_params["user_id"]
     # Delete user logic
@@ -158,12 +164,14 @@ async def delete_user(
 Most commonly used for JWT authentication:
 
 ```python
+from typing import Annotated
+
 from velithon.security import HTTPBearer
 
 bearer_auth = HTTPBearer()
 
 @app.get("/profile")
-async def get_profile(token: str = Depends(bearer_auth)):
+async def get_profile(token: Annotated[str, bearer_auth]):
     # Decode and validate token
     payload = jwt_handler.decode_token(token)
     user = get_user_from_token(payload)
@@ -175,12 +183,15 @@ async def get_profile(token: str = Depends(bearer_auth)):
 Username/password authentication:
 
 ```python
+from typing import Annotated
+
 from velithon.security import HTTPBasic
+from velithon.security.models import HTTPBasicCredentials
 
 basic_auth = HTTPBasic()
 
 @app.get("/basic-protected")
-async def basic_protected(credentials: HTTPBasicCredentials = Depends(basic_auth)):
+async def basic_protected(credentials: Annotated[HTTPBasicCredentials, basic_auth]):
     username = credentials.username
     password = credentials.password
     
@@ -196,12 +207,14 @@ async def basic_protected(credentials: HTTPBasicCredentials = Depends(basic_auth
 #### Header-based API Key
 
 ```python
+from typing import Annotated
+
 from velithon.security import APIKeyHeader
 
 api_key_header = APIKeyHeader(name="X-API-Key")
 
 @app.get("/api/data")
-async def get_data(api_key: str = Depends(api_key_header)):
+async def get_data(api_key: Annotated[str, api_key_header]):
     if not validate_api_key(api_key):
         raise HTTPException(status_code=401, detail="Invalid API key")
     return {"data": "content"}
@@ -210,12 +223,14 @@ async def get_data(api_key: str = Depends(api_key_header)):
 #### Query Parameter API Key
 
 ```python
+from typing import Annotated
+
 from velithon.security import APIKeyQuery
 
 api_key_query = APIKeyQuery(name="api_key")
 
 @app.get("/api/public-data")
-async def get_public_data(api_key: str = Depends(api_key_query)):
+async def get_public_data(api_key: Annotated[str, api_key_query]):
     # Validate API key from query parameter
     return {"data": "public content"}
 ```
@@ -223,12 +238,14 @@ async def get_public_data(api_key: str = Depends(api_key_query)):
 #### Cookie-based API Key
 
 ```python
+from typing import Annotated
+
 from velithon.security import APIKeyCookie
 
 api_key_cookie = APIKeyCookie(name="api_session")
 
 @app.get("/api/session-data")
-async def get_session_data(api_key: str = Depends(api_key_cookie)):
+async def get_session_data(api_key: Annotated[str, api_key_cookie]):
     # Validate API key from cookie
     return {"data": "session content"}
 ```
@@ -297,8 +314,10 @@ refresh_token = jwt_handler.create_refresh_token(
 ### Token Validation
 
 ```python
+from typing import Annotated
+
 @app.get("/verify-token")
-async def verify_token(token: str = Depends(bearer_auth)):
+async def verify_token(token: Annotated[str, bearer_auth]):
     try:
         payload = jwt_handler.decode_token(token)
         return {"valid": True, "payload": payload}
@@ -355,6 +374,8 @@ is_valid = verify_password("user_password", hashed)
 ### Basic Permissions
 
 ```python
+from typing import Annotated
+
 from velithon.security.permissions import Permission, require_permission
 
 # Define custom permissions
@@ -364,14 +385,14 @@ DELETE_POSTS = Permission("posts:delete")
 
 @app.get("/posts")
 async def list_posts(
-    _: None = Depends(require_permission(READ_POSTS))
+    _: Annotated[None, require_permission(READ_POSTS)]
 ):
     return {"posts": []}
 
 @app.delete("/posts/{post_id}")
 async def delete_post(
     request: Request,
-    _: None = Depends(require_permission(DELETE_POSTS))
+    _: Annotated[None, require_permission(DELETE_POSTS)]
 ):
     return {"deleted": request.path_params["post_id"]}
 ```
@@ -379,12 +400,14 @@ async def delete_post(
 ### Role-Based Permissions
 
 ```python
+from typing import Annotated
+
 from velithon.security.permissions import CommonPermissions
 
 # Built-in common permissions
 @app.get("/admin/dashboard")
 async def admin_dashboard(
-    _: None = Depends(require_permission(CommonPermissions.ADMIN_READ))
+    _: Annotated[None, require_permission(CommonPermissions.ADMIN_READ)]
 ):
     return {"dashboard": "admin_data"}
 ```
@@ -392,15 +415,17 @@ async def admin_dashboard(
 ### Multiple Permissions
 
 ```python
+from typing import Annotated
+
 from velithon.security.permissions import require_permissions
 
 @app.post("/admin/posts")
 async def create_admin_post(
     request: Request,
-    _: None = Depends(require_permissions([
+    _: Annotated[None, require_permissions([
         CommonPermissions.ADMIN_WRITE,
         Permission("posts:create")
-    ]))
+    ])]
 ):
     post_data = await request.json()
     return {"post": post_data}
@@ -411,10 +436,12 @@ async def create_admin_post(
 Security schemes are automatically documented in OpenAPI:
 
 ```python
+from typing import Annotated
+
 # The security will automatically appear in Swagger UI
 @app.get("/protected-endpoint")
 async def protected_endpoint(
-    current_user: User = Depends(get_current_user)
+    current_user: Annotated[User, get_current_user]
 ):
     return {"user": current_user.username}
 ```

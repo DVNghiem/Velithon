@@ -54,14 +54,14 @@ async def login(credentials: dict):
     })
 
 @app.get("/protected")
-async def protected_endpoint(user: Annotated[dict, Depends(get_current_user)]):
+async def protected_endpoint(user: Annotated[dict, get_current_user]):
     return OptimizedJSONResponse({"message": f"Hello, {user['username']}!"})
 ```
 
 ### JWT Dependency
 
 ```python
-from velithon.dependencies import Depends
+from typing import Annotated
 from velithon.exceptions import UnauthorizedException
 from jose import JWTError, jwt
 
@@ -326,7 +326,7 @@ from io import BytesIO
 import base64
 
 @app.post("/auth/setup-2fa")
-async def setup_2fa(user: Annotated[dict, Depends(get_current_user)]):
+async def setup_2fa(user: Annotated[dict, get_current_user]):
     # Generate a secret key for the user
     secret = pyotp.random_base32()
     
@@ -357,7 +357,7 @@ async def setup_2fa(user: Annotated[dict, Depends(get_current_user)]):
 
 @app.post("/auth/verify-2fa")
 async def verify_2fa(
-    user: Annotated[dict, Depends(get_current_user)],
+    user: Annotated[dict, get_current_user],
     totp_code: str
 ):
     user_secret = get_user_2fa_secret(user["id"])
