@@ -701,42 +701,44 @@ async def get_error_metrics():
 
 ```python
 import pytest
-from velithon.testing import TestClient
+import httpx
 
-def test_http_exceptions():
-    client = TestClient(app)
-    
-    # Test 400 Bad Request
-    response = client.get("/demo/errors/bad_request")
-    assert response.status_code == 400
-    assert "Invalid request parameters" in response.json()["error"]["message"]
-    
-    # Test 404 Not Found
-    response = client.get("/demo/errors/not_found")
-    assert response.status_code == 404
-    assert response.json()["error"]["code"] == "NOT_FOUND"
-    
-    # Test 500 Internal Server Error
-    response = client.get("/demo/errors/server_error")
-    assert response.status_code == 500
+@pytest.mark.asyncio
+async def test_http_exceptions():
+    # Note: Velithon doesn't have a built-in TestClient
+    # Use httpx for testing HTTP endpoints
+    async with httpx.AsyncClient(app=app, base_url="http://test") as client:
+        # Test 400 Bad Request
+        response = await client.get("/demo/errors/bad_request")
+        assert response.status_code == 400
+        assert "Invalid request parameters" in response.json()["error"]["message"]
+        
+        # Test 404 Not Found
+        response = await client.get("/demo/errors/not_found")
+        assert response.status_code == 404
+        assert response.json()["error"]["code"] == "NOT_FOUND"
+        
+        # Test 500 Internal Server Error
+        response = await client.get("/demo/errors/server_error")
+        assert response.status_code == 500
 
-def test_validation_errors():
-    client = TestClient(app)
-    
-    # Test invalid registration data
-    invalid_data = {
-        "username": "",
-        "email": "invalid-email",
-        "password": "123",
-        "age": -5
-    }
-    
-    response = client.post("/register", json=invalid_data)
-    assert response.status_code == 422
-    
-    errors = response.json()["error"]["details"]["errors"]
-    assert len(errors) > 0
-    assert any(error["field"] == "email" for error in errors)
+@pytest.mark.asyncio
+async def test_validation_errors():
+    async with httpx.AsyncClient(app=app, base_url="http://test") as client:
+        # Test invalid registration data
+        invalid_data = {
+            "username": "",
+            "email": "invalid-email", 
+            "password": "123",
+            "age": -5
+        }
+        
+        response = await client.post("/register", json=invalid_data)
+        assert response.status_code == 422
+        
+        errors = response.json()["error"]["details"]["errors"]
+        assert len(errors) > 0
+        assert any(error["field"] == "email" for error in errors)
 ```
 
 ### Integration Testing
@@ -746,7 +748,7 @@ def test_validation_errors():
 async def test_error_middleware():
     """Test that error middleware properly handles exceptions"""
     
-    async with TestClient(app) as client:
+    async with httpx.AsyncClient(app=app, base_url="http://test") as client:
         # Test that unhandled exceptions are caught
         response = await client.get("/endpoint-that-raises-exception")
         assert response.status_code == 500

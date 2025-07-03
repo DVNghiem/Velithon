@@ -388,15 +388,16 @@ async def redoc_docs():
 
 ```python
 import pytest
-from velithon.testing import TestClient
+import httpx
 
-def test_openapi_schema():
-    client = TestClient(app)
-    response = client.get("/docs")  # Test Swagger UI availability
-    assert response.status_code == 200
-    
-    # Note: Direct OpenAPI JSON access may need custom implementation
-    # The schema is generated internally by Velithon
+@pytest.mark.asyncio
+async def test_openapi_schema():
+    async with httpx.AsyncClient(app=app, base_url="http://test") as client:
+        response = await client.get("/docs")  # Test Swagger UI availability
+        assert response.status_code == 200
+        
+        # Note: Direct OpenAPI JSON access may need custom implementation
+        # The schema is generated internally by Velithon
 
 def test_swagger_ui():
     client = TestClient(app)
@@ -408,23 +409,27 @@ def test_swagger_ui():
 ### Schema Validation
 
 ```python
-# Note: Direct OpenAPI schema validation in Velithon requires custom implementation
-# The framework handles schema generation internally
+# Note: Velithon doesn't have a built-in TestClient
+# Use httpx or similar HTTP client libraries for testing
 
-def test_swagger_ui_availability():
+import pytest
+import httpx
+
+@pytest.mark.asyncio
+async def test_swagger_ui_availability():
     """Test that the Swagger UI documentation is accessible"""
-    client = TestClient(app)
-    response = client.get("/docs")
-    assert response.status_code == 200
-    assert "swagger" in response.text.lower()
+    async with httpx.AsyncClient(app=app, base_url="http://test") as client:
+        response = await client.get("/docs")
+        assert response.status_code == 200
+        assert "swagger" in response.text.lower()
 
-def test_documentation_endpoints():
+@pytest.mark.asyncio
+async def test_documentation_endpoints():
     """Test that documentation endpoints are working"""
-    client = TestClient(app)
-    
-    # Test main docs endpoint
-    docs_response = client.get("/docs")
-    assert docs_response.status_code == 200
+    async with httpx.AsyncClient(app=app, base_url="http://test") as client:
+        # Test main docs endpoint
+        docs_response = await client.get("/docs")
+        assert docs_response.status_code == 200
 ```
 
 ## Best Practices

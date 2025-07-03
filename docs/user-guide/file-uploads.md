@@ -664,30 +664,32 @@ async def upload_with_error_handling(file: UploadFile):
 
 ```python
 import pytest
-from velithon.testing import TestClient
+import httpx
 from io import BytesIO
 
-def test_file_upload():
-    client = TestClient(app)
+@pytest.mark.asyncio
+async def test_file_upload():
+    # Note: Velithon doesn't have a built-in TestClient
+    # Use httpx for testing file uploads
     
-    # Create test file
-    test_file = BytesIO(b"test file content")
-    test_file.name = "test.txt"
-    
-    # Test upload
-    response = client.post(
-        "/upload",
-        files={"file": ("test.txt", test_file, "text/plain")}
-    )
-    
-    assert response.status_code == 200
-    assert response.json()["filename"] == "test.txt"
+    async with httpx.AsyncClient(app=app, base_url="http://test") as client:
+        # Create test file
+        test_file = BytesIO(b"test file content")
+        
+        # Test upload
+        response = await client.post(
+            "/upload",
+            files={"file": ("test.txt", test_file, "text/plain")}
+        )
+        
+        assert response.status_code == 200
+        assert response.json()["filename"] == "test.txt"
 
-def test_multiple_file_upload():
-    client = TestClient(app)
-    
-    files = [
-        ("files", ("file1.txt", BytesIO(b"content 1"), "text/plain")),
+@pytest.mark.asyncio
+async def test_multiple_file_upload():
+    async with httpx.AsyncClient(app=app, base_url="http://test") as client:
+        files = [
+            ("files", ("file1.txt", BytesIO(b"content 1"), "text/plain")),
         ("files", ("file2.txt", BytesIO(b"content 2"), "text/plain")),
     ]
     

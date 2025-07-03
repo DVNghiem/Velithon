@@ -317,7 +317,7 @@ CacheDep = Provide(get_cache)
 """Pytest configuration and fixtures."""
 
 import pytest
-from velithon.testing import TestClient
+import httpx
 from app.main import create_app
 from app.services.database import DatabaseService
 
@@ -327,9 +327,12 @@ def app():
     return create_app()
 
 @pytest.fixture
-def client(app):
-    """Create test client."""
-    return TestClient(app)
+async def client(app):
+    """Create test client using httpx."""
+    # Note: Velithon doesn't have a built-in TestClient
+    # Use httpx for testing HTTP endpoints
+    async with httpx.AsyncClient(app=app, base_url="http://test") as client:
+        yield client
 
 @pytest.fixture
 def db_service():
@@ -345,18 +348,20 @@ def auth_headers():
 ```python title="tests/test_routers/test_tasks.py"
 """Test task router endpoints."""
 
-from velithon.testing import TestClient
+import pytest
+import httpx
 from app.models.tasks import TaskCreate
 
-def test_create_task(client: TestClient, auth_headers: dict):
+@pytest.mark.asyncio
+async def test_create_task(client: httpx.AsyncClient, auth_headers: dict):
     """Test task creation."""
     task_data = {
-        "title": "Test Task",
+        "title": "Test Task", 
         "description": "Test Description",
         "priority": "high"
     }
     
-    response = client.post(
+    response = await client.post(
         "/api/v1/tasks/",
         json=task_data,
         headers=auth_headers
@@ -367,9 +372,10 @@ def test_create_task(client: TestClient, auth_headers: dict):
     assert data["title"] == task_data["title"]
     assert "id" in data
 
-def test_get_tasks(client: TestClient, auth_headers: dict):
+@pytest.mark.asyncio
+async def test_get_tasks(client: httpx.AsyncClient, auth_headers: dict):
     """Test getting tasks."""
-    response = client.get("/api/v1/tasks/", headers=auth_headers)
+    response = await client.get("/api/v1/tasks/", headers=auth_headers)
     
     assert response.status_code == 200
     data = response.json()

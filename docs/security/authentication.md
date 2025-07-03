@@ -481,21 +481,26 @@ async def register(user_data: dict):
 
 ```python
 import pytest
-from velithon.testing import TestClient
+import httpx
 
 @pytest.fixture
-def client():
-    return TestClient(app)
+async def client():
+    # Note: Velithon doesn't have a built-in TestClient
+    # Use httpx for testing HTTP endpoints
+    async with httpx.AsyncClient(app=app, base_url="http://test") as client:
+        yield client
 
-def test_protected_endpoint_without_auth(client):
-    response = client.get("/protected")
+@pytest.mark.asyncio
+async def test_protected_endpoint_without_auth(client):
+    response = await client.get("/protected")
     assert response.status_code == 401
 
-def test_protected_endpoint_with_valid_token(client):
+@pytest.mark.asyncio
+async def test_protected_endpoint_with_valid_token(client):
     token = create_access_token({"sub": "testuser"})
     headers = {"Authorization": f"Bearer {token}"}
     
-    response = client.get("/protected", headers=headers)
+    response = await client.get("/protected", headers=headers)
     assert response.status_code == 200
 
 def test_login_with_valid_credentials(client):

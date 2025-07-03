@@ -392,27 +392,29 @@ async def managed_stream():
 
 ```python
 import pytest
-from velithon.testing import TestClient
+import httpx
+import asyncio
 
 @pytest.mark.asyncio
 async def test_sse_endpoint():
-    client = TestClient(app)
+    # Note: Velithon doesn't have a built-in TestClient
+    # Use httpx or similar HTTP client libraries for testing
     
-    # Test SSE endpoint
-    with client.stream("GET", "/live-counter") as response:
-        assert response.status_code == 200
-        assert response.headers["content-type"] == "text/event-stream"
-        
-        # Read first few events
-        events = []
-        for line in response.iter_lines():
-            if line.startswith("data: "):
-                events.append(line[6:])  # Remove "data: " prefix
-                if len(events) >= 3:
-                    break
-        
-        assert len(events) >= 3
-        assert "Count: 0" in events[0]
+    async with httpx.AsyncClient(app=app, base_url="http://test") as client:
+        async with client.stream("GET", "/live-counter") as response:
+            assert response.status_code == 200
+            assert response.headers["content-type"] == "text/event-stream"
+            
+            # Read first few events
+            events = []
+            async for line in response.aiter_lines():
+                if line.startswith("data: "):
+                    events.append(line[6:])  # Remove "data: " prefix
+                    if len(events) >= 3:
+                        break
+            
+            assert len(events) >= 3
+            assert "Count: 0" in events[0]
 ```
 
 ### Integration Testing

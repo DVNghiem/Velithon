@@ -633,12 +633,13 @@ Organize your tests for maintainability:
 
 ```python
 import pytest
-from httpx import AsyncClient
-from velithon.testing import TestClient
+import httpx
 
 @pytest.fixture
 async def client():
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    # Note: Velithon doesn't have a built-in TestClient
+    # Use httpx for testing HTTP endpoints
+    async with httpx.AsyncClient(app=app, base_url="http://test") as ac:
         yield ac
 
 @pytest.fixture
