@@ -19,7 +19,6 @@ theme:
     - content.code.select
     - content.tabs.link
     - content.tooltips
-    - header.autohide
     - navigation.expand
     - navigation.footer
     - navigation.indexes
