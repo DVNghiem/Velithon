@@ -1,15 +1,14 @@
 # JSON Optimization
 
-Velithon provides advanced JSON optimization features to maximize performance for API responses, including batch processing, streaming, and memory-efficient serialization.
+Velithon provides high-performance JSON serialization through Rust-based optimizations, including parallel processing for large datasets and batch operations for improved throughput.
 
 ## Overview
 
 JSON optimization in Velithon includes:
-- Optimized JSON serialization with custom encoders
-- Batch JSON responses for multiple items
-- Streaming JSON for large datasets
-- Memory-efficient processing
-- Custom serialization strategies
+- **OptimizedJSONResponse**: Rust-based parallel JSON serialization
+- **BatchJSONResponse**: Efficient batch processing for collections
+- **Automatic Optimization**: Smart selection between standard and optimized serialization
+- **Memory-Efficient Processing**: Streaming capabilities for large datasets
 
 ## Optimized JSON Responses
 
@@ -17,8 +16,7 @@ JSON optimization in Velithon includes:
 
 ```python
 from velithon import Velithon
-from velithon.responses import OptimizedJSONResponse, json_response
-from typing import List, Dict, Any
+from velithon.responses import OptimizedJSONResponse, JSONResponse
 import datetime
 import decimal
 
@@ -26,64 +24,50 @@ app = Velithon()
 
 @app.get("/users")
 async def get_users():
-    users = [
-        {"id": 1, "name": "John", "created_at": datetime.datetime.now()},
-        {"id": 2, "name": "Jane", "created_at": datetime.datetime.now()}
-    ]
+    """Large dataset using optimized JSON serialization"""
+    users = []
+    for i in range(10000):  # Large dataset
+        users.append({
+            "id": i,
+            "name": f"User {i}",
+            "created_at": datetime.datetime.now(),
+            "balance": decimal.Decimal("100.50")
+        })
     
-    # Automatically handles datetime serialization
+    # Automatically uses parallel processing for large datasets
     return OptimizedJSONResponse(users)
 
-@app.get("/financial-data")
-async def get_financial_data():
-    data = {
-        "balance": decimal.Decimal("1234.56"),
-        "transactions": [
-            {"amount": decimal.Decimal("100.00"), "date": datetime.date.today()}
-        ]
-    }
+@app.get("/small-data")
+async def get_small_data():
+    """Small dataset uses fast path"""
+    data = {"message": "Hello", "count": 42}
     
-    # Handles Decimal and date objects
+    # Uses fast path for small objects
     return OptimizedJSONResponse(data)
+
+@app.get("/standard-json")
+async def get_standard_json():
+    """Standard JSON response for comparison"""
+    data = {"message": "Hello", "count": 42}
+    return JSONResponse(data)
 ```
 
-### Custom JSON Encoders
+### Configuration Options
 
 ```python
-from velithon.responses.json import JSONEncoder
-import uuid
-import enum
+from velithon.responses import OptimizedJSONResponse
 
-class Status(enum.Enum):
-    ACTIVE = "active"
-    INACTIVE = "inactive"
-
-class CustomJSONEncoder(JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, uuid.UUID):
-            return str(obj)
-        elif isinstance(obj, Status):
-            return obj.value
-        elif isinstance(obj, set):
-            return list(obj)
-        elif hasattr(obj, 'to_dict'):
-            return obj.to_dict()
-        return super().default(obj)
-
-# Configure app with custom encoder
-app = Velithon()
-app.json_encoder = CustomJSONEncoder
-
-@app.get("/custom-data")
-async def get_custom_data():
-    data = {
-        "id": uuid.uuid4(),
-        "status": Status.ACTIVE,
-        "tags": {"important", "featured"},  # set
-        "metadata": CustomObject()  # object with to_dict method
-    }
+@app.get("/configured-response")
+async def get_configured_response():
+    large_dataset = generate_large_data()
     
-    return OptimizedJSONResponse(data)
+    return OptimizedJSONResponse(
+        large_dataset,
+        parallel_threshold=5000,    # Use parallel processing for 5000+ items
+        use_parallel_auto=True,     # Automatically decide when to use parallel
+        enable_caching=True,        # Cache frequently serialized objects
+        max_cache_size=500          # Maximum cached objects
+    )
 ```
 
 ## Batch JSON Responses
@@ -92,137 +76,101 @@ async def get_custom_data():
 
 ```python
 from velithon.responses import BatchJSONResponse, batch_json_response
-from typing import List, Generator
 
 @app.get("/users/batch")
 async def get_users_batch():
-    """Return large number of users efficiently"""
+    """Efficiently process and return large collections"""
     
-    def get_users_generator() -> Generator[Dict, None, None]:
-        # Process users in batches from database
-        offset = 0
-        batch_size = 1000
-        
-        while True:
-            users = fetch_users_from_db(offset=offset, limit=batch_size)
-            if not users:
-                break
-                
-            for user in users:
-                yield {
-                    "id": user.id,
-                    "name": user.name,
-                    "email": user.email,
-                    "created_at": user.created_at
-                }
-            
-            offset += batch_size
+    # Generate a large collection
+    users = []
+    for i in range(50000):
+        users.append({
+            "id": i,
+            "name": f"User {i}",
+            "email": f"user{i}@example.com",
+            "created_at": datetime.datetime.now()
+        })
     
-    return BatchJSONResponse(get_users_generator())
+    # BatchJSONResponse optimizes processing of large collections
+    return BatchJSONResponse(users)
 
 @app.get("/analytics/data")
 async def get_analytics_data():
     """Batch process analytics data"""
     
-    async def process_analytics():
-        # Process data in chunks to avoid memory issues
-        for chunk in get_analytics_chunks():
-            processed_chunk = []
-            for item in chunk:
-                processed_item = {
-                    "date": item.date,
-                    "metrics": calculate_metrics(item),
-                    "summary": generate_summary(item)
-                }
-                processed_chunk.append(processed_item)
-            
-            yield processed_chunk
+    analytics_data = []
+    for i in range(20000):
+        analytics_data.append({
+            "date": datetime.date.today(),
+            "value": i * 1.5,
+            "category": f"Category {i % 10}"
+        })
     
-    return batch_json_response(await process_analytics())
+    # Use the convenience function
+    return batch_json_response(analytics_data)
+
+@app.get("/products/export")
+async def export_products():
+    """Export large product catalog"""
+    
+    def generate_products():
+        for i in range(100000):
+            yield {
+                "id": i,
+                "name": f"Product {i}",
+                "price": round(10.0 + (i * 0.01), 2),
+                "in_stock": i % 3 != 0
+            }
+    
+    # BatchJSONResponse handles generators efficiently
+    return BatchJSONResponse(generate_products())
 ```
 
-### Batch Configuration
+## Streaming JSON with StreamingResponse
+
+### JSON Streaming for Large Datasets
 
 ```python
-from velithon import Velithon
-from velithon.middleware import Middleware
-from velithon.middleware.json import JSONOptimizationMiddleware
-
-app = Velithon(middleware=[
-    Middleware(JSONOptimizationMiddleware,
-               batch_size=1000,
-               memory_limit=100*1024*1024,  # 100MB
-               compression_enabled=True,
-               streaming_threshold=10000)  # Items count
-])
-
-@app.get("/large-dataset")
-async def get_large_dataset():
-    """Automatically uses batch processing for large datasets"""
-    data = fetch_large_dataset()  # Returns 50,000+ items
-    
-    # Automatically batched based on middleware configuration
-    return OptimizedJSONResponse(data)
-```
-
-## Streaming JSON
-
-### Server-Sent Events with JSON
-
-```python
-from velithon.responses import StreamingJSONResponse
-import asyncio
+from velithon.responses import StreamingResponse
 import json
+import asyncio
 
 @app.get("/events/stream")
 async def stream_events():
-    """Stream JSON events in real-time"""
+    """Stream JSON events using StreamingResponse"""
     
-    async def event_generator():
+    async def json_event_generator():
         event_id = 0
         
-        while True:
-            # Simulate real-time data
+        # Start JSON array
+        yield '{"events": ['
+        
+        first_event = True
+        while event_id < 1000:  # Stream 1000 events
+            if not first_event:
+                yield ','
+            
             event_data = {
                 "id": event_id,
                 "timestamp": datetime.datetime.now().isoformat(),
-                "data": await fetch_real_time_data(),
-                "type": "update"
+                "type": "update",
+                "data": f"Event data {event_id}"
             }
             
-            yield event_data
+            yield json.dumps(event_data)
+            first_event = False
             event_id += 1
-            await asyncio.sleep(1)  # Wait 1 second between events
-    
-    return StreamingJSONResponse(event_generator())
-
-@app.get("/logs/tail")
-async def tail_logs():
-    """Stream log entries as JSON"""
-    
-    async def log_generator():
-        last_position = get_log_position()
+            
+            await asyncio.sleep(0.1)  # Small delay between events
         
-        while True:
-            new_logs = read_logs_since(last_position)
-            
-            for log_entry in new_logs:
-                yield {
-                    "timestamp": log_entry.timestamp,
-                    "level": log_entry.level,
-                    "message": log_entry.message,
-                    "metadata": log_entry.metadata
-                }
-                last_position = log_entry.position
-            
-            await asyncio.sleep(0.5)  # Check for new logs every 500ms
+        # Close JSON array and object
+        yield ']}'
     
-    return StreamingJSONResponse(log_generator())
-```
+    return StreamingResponse(
+        json_event_generator(),
+        media_type="application/json"
+    )
 
-### Large File Processing
-
-```python
 @app.get("/data/export")
 async def export_large_dataset():
     """Export large dataset as streaming JSON"""
@@ -233,20 +181,24 @@ async def export_large_dataset():
         
         first_item = True
         
-        # Process data in chunks
-        for chunk in get_data_chunks(chunk_size=5000):
-            for item in chunk:
-                if not first_item:
-                    yield ','
-                
-                # Serialize each item individually
-                yield json.dumps({
-                    "id": item.id,
-                    "processed_data": process_item(item),
-                    "metadata": item.metadata
-                })
-                
-                first_item = False
+        # Simulate large dataset
+        for i in range(50000):
+            if not first_item:
+                yield ','
+            
+            item_data = {
+                "id": i,
+                "value": i * 2.5,
+                "description": f"Item {i}",
+                "timestamp": datetime.datetime.now().isoformat()
+            }
+            
+            yield json.dumps(item_data)
+            first_item = False
+            
+            # Yield control periodically
+            if i % 1000 == 0:
+                await asyncio.sleep(0)
         
         # Close array and object
         yield ']}'
@@ -263,241 +215,261 @@ async def export_large_dataset():
     )
 ```
 
-## Memory Optimization
+## Performance Best Practices
 
-### Lazy Loading and Pagination
+### Choosing the Right Response Type
 
 ```python
-from velithon.responses import LazyJSONResponse
-from dataclasses import dataclass
+from velithon.responses import JSONResponse, OptimizedJSONResponse, BatchJSONResponse, StreamingResponse
 
-@dataclass
-class PaginatedResponse:
-    items: List[Any]
-    total: int
-    page: int
-    per_page: int
-    has_next: bool
-    has_prev: bool
+@app.get("/small-data")
+async def get_small_data():
+    """Use JSONResponse for small, simple data"""
+    data = {"status": "ok", "count": 5}
+    return JSONResponse(data)  # Fast for small objects
 
-@app.get("/products")
-async def get_products(page: int = 1, per_page: int = 50):
-    """Memory-efficient paginated response"""
-    
-    # Only fetch the current page
-    offset = (page - 1) * per_page
-    products = fetch_products(offset=offset, limit=per_page)
-    total = count_products()
-    
-    response_data = PaginatedResponse(
-        items=products,
-        total=total,
-        page=page,
-        per_page=per_page,
-        has_next=offset + per_page < total,
-        has_prev=page > 1
-    )
-    
-    return LazyJSONResponse(response_data)
+@app.get("/medium-data")
+async def get_medium_data():
+    """Use OptimizedJSONResponse for medium to large data"""
+    data = [{"id": i, "name": f"Item {i}"} for i in range(5000)]
+    return OptimizedJSONResponse(data)  # Parallel processing
 
-@app.get("/users/{user_id}/posts")
-async def get_user_posts(user_id: int, page: int = 1):
-    """Lazy load user posts with related data"""
+@app.get("/large-collection")
+async def get_large_collection():
+    """Use BatchJSONResponse for very large collections"""
+    data = [{"id": i, "value": i * 2} for i in range(100000)]
+    return BatchJSONResponse(data)  # Optimized for large batches
+
+@app.get("/huge-dataset")
+async def get_huge_dataset():
+    """Use StreamingResponse for extremely large datasets"""
     
-    def load_posts():
-        # Only load when actually needed
-        posts = fetch_user_posts(user_id, page=page)
-        
-        for post in posts:
-            # Lazy load comments only when serializing
-            post.comments = lambda: fetch_post_comments(post.id)
-            post.tags = lambda: fetch_post_tags(post.id)
-        
-        return posts
+    async def stream_data():
+        yield '{"items": ['
+        for i in range(1000000):  # 1 million items
+            if i > 0:
+                yield ','
+            yield json.dumps({"id": i, "value": i})
+            
+            # Yield control every 1000 items
+            if i % 1000 == 0:
+                await asyncio.sleep(0)
+        yield ']}'
     
-    return LazyJSONResponse({"posts": load_posts})
+    return StreamingResponse(stream_data(), media_type="application/json")
 ```
 
-### Memory Pool Management
+### Memory-Efficient Patterns
 
 ```python
-from velithon.optimization import MemoryPool, ObjectPool
-
-class JSONResponsePool:
-    def __init__(self):
-        self.memory_pool = MemoryPool(max_size=50*1024*1024)  # 50MB
-        self.object_pool = ObjectPool(max_objects=1000)
+@app.get("/efficient-pagination")
+async def get_efficient_pagination(page: int = 1, size: int = 100):
+    """Memory-efficient pagination"""
     
-    def get_optimized_response(self, data):
-        """Get memory-optimized JSON response"""
-        
-        # Use object pooling for response objects
-        response_obj = self.object_pool.get_object()
-        
-        try:
-            # Use memory pool for serialization
-            with self.memory_pool.allocate() as memory_block:
-                serialized = json.dumps(data, ensure_ascii=False)
-                
-                if len(serialized) > memory_block.size:
-                    # Use streaming for large responses
-                    return StreamingJSONResponse(data)
-                else:
-                    response_obj.content = serialized
-                    return response_obj
-                    
-        finally:
-            # Return object to pool
-            self.object_pool.return_object(response_obj)
+    # Don't load all data into memory
+    offset = (page - 1) * size
+    
+    # Fetch only what's needed
+    items = fetch_items_from_db(offset=offset, limit=size)
+    total = count_items_in_db()
+    
+    response_data = {
+        "items": items,
+        "pagination": {
+            "page": page,
+            "size": size,
+            "total": total,
+            "pages": (total + size - 1) // size
+        }
+    }
+    
+    return OptimizedJSONResponse(response_data)
 
-# Global pool instance
-json_pool = JSONResponsePool()
-
-@app.get("/memory-optimized")
-async def memory_optimized_endpoint():
-    large_data = generate_large_dataset()
-    return json_pool.get_optimized_response(large_data)
+@app.get("/generator-based")
+async def get_generator_based():
+    """Use generators to avoid loading everything into memory"""
+    
+    def item_generator():
+        # Fetch and yield items one by one
+        for i in range(10000):
+            # Simulate database fetch
+            yield {"id": i, "data": f"Item {i}"}
+    
+    # BatchJSONResponse handles generators efficiently
+    return BatchJSONResponse(item_generator())
 ```
 
-## Performance Monitoring
+## Middleware Integration
 
-### Response Time Tracking
-
-```python
-from velithon.middleware import Middleware
-import time
-import logging
-
-class JSONPerformanceMiddleware:
-    def __init__(self, app):
-        self.app = app
-        self.response_times = []
-        self.serialization_times = []
-    
-    async def __call__(self, scope, protocol):
-        if scope["type"] == "http":
-            start_time = time.time()
-            
-            # Patch JSON serialization to track time
-            original_dumps = json.dumps
-            
-            def timed_dumps(*args, **kwargs):
-                serialize_start = time.time()
-                result = original_dumps(*args, **kwargs)
-                serialize_time = time.time() - serialize_start
-                self.serialization_times.append(serialize_time)
-                return result
-            
-            json.dumps = timed_dumps
-            
-            try:
-                await self.app(scope, protocol)
-            finally:
-                total_time = time.time() - start_time
-                self.response_times.append(total_time)
-                json.dumps = original_dumps  # Restore original
-                
-                # Log performance metrics
-                if len(self.response_times) % 100 == 0:
-                    avg_response = sum(self.response_times[-100:]) / 100
-                    avg_serialization = sum(self.serialization_times[-100:]) / 100
-                    
-                    logging.info(f"JSON Performance - "
-                               f"Avg Response: {avg_response:.3f}s, "
-                               f"Avg Serialization: {avg_serialization:.3f}s")
-        else:
-            await self.app(scope, protocol)
-
-app = Velithon(middleware=[Middleware(JSONPerformanceMiddleware)])
-
-@app.get("/performance-metrics")
-async def get_performance_metrics():
-    """Get JSON performance metrics"""
-    middleware = app.middleware[0]  # Assuming first middleware
-    
-    if hasattr(middleware, 'response_times') and middleware.response_times:
-        recent_times = middleware.response_times[-1000:]  # Last 1000 requests
-        
-        return OptimizedJSONResponse({
-            "total_requests": len(middleware.response_times),
-            "average_response_time": sum(recent_times) / len(recent_times),
-            "min_response_time": min(recent_times),
-            "max_response_time": max(recent_times),
-            "p95_response_time": sorted(recent_times)[int(len(recent_times) * 0.95)],
-            "average_serialization_time": sum(middleware.serialization_times[-1000:]) / len(middleware.serialization_times[-1000:])
-        })
-    
-    return OptimizedJSONResponse({"message": "No metrics available yet"})
-```
-
-## Compression and Caching
-
-### Response Compression
+### Compression with JSON Responses
 
 ```python
-from velithon.middleware.compression import JSONCompressionMiddleware
+from velithon.middleware import Middleware, CompressionMiddleware
 
+# CompressionMiddleware works with all JSON response types
 app = Velithon(middleware=[
-    Middleware(JSONCompressionMiddleware,
+    Middleware(CompressionMiddleware, 
                compression_level=6,
-               minimum_size=1024,
-               algorithms=['gzip', 'br', 'deflate'])
+               minimum_size=1024)
 ])
 
-@app.get("/compressed-data")
-async def get_compressed_data():
-    """Large response that will be automatically compressed"""
-    large_data = generate_large_json_data()
+@app.get("/compressed-json")
+async def get_compressed_json():
+    """Large JSON response that will be automatically compressed"""
+    
+    large_data = []
+    for i in range(10000):
+        large_data.append({
+            "id": i,
+            "description": f"This is item {i} with some description text",
+            "metadata": {"category": f"Category {i % 10}", "priority": i % 5}
+        })
     
     # Response will be automatically compressed if larger than minimum_size
     return OptimizedJSONResponse(large_data)
 ```
 
-### Response Caching
+### Custom Middleware for JSON Processing
 
 ```python
-from velithon.middleware.cache import JSONCacheMiddleware
-import hashlib
+from velithon.middleware.base import BaseHTTPMiddleware
+import time
+import logging
 
-class JSONCacheMiddleware:
-    def __init__(self, app, cache_ttl=300):
-        self.app = app
-        self.cache = {}
-        self.cache_ttl = cache_ttl
+class JSONPerformanceMiddleware(BaseHTTPMiddleware):
+    """Monitor JSON response performance"""
     
-    async def __call__(self, scope, protocol):
-        if scope["type"] == "http" and scope["method"] == "GET":
-            # Create cache key from path and query
-            cache_key = hashlib.md5(
-                f"{scope['path']}?{scope['query_string'].decode()}".encode()
-            ).hexdigest()
+    def __init__(self, app):
+        super().__init__(app)
+        self.response_times = []
+    
+    async def process_http_request(self, scope, protocol):
+        start_time = time.time()
+        
+        await self.app(scope, protocol)
+        
+        # Log performance for JSON responses
+        if scope.get("path", "").endswith(("/json", "/api")):
+            duration = time.time() - start_time
+            self.response_times.append(duration)
             
-            # Check cache
-            if cache_key in self.cache:
-                cached_response, timestamp = self.cache[cache_key]
-                if time.time() - timestamp < self.cache_ttl:
-                    # Return cached response
-                    await send_cached_response(protocol, cached_response)
-                    return
-            
-            # Capture response for caching
-            response_data = await self.capture_response(scope, protocol)
-            
-            # Cache the response
-            self.cache[cache_key] = (response_data, time.time())
-        else:
-            await self.app(scope, protocol)
+            if len(self.response_times) % 100 == 0:
+                avg_time = sum(self.response_times[-100:]) / 100
+                logging.info(f"JSON API avg response time: {avg_time:.3f}s")
 
-app = Velithon(middleware=[
-    Middleware(JSONCacheMiddleware, cache_ttl=600)  # 10 minutes
-])
+app = Velithon(middleware=[Middleware(JSONPerformanceMiddleware)])
 ```
 
-## Custom Serialization Strategies
+## Real-World Examples
 
-### Field-Specific Serialization
+### E-commerce Product Catalog
 
 ```python
+@app.get("/products/catalog")
+async def get_product_catalog(
+    category: str = None,
+    page: int = 1,
+    size: int = 50,
+    include_reviews: bool = False
+):
+    """Optimized product catalog endpoint"""
+    
+    # For small result sets, use standard response
+    if size <= 50 and not include_reviews:
+        products = fetch_products(category=category, page=page, size=size)
+        return JSONResponse({
+            "products": products,
+            "page": page,
+            "total": len(products)
+        })
+    
+    # For larger result sets or with reviews, use optimized response
+    elif size <= 1000:
+        products = fetch_products_with_details(
+            category=category, 
+            page=page, 
+            size=size,
+            include_reviews=include_reviews
+        )
+        return OptimizedJSONResponse({
+            "products": products,
+            "page": page,
+            "size": size
+        })
+    
+    # For very large exports, use batch response
+    else:
+        def product_generator():
+            offset = 0
+            batch_size = 1000
+            
+            while True:
+                batch = fetch_products(
+                    category=category,
+                    offset=offset,
+                    limit=batch_size
+                )
+                if not batch:
+                    break
+                    
+                for product in batch:
+                    yield product
+                
+                offset += batch_size
+        
+        return BatchJSONResponse(product_generator())
+
+@app.get("/analytics/dashboard")
+async def get_analytics_dashboard():
+    """Complex analytics dashboard with multiple data sources"""
+    
+    # Gather data from multiple sources
+    sales_data = fetch_sales_metrics()
+    user_data = fetch_user_metrics()
+    performance_data = fetch_performance_metrics()
+    
+    dashboard_data = {
+        "sales": sales_data,
+        "users": user_data,
+        "performance": performance_data,
+        "generated_at": datetime.datetime.now().isoformat()
+    }
+    
+    # Use optimized response for complex dashboard data
+    return OptimizedJSONResponse(dashboard_data)
+```
+
+## Performance Guidelines
+
+### When to Use Each Response Type
+
+1. **JSONResponse**: 
+   - Small, simple objects (< 100 items)
+   - Static or cached data
+   - Simple key-value pairs
+
+2. **OptimizedJSONResponse**:
+   - Medium to large datasets (100-10,000 items)
+   - Complex nested objects
+   - When you need automatic optimization
+
+3. **BatchJSONResponse**:
+   - Very large collections (10,000+ items)
+   - Generator-based data
+   - Memory-constrained environments
+
+4. **StreamingResponse**:
+   - Extremely large datasets (100,000+ items)
+   - Real-time data streams
+   - When client needs to start processing before complete response
+
+### Performance Tips
+
+- Use generators to avoid loading large datasets into memory
+- Configure appropriate `parallel_threshold` for your use case
+- Enable compression for responses > 1KB
+- Consider pagination for user-facing APIs
+- Monitor response times and adjust strategies accordingly
 from velithon.serialization import FieldSerializer, SerializationStrategy
 
 class UserSerializer(FieldSerializer):
@@ -645,21 +617,25 @@ async def get_large_data_safely():
         else:
             # Use optimized response for normal size
             return OptimizedJSONResponse(data)
-            
-    except MemoryError:
-        return OptimizedJSONResponse(
-            {"error": "Dataset too large", "suggestion": "Use pagination"},
-            status_code=413
-        )
-    except JSONSerializationError as e:
-        return OptimizedJSONResponse(
-            {"error": "Serialization failed", "details": str(e)},
-            status_code=500
-        )
-```
+## Summary
+
+Velithon's JSON optimization features provide significant performance improvements for API responses:
+
+- **OptimizedJSONResponse**: Rust-based parallel processing for large datasets with configurable thresholds
+- **BatchJSONResponse**: Efficient handling of very large collections and generators
+- **StreamingResponse**: Memory-efficient streaming for extremely large datasets using standard streaming
+- **Middleware Integration**: Works seamlessly with compression and other middleware
+
+Choose the appropriate response type based on your data size and performance requirements:
+
+- Small data (< 100 items): `JSONResponse`
+- Medium data (100-10,000 items): `OptimizedJSONResponse` 
+- Large collections (10,000+ items): `BatchJSONResponse`
+- Huge datasets (100,000+ items): `StreamingResponse` with JSON
 
 ## Next Steps
 
-- [Performance Optimization →](performance.md)
+- [Gateway & Proxy System →](gateway.md)
+- [VSP Protocol →](vsp.md) 
 - [Response Types →](../user-guide/request-response.md)
 - [Middleware →](../user-guide/middleware.md)

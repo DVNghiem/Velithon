@@ -46,7 +46,7 @@ VSP is a high-performance, distributed communication protocol designed for micro
 
 ```python
 from velithon import Velithon
-from velithon.vsp import VSPManager, VSPService
+from velithon.vsp import VSPManager
 
 app = Velithon()
 

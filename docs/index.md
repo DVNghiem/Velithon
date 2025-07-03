@@ -96,18 +96,23 @@ async def get_user(user_id: int):
     return {"user_id": user_id, "name": f"User {user_id}"}
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    app._serve(
+        app="main:app",
+        host="0.0.0.0", 
+        port=8000,
+        workers=1,
+        log_level="INFO"
+    )
 ```
 
 ### Run Your App
 
 ```bash
-# Using the built-in CLI
+# Using the built-in CLI (recommended)
 velithon run --app main:app --host 0.0.0.0 --port 8000
 
-# Or using uvicorn directly
-uvicorn main:app --host 0.0.0.0 --port 8000
+# Or using Python directly
+python main.py
 ```
 
 Visit `http://localhost:8000` to see your app in action!

@@ -118,7 +118,7 @@ from velithon.responses import (
     FileResponse,
     StreamingResponse,
     RedirectResponse,
-    JSONOptimizedResponse,  # Rust-optimized JSON
+    OptimizedJSONResponse,  # Rust-optimized JSON
     SSEResponse  # Server-Sent Events
 )
 

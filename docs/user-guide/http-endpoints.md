@@ -238,7 +238,7 @@ Velithon provides multiple response types for different use cases:
 ### JSON Responses
 
 ```python
-from velithon.responses import JSONResponse, JSONOptimizedResponse
+from velithon.responses import JSONResponse, OptimizedJSONResponse
 
 @app.get("/data")
 async def get_data():
@@ -248,7 +248,7 @@ async def get_data():
 @app.get("/optimized-data")
 async def get_optimized_data():
     # Rust-optimized JSON for better performance
-    return JSONOptimizedResponse({"large": "dataset", "items": list(range(1000))})
+    return OptimizedJSONResponse({"large": "dataset", "items": list(range(1000))})
 
 @app.get("/custom-status")
 async def custom_status():

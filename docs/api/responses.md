@@ -70,12 +70,12 @@ async def create_user(request: Request):
     )
 ```
 
-### JSONOptimizedResponse
+### OptimizedJSONResponse
 
 ```python
-from velithon.responses import JSONOptimizedResponse
+from velithon.responses import OptimizedJSONResponse
 
-JSONOptimizedResponse(
+OptimizedJSONResponse(
     content: Any,
     status_code: int = 200,
     headers: dict[str, str] | None = None
@@ -90,7 +90,7 @@ High-performance JSON response using Rust-based `orjson` for faster serializatio
 async def get_large_dataset():
     # For large datasets, use optimized JSON
     large_data = {"items": list(range(10000))}
-    return JSONOptimizedResponse(large_data)
+    return OptimizedJSONResponse(large_data)
 
 @app.get("/performance-critical")
 async def performance_endpoint():
@@ -100,7 +100,7 @@ async def performance_endpoint():
         "data": complex_computation(),
         "metadata": {"version": "1.0"}
     }
-    return JSONOptimizedResponse(data)
+    return OptimizedJSONResponse(data)
 ```
 
 ## HTML Responses

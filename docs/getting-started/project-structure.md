@@ -136,11 +136,12 @@ def create_app() -> Velithon:
 app = create_app()
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(
-        "app.main:app",
+    app._serve(
+        app="app.main:app",
         host=settings.HOST,
         port=settings.PORT,
+        workers=1,
+        log_level="DEBUG" if settings.DEBUG else "INFO",
         reload=settings.DEBUG
     )
 ```

@@ -224,5 +224,5 @@ if __name__ == "__main__":
     print("  * /api/v1/notifications/* - Random load balanced notifications")
     
     # In a real application, you would run this with:
-    # uvicorn gateway_example:app --host 0.0.0.0 --port 8000
+    # velithon run --app examples.gateway_example:app --host 0.0.0.0 --port 8000
     # or use the Velithon CLI

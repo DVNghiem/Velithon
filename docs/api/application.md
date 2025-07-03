@@ -301,24 +301,24 @@ app.register_container(container)
 
 ## VSP Integration
 
-### register_vsp()
-
-```python
-def register_vsp(vsp_manager: VSPManager) -> None
-```
-
-Register a VSP (Velithon Service Protocol) manager.
+VSP (Velithon Service Protocol) is configured through CLI options and startup events.
 
 **Example:**
 ```python
 from velithon.vsp import VSPManager
 
-vsp_manager = VSPManager(
-    service_name="my-service",
-    host="0.0.0.0",
-    port=9090
-)
-app.register_vsp(vsp_manager)
+vsp_manager = VSPManager()
+
+@app.on_startup()
+async def setup_vsp():
+    await vsp_manager.start("my-service", "1.0.0", "0.0.0.0", 9090)
+
+@app.on_shutdown()
+async def teardown_vsp():
+    await vsp_manager.stop()
+
+# Or use CLI options:
+# velithon run --app main:app --vsp-host 0.0.0.0 --vsp-port 9090
 ```
 
 ## Lifecycle Events
