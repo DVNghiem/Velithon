@@ -88,13 +88,16 @@ async def delete_item(item_id: int):
 
 ### JWT Authentication System
 
+This example demonstrates how to implement JWT authentication using Velithon's native dependency injection system with `@inject` and `Provide`.
+
 ```python
 from velithon import Velithon
 from velithon.middleware import Middleware
 from velithon.middleware.auth import JWTAuthenticationMiddleware
-from velithon.dependencies import Depends
+from velithon.di import inject, Provide, ServiceContainer, SingletonProvider
 from velithon.responses import OptimizedJSONResponse
 from velithon.exceptions import UnauthorizedException
+from velithon.requests import Request
 from pydantic import BaseModel
 import jwt
 import bcrypt
@@ -131,6 +134,54 @@ class Token(BaseModel):
 # Mock database
 users_db: Dict[str, Dict] = {}
 
+class AuthService:
+    """Authentication service for user management."""
+    
+    def __init__(self):
+        self.users_db = users_db
+        self.secret_key = SECRET_KEY
+        self.algorithm = ALGORITHM
+
+    def hash_password(self, password: str) -> str:
+        return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+    def verify_password(self, password: str, hashed: str) -> bool:
+        return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
+
+    def create_access_token(self, data: dict):
+        to_encode = data.copy()
+        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        to_encode.update({"exp": expire})
+        return jwt.encode(to_encode, self.secret_key, algorithm=self.algorithm)
+
+    def get_current_user(self, request: Request) -> User:
+        # Extract token from Authorization header
+        auth_header = request.headers.get("Authorization")
+        if not auth_header or not auth_header.startswith("Bearer "):
+            raise UnauthorizedException("Missing or invalid authorization header")
+        
+        token = auth_header.split(" ")[1]
+        
+        try:
+            payload = jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
+            username: str = payload.get("sub")
+            if username is None:
+                raise UnauthorizedException("Invalid token")
+        except jwt.PyJWTError:
+            raise UnauthorizedException("Invalid token")
+        
+        user = self.users_db.get(username)
+        if user is None:
+            raise UnauthorizedException("User not found")
+        
+        return User(**user)
+
+# Dependency injection container
+class AppContainer(ServiceContainer):
+    auth_service = SingletonProvider(AuthService)
+
+container = AppContainer()
+
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
@@ -143,31 +194,22 @@ def create_access_token(data: dict):
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
-async def get_current_user(token: str = Depends()) -> User:
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
-            raise UnauthorizedException("Invalid token")
-    except jwt.PyJWTError:
-        raise UnauthorizedException("Invalid token")
-    
-    user = users_db.get(username)
-    if user is None:
-        raise UnauthorizedException("User not found")
-    
-    return User(**user)
+app = Velithon()
+
+# Register the dependency injection container
+app.register_container(container)
 
 # Routes
 @app.post("/register", response_model=User)
-async def register(user: UserCreate):
+@inject
+async def register(user: UserCreate, auth_service: AuthService = Provide[container.auth_service]):
     if user.username in users_db:
         return OptimizedJSONResponse(
             {"error": "Username already exists"}, 
             status_code=400
         )
     
-    hashed_password = hash_password(user.password)
+    hashed_password = auth_service.hash_password(user.password)
     user_id = len(users_db) + 1
     
     users_db[user.username] = {
@@ -186,23 +228,28 @@ async def register(user: UserCreate):
     })
 
 @app.post("/login", response_model=Token)
-async def login(user_credentials: UserLogin):
+@inject
+async def login(user_credentials: UserLogin, auth_service: AuthService = Provide[container.auth_service]):
     user = users_db.get(user_credentials.username)
-    if not user or not verify_password(user_credentials.password, user["password"]):
+    if not user or not auth_service.verify_password(user_credentials.password, user["password"]):
         raise UnauthorizedException("Invalid credentials")
     
-    access_token = create_access_token(data={"sub": user["username"]})
+    access_token = auth_service.create_access_token(data={"sub": user["username"]})
     return OptimizedJSONResponse({
         "access_token": access_token,
         "token_type": "bearer"
     })
 
 @app.get("/profile", response_model=User)
-async def get_profile(current_user: User = Depends(get_current_user)):
+@inject
+async def get_profile(request: Request, auth_service: AuthService = Provide[container.auth_service]):
+    current_user = auth_service.get_current_user(request)
     return OptimizedJSONResponse(current_user.dict())
 
 @app.get("/protected")
-async def protected_route(current_user: User = Depends(get_current_user)):
+@inject
+async def protected_route(request: Request, auth_service: AuthService = Provide[container.auth_service]):
+    current_user = auth_service.get_current_user(request)
     return OptimizedJSONResponse({
         "message": f"Hello {current_user.username}, this is a protected route!"
     })

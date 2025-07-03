@@ -1,10 +1,12 @@
 # OpenAPI & Documentation
 
-Velithon provides automatic OpenAPI documentation generation with customizable Swagger UI integration.
+Velithon provides automatic OpenAPI documentation generation with built-in Swagger UI integration.
 
 ## Overview
 
-Velithon automatically generates OpenAPI 3.0 documentation based on your route definitions, type hints, and docstrings. The documentation is available through multiple formats including Swagger UI, ReDoc, and JSON/YAML export.
+Velithon automatically generates OpenAPI 3.0 documentation based on your route definitions, type hints, and docstrings. The documentation is available through Swagger UI at the `/docs` endpoint.
+
+**Note**: Velithon has its own implementation of OpenAPI documentation that differs from FastAPI. It uses dependency injection through `@inject` and `Provide` rather than `Depends`, and some parameters like `status_code` and `responses` in route decorators are handled differently.
 
 ## Automatic Documentation
 
@@ -45,7 +47,7 @@ async def get_users() -> List[User]:
     """
     return get_all_users()
 
-@app.post("/users", response_model=User, tags=["users"], status_code=201)
+@app.post("/users", response_model=User, tags=["users"])
 async def create_user(user: UserCreate) -> User:
     """
     Create a new user
@@ -68,22 +70,16 @@ async def create_user(user: UserCreate) -> User:
 ### Custom OpenAPI Metadata
 
 ```python
-from velithon.openapi import OpenAPIMetadata, Tag, ExternalDocs
-
 # Define tags for better organization
 tags_metadata = [
-    Tag(
-        name="users",
-        description="Operations with users",
-        external_docs=ExternalDocs(
-            description="User management guide",
-            url="https://docs.example.com/users"
-        )
-    ),
-    Tag(
-        name="auth",
-        description="Authentication and authorization",
-    ),
+    {
+        "name": "users",
+        "description": "Operations with users"
+    },
+    {
+        "name": "auth", 
+        "description": "Authentication and authorization"
+    },
 ]
 
 app = Velithon(
@@ -99,12 +95,7 @@ app = Velithon(
     license_info={
         "name": "MIT License",
         "url": "https://opensource.org/licenses/MIT"
-    },
-    servers=[
-        {"url": "https://api.example.com", "description": "Production server"},
-        {"url": "https://staging-api.example.com", "description": "Staging server"},
-        {"url": "http://localhost:8000", "description": "Development server"}
-    ]
+    }
 )
 ```
 
@@ -118,9 +109,9 @@ from velithon.params import Query, Path, Header, Cookie
 
 @app.get("/users/{user_id}")
 async def get_user(
-    user_id: Annotated[int, Path(description="The ID of the user to retrieve", gt=0)],
+    user_id: Annotated[int, Path(description="The ID of the user to retrieve")],
     include_posts: Annotated[bool, Query(description="Include user's posts in response")] = False,
-    api_version: Annotated[str, Header(description="API version", alias="X-API-Version")] = "v1",
+    api_version: Annotated[str, Header(description="API version")] = "v1",
     session_id: Annotated[str, Cookie(description="Session identifier")] = None
 ) -> User:
     """
@@ -146,16 +137,25 @@ class SuccessResponse(BaseModel):
     success: bool
     data: dict
 
-@app.post("/users", responses={
-    201: {"model": User, "description": "User created successfully"},
-    400: {"model": ErrorResponse, "description": "Invalid input data"},
-    409: {"model": ErrorResponse, "description": "User already exists"},
-    422: {"model": ErrorResponse, "description": "Validation error"}
-})
+@app.post("/users", response_model=User, status_code=201, tags=["users"])
 async def create_user(user: UserCreate) -> User:
-    """Create a new user with comprehensive error handling"""
+    """
+    Create a new user with comprehensive error handling
+    
+    This endpoint creates a new user with the provided information.
+    
+    Returns:
+        User: The created user with assigned ID
+        
+    Raises:
+        400: Invalid input data
+        409: User already exists  
+        422: Validation error
+    """
     try:
-        return create_new_user(user)
+        new_user = create_new_user(user)
+        # In Velithon, status codes are set in the response, not the decorator
+        return OptimizedJSONResponse(new_user.dict(), status_code=201)
     except ValidationError as e:
         return OptimizedJSONResponse(
             ErrorResponse(
@@ -181,6 +181,7 @@ async def create_user(user: UserCreate) -> User:
 
 ```python
 from velithon.security import HTTPBearer, APIKeyHeader, OAuth2PasswordBearer
+from velithon.di import inject, Provide
 
 # JWT Bearer token
 bearer_auth = HTTPBearer(
@@ -202,13 +203,15 @@ oauth2_scheme = OAuth2PasswordBearer(
     description="OAuth2 password flow"
 )
 
-@app.get("/protected", dependencies=[Depends(bearer_auth)])
-async def protected_endpoint():
+@app.get("/protected")
+@inject
+async def protected_endpoint(auth: Provide[HTTPBearer] = bearer_auth):
     """Protected endpoint requiring JWT authentication"""
     return {"message": "This is a protected endpoint"}
 
-@app.get("/api-data", dependencies=[Depends(api_key_auth)])
-async def api_data():
+@app.get("/api-data")
+@inject
+async def api_data(api_key: Provide[APIKeyHeader] = api_key_auth):
     """API endpoint requiring API key"""
     return {"data": "sensitive information"}
 ```
@@ -216,11 +219,12 @@ async def api_data():
 ### Security Requirements
 
 ```python
-from velithon.dependencies import Security
+from velithon.security import Security
+from velithon.di import inject, Provide
 
-@app.get("/admin/users", 
-         dependencies=[Security(bearer_auth, scopes=["admin"])])
-async def admin_users():
+@app.get("/admin/users")
+@inject
+async def admin_users(auth: Provide[Security] = Security(bearer_auth, scopes=["admin"])):
     """
     Admin-only endpoint
     
@@ -234,51 +238,23 @@ async def admin_users():
 ### Custom OpenAPI Schema
 
 ```python
-from velithon.openapi import get_openapi
+# Note: Velithon uses automatic OpenAPI generation through its built-in swagger_generate function
+# Custom schema modification is available through the application configuration
 
-def custom_openapi():
-    if app.openapi_schema:
-        return app.openapi_schema
+def custom_openapi_config():
+    """Configure custom OpenAPI settings"""
+    app.title = "Custom API"
+    app.version = "2.0.0" 
+    app.description = "This is a custom OpenAPI schema"
     
-    openapi_schema = get_openapi(
-        title="Custom API",
-        version="2.0.0",
-        description="This is a custom OpenAPI schema",
-        routes=app.routes,
-    )
+    # Custom logo and branding can be set through Swagger UI parameters
+    app.docs_url = "/docs"
+    app.redoc_url = None  # Velithon primarily supports Swagger UI
     
-    # Add custom extensions
-    openapi_schema["info"]["x-logo"] = {
-        "url": "https://example.com/logo.png"
-    }
-    
-    # Add custom paths
-    openapi_schema["paths"]["/health"] = {
-        "get": {
-            "summary": "Health Check",
-            "responses": {
-                "200": {
-                    "description": "Service is healthy",
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "status": {"type": "string"},
-                                    "timestamp": {"type": "string"}
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    app.openapi_schema = openapi_schema
-    return app.openapi_schema
+    return app
 
-app.openapi = custom_openapi
+# Apply custom configuration
+custom_openapi_config()
 ```
 
 ### Custom Documentation Pages
@@ -328,48 +304,35 @@ async def custom_docs():
 
 ```python
 import json
-import yaml
 from pathlib import Path
 
 @app.get("/export/openapi.json", include_in_schema=False)
 async def export_openapi_json():
     """Export OpenAPI schema as JSON"""
-    schema = app.openapi()
-    return OptimizedJSONResponse(schema)
+    # Note: Access to OpenAPI schema in Velithon is handled internally
+    # You can access the generated documentation at /docs or create custom endpoints
+    return OptimizedJSONResponse({"message": "Use /docs for Swagger UI documentation"})
 
-@app.get("/export/openapi.yaml", include_in_schema=False)
-async def export_openapi_yaml():
-    """Export OpenAPI schema as YAML"""
-    schema = app.openapi()
-    yaml_content = yaml.dump(schema, default_flow_style=False)
-    return Response(yaml_content, media_type="application/x-yaml")
-
-# Command-line export
+# File export functionality would need to be implemented using
+# Velithon's internal documentation generation system
 def export_docs():
     """Export documentation to files"""
-    schema = app.openapi()
-    
-    # Export JSON
-    with open("openapi.json", "w") as f:
-        json.dump(schema, f, indent=2)
-    
-    # Export YAML
-    with open("openapi.yaml", "w") as f:
-        yaml.dump(schema, f, default_flow_style=False)
-    
-    print("Documentation exported successfully!")
+    print("Documentation is available at the /docs endpoint")
+    print("For programmatic access, implement custom endpoints")
 
 if __name__ == "__main__":
     export_docs()
 ```
 
-### CLI Export
+### CLI Documentation Access
 
 ```bash
-# Export OpenAPI documentation
-velithon export-docs --app myapp:app --format json --output docs/
-velithon export-docs --app myapp:app --format yaml --output docs/
-velithon export-docs --app myapp:app --format html --output docs/
+# Access OpenAPI documentation through the web interface
+# Start your Velithon application and visit:
+# http://localhost:8000/docs for Swagger UI
+
+# For custom documentation endpoints, implement them in your application:
+curl http://localhost:8000/docs  # Swagger UI
 ```
 
 ## Swagger UI Customization
@@ -377,42 +340,46 @@ velithon export-docs --app myapp:app --format html --output docs/
 ### Custom Swagger UI
 
 ```python
-from velithon.openapi.docs import get_swagger_ui_html
+from velithon.openapi.ui import get_swagger_ui_html
 
 @app.get("/docs", include_in_schema=False)
 async def custom_swagger_ui_html():
     return get_swagger_ui_html(
-        openapi_url=app.openapi_url,
+        openapi_url="/openapi.json",
         title=app.title + " - Swagger UI",
         swagger_js_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@4.15.5/swagger-ui-bundle.js",
-        swagger_css_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@4.15.5/swagger-ui.css",
-        swagger_ui_parameters={
-            "deepLinking": True,
-            "defaultModelsExpandDepth": 2,
-            "defaultModelExpandDepth": 2,
-            "displayRequestDuration": True,
-            "docExpansion": "list",
-            "filter": True,
-            "showExtensions": True,
-            "showCommonExtensions": True,
-            "tryItOutEnabled": True
-        }
+        swagger_css_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@4.15.5/swagger-ui.css"
     )
 ```
 
-### ReDoc Customization
+### Documentation Access
 
 ```python
-from velithon.openapi.docs import get_redoc_html
+# Velithon primarily supports Swagger UI for API documentation
+# ReDoc support would need to be implemented as a custom endpoint
 
 @app.get("/redoc", include_in_schema=False)
-async def custom_redoc_html():
-    return get_redoc_html(
-        openapi_url=app.openapi_url,
-        title=app.title + " - ReDoc",
-        redoc_js_url="https://cdn.jsdelivr.net/npm/redoc@2.0.0/bundles/redoc.standalone.js",
-        redoc_favicon_url="https://example.com/favicon.ico"
-    )
+async def redoc_docs():
+    """Custom ReDoc implementation (not built-in)"""
+    html_content = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>API Documentation - ReDoc</title>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link href="https://fonts.googleapis.com/css?family=Montserrat:300,400,700|Roboto:300,400,700" rel="stylesheet">
+        <style>
+            body { margin: 0; padding: 0; }
+        </style>
+    </head>
+    <body>
+        <redoc spec-url="/openapi.json"></redoc>
+        <script src="https://cdn.jsdelivr.net/npm/redoc@2.0.0/bundles/redoc.standalone.js"></script>
+    </body>
+    </html>
+    """
+    return HTMLResponse(html_content)
 ```
 
 ## Documentation Testing
@@ -425,50 +392,39 @@ from velithon.testing import TestClient
 
 def test_openapi_schema():
     client = TestClient(app)
-    response = client.get("/openapi.json")
+    response = client.get("/docs")  # Test Swagger UI availability
     assert response.status_code == 200
     
-    schema = response.json()
-    assert schema["info"]["title"] == "My API"
-    assert schema["info"]["version"] == "1.0.0"
-    assert "/users" in schema["paths"]
+    # Note: Direct OpenAPI JSON access may need custom implementation
+    # The schema is generated internally by Velithon
 
 def test_swagger_ui():
     client = TestClient(app)
     response = client.get("/docs")
     assert response.status_code == 200
     assert "swagger-ui" in response.text
-
-def test_redoc():
-    client = TestClient(app)
-    response = client.get("/redoc")
-    assert response.status_code == 200
-    assert "redoc" in response.text
 ```
 
 ### Schema Validation
 
 ```python
-from openapi_spec_validator import validate_spec
-from openapi_spec_validator.readers import read_from_filename
+# Note: Direct OpenAPI schema validation in Velithon requires custom implementation
+# The framework handles schema generation internally
 
-def test_openapi_spec_validity():
-    """Test that the generated OpenAPI spec is valid"""
+def test_swagger_ui_availability():
+    """Test that the Swagger UI documentation is accessible"""
     client = TestClient(app)
-    response = client.get("/openapi.json")
-    spec = response.json()
-    
-    # This will raise an exception if the spec is invalid
-    validate_spec(spec)
+    response = client.get("/docs")
+    assert response.status_code == 200
+    assert "swagger" in response.text.lower()
 
-def test_exported_spec_validity():
-    """Test that exported OpenAPI files are valid"""
-    # Export the spec
-    export_docs()
+def test_documentation_endpoints():
+    """Test that documentation endpoints are working"""
+    client = TestClient(app)
     
-    # Validate exported JSON
-    spec = read_from_filename("openapi.json")
-    validate_spec(spec)
+    # Test main docs endpoint
+    docs_response = client.get("/docs")
+    assert docs_response.status_code == 200
 ```
 
 ## Best Practices
@@ -516,14 +472,8 @@ class UserCreate(UserBase):
 @app.post(
     "/users",
     response_model=User,
-    status_code=201,
     tags=["users"],
-    summary="Create a new user",
-    responses={
-        201: {"description": "User created successfully"},
-        400: {"description": "Invalid input data"},
-        409: {"description": "User already exists"}
-    }
+    summary="Create a new user"
 )
 async def create_user(user: UserCreate) -> User:
     """

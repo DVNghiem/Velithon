@@ -120,7 +120,7 @@ class UserCreate(BaseModel):
 
 ## 🗄️ Step 3: Database Service with Dependency Injection
 
-Create a simple in-memory database service that we'll inject into our endpoints:
+Create a simple in-memory database service that we'll inject into our endpoints using Velithon's dependency injection system:
 
 ```python title="app/services/database.py"
 from datetime import datetime
@@ -227,9 +227,17 @@ class DatabaseService:
             return True
         return False
 
-# Global instance - in production, use proper DI container
-db_service = DatabaseService()
+# Create dependency injection container
+from velithon.di import ServiceContainer, SingletonProvider
+
+class AppContainer(ServiceContainer):
+    database = SingletonProvider(DatabaseService)
+
+# Create container instance
+container = AppContainer()
 ```
+
+**Note**: Velithon uses a powerful dependency injection system with `ServiceContainer` and providers. The `@inject` decorator automatically resolves dependencies marked with `Provide[container.service]`. This is more robust than global instances and provides better testability and modularity.
 
 ## 🛡️ Step 4: Custom Authentication Middleware
 
@@ -273,7 +281,7 @@ class AuthenticationMiddleware(Middleware):
 
 ## 🛣️ Step 5: Task Router
 
-Create the tasks router with full CRUD operations:
+Create the tasks router with full CRUD operations using Velithon's dependency injection:
 
 ```python title="app/routers/tasks.py"
 from typing import List, Optional
@@ -282,16 +290,17 @@ from velithon.requests import Request
 from velithon.responses import JSONResponse
 from velithon.di import inject, Provide
 from app.models.tasks import Task, TaskCreate, TaskUpdate, TaskStatus
-from app.services.database import DatabaseService, db_service
+from app.services.database import DatabaseService, container
 
 router = Router(path="/tasks")
 
 @router.get("/")
+@inject
 async def get_tasks(
     request: Request,
     status: Optional[TaskStatus] = None,
     assignee_id: Optional[int] = None,
-    db: DatabaseService = Provide(lambda: db_service)
+    db: DatabaseService = Provide[container.database]
 ) -> JSONResponse:
     """Get all tasks with optional filtering."""
     tasks = db.get_tasks(status=status, assignee_id=assignee_id)
@@ -301,9 +310,10 @@ async def get_tasks(
     })
 
 @router.get("/{task_id}")
+@inject
 async def get_task(
     task_id: int,
-    db: DatabaseService = Provide(lambda: db_service)
+    db: DatabaseService = Provide[container.database]
 ) -> JSONResponse:
     """Get a specific task by ID."""
     task = db.get_task(task_id)
@@ -315,10 +325,11 @@ async def get_task(
     return JSONResponse(task.dict())
 
 @router.post("/")
+@inject
 async def create_task(
     task_data: TaskCreate,
     request: Request,
-    db: DatabaseService = Provide(lambda: db_service)
+    db: DatabaseService = Provide[container.database]
 ) -> JSONResponse:
     """Create a new task."""
     # Get assignee from authenticated user or request
@@ -328,10 +339,11 @@ async def create_task(
     return JSONResponse(task.dict(), status_code=201)
 
 @router.put("/{task_id}")
+@inject
 async def update_task(
     task_id: int,
     task_data: TaskUpdate,
-    db: DatabaseService = Provide(lambda: db_service)
+    db: DatabaseService = Provide[container.database]
 ) -> JSONResponse:
     """Update a task."""
     task = db.update_task(task_id, task_data)
@@ -343,9 +355,10 @@ async def update_task(
     return JSONResponse(task.dict())
 
 @router.delete("/{task_id}")
+@inject
 async def delete_task(
     task_id: int,
-    db: DatabaseService = Provide(lambda: db_service)
+    db: DatabaseService = Provide[container.database]
 ) -> JSONResponse:
     """Delete a task."""
     if not db.delete_task(task_id):
@@ -366,13 +379,14 @@ from velithon.routing import Router
 from velithon.responses import JSONResponse
 from velithon.di import inject, Provide
 from app.models.tasks import User, UserCreate
-from app.services.database import DatabaseService, db_service
+from app.services.database import DatabaseService, container
 
 router = Router(path="/users")
 
 @router.get("/")
+@inject
 async def get_users(
-    db: DatabaseService = Provide(lambda: db_service)
+    db: DatabaseService = Provide[container.database]
 ) -> JSONResponse:
     """Get all users."""
     users = db.get_users()
@@ -382,9 +396,10 @@ async def get_users(
     })
 
 @router.get("/{user_id}")
+@inject
 async def get_user(
     user_id: int,
-    db: DatabaseService = Provide(lambda: db_service)
+    db: DatabaseService = Provide[container.database]
 ) -> JSONResponse:
     """Get a specific user by ID."""
     user = db.get_user(user_id)
@@ -396,9 +411,10 @@ async def get_user(
     return JSONResponse(user.dict())
 
 @router.post("/")
+@inject
 async def create_user(
     user_data: UserCreate,
-    db: DatabaseService = Provide(lambda: db_service)
+    db: DatabaseService = Provide[container.database]
 ) -> JSONResponse:
     """Create a new user."""
     user = db.create_user(user_data)
@@ -416,6 +432,7 @@ from velithon.middleware.cors import CORSMiddleware
 from velithon.responses import JSONResponse
 from app.routers import tasks, users
 from app.middleware.auth import AuthenticationMiddleware
+from app.services.database import container
 
 # Create the Velithon application
 app = Velithon(
@@ -432,6 +449,9 @@ app = Velithon(
         AuthenticationMiddleware(),
     ]
 )
+
+# Register the dependency injection container
+app.register_container(container)
 
 # Include routers
 app.include_router(tasks.router, prefix="/api/v1")
