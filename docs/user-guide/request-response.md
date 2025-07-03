@@ -511,29 +511,43 @@ async def error_endpoint():
         headers={"X-Error": "validation-failed"}
     )
 
-# Custom exception handler
-@app.exception_handler(ValueError)
-async def value_error_handler(request: Request, exc: ValueError):
-    return JSONResponse(
-        content={"error": "Invalid value", "detail": str(exc)},
-        status_code=400
-    )
+# Handle errors within the endpoint function
+@app.get("/safe-divide/{a}/{b}")
+async def safe_divide(a: int, b: int):
+    try:
+        result = a / b
+        return {"result": result}
+    except ZeroDivisionError:
+        return JSONResponse(
+            content={"error": "Division by zero", "detail": "Cannot divide by zero"},
+            status_code=400
+        )
+    except ValueError as e:
+        return JSONResponse(
+            content={"error": "Invalid value", "detail": str(e)},
+            status_code=400
+        )
 ```
 
 ### Validation Errors
 
 ```python
 from pydantic import ValidationError
+from velithon.exceptions import ValidationException
 
-@app.exception_handler(ValidationError)
-async def validation_error_handler(request: Request, exc: ValidationError):
-    return JSONResponse(
-        content={
-            "error": "Validation failed",
-            "details": exc.errors()
-        },
-        status_code=422
-    )
+@app.post("/users")
+async def create_user(user_data: dict):
+    try:
+        # Validate the user data
+        user = UserCreate(**user_data)
+        return create_new_user(user)
+    except ValidationError as e:
+        # Handle validation errors manually
+        raise ValidationException(
+            detail="Validation failed",
+            errors=e.errors()
+        )
+```
 ```
 
 ## Background Tasks

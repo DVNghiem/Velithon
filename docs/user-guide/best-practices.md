@@ -902,22 +902,28 @@ sentry_sdk.init(
     environment=settings.environment
 )
 
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    # Log error with context
-    logger.error(
-        "Unhandled exception",
-        exc_info=exc,
-        request_path=request.url.path,
-        request_method=request.method,
-        user_id=getattr(request.state, 'user_id', None)
-    )
-    
-    # Return appropriate error response
-    if settings.debug:
-        return JSONResponse(
-            {"error": str(exc), "type": type(exc).__name__},
-            status_code=500
+# Error handling should be done within endpoints
+@app.get("/api/example")
+async def example_endpoint(request: Request):
+    try:
+        # Your business logic here
+        result = some_business_logic()
+        return {"result": result}
+    except Exception as exc:
+        # Log error with context
+        logger.error(
+            "Unhandled exception",
+            exc_info=exc,
+            request_path=request.url.path,
+            request_method=request.method,
+            user_id=getattr(request.state, 'user_id', None)
+        )
+        
+        # Return appropriate error response
+        if settings.debug:
+            return JSONResponse(
+                {"error": str(exc), "type": type(exc).__name__},
+                status_code=500
         )
     else:
         return JSONResponse(

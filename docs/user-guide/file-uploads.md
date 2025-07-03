@@ -619,19 +619,43 @@ async def upload_with_error_handling(file: UploadFile = File(...)):
         )
 ```
 
-### Global Error Handler
+### Error Handling
 
 ```python
-@app.exception_handler(MultiPartException)
-async def multipart_exception_handler(request, exc):
-    return JSONResponse(
-        content={
-            "error": "File upload error",
-            "message": "Invalid multipart form data",
-            "details": str(exc)
-        },
-        status_code=400
-    )
+from velithon.exceptions import MultiPartException
+
+@app.post("/upload-with-error-handling")
+async def upload_with_error_handling(file: UploadFile):
+    try:
+        # Validate file
+        if not file.filename:
+            raise ValueError("No file provided")
+        
+        if file.size > 10 * 1024 * 1024:  # 10MB
+            raise ValueError("File too large")
+        
+        # Process file
+        content = await file.read()
+        return {"filename": file.filename, "size": len(content)}
+        
+    except ValueError as e:
+        return JSONResponse(
+            content={
+                "error": "File upload error",
+                "message": str(e)
+            },
+            status_code=400
+        )
+    except MultiPartException as e:
+        return JSONResponse(
+            content={
+                "error": "File upload error", 
+                "message": "Invalid multipart form data",
+                "details": str(e)
+            },
+            status_code=400
+        )
+```
 ```
 
 ## Testing File Uploads

@@ -371,19 +371,30 @@ async def get_user(request: Request):
     return {"user": user}
 ```
 
-### Custom Exception Handlers
+### Error Handling
 
 ```python
 from velithon.requests import Request
 from velithon.responses import JSONResponse
+from velithon.exceptions import HTTPException
 
-async def validation_exception_handler(request: Request, exc: ValueError):
-    return JSONResponse(
-        status_code=400,
-        content={"error": "Validation failed", "detail": str(exc)}
-    )
-
-app.add_exception_handler(ValueError, validation_exception_handler)
+@app.get("/users/{user_id}")
+async def get_user(user_id: int):
+    try:
+        user = get_user_from_db(user_id)
+        if not user:
+            raise HTTPException(
+                status_code=404,
+                detail="User not found"
+            )
+        return {"user": user}
+    except ValueError as e:
+        # Handle errors within endpoints
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Validation failed", "detail": str(e)}
+        )
+```
 ```
 
 ## Next Steps

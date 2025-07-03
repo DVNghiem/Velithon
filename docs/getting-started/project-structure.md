@@ -517,7 +517,7 @@ from app.services import DatabaseService
 ### 2. Error Handling
 
 ```python title="app/exceptions.py"
-"""Custom exception handlers."""
+"""Custom exceptions and error handling."""
 
 from velithon.responses import JSONResponse
 from velithon.exceptions import HTTPException
@@ -529,12 +529,20 @@ class TaskNotFoundError(HTTPException):
             detail=f"Task with id {task_id} not found"
         )
 
-@app.exception_handler(TaskNotFoundError)
-async def task_not_found_handler(request, exc):
-    return JSONResponse(
-        content={"error": exc.detail},
-        status_code=exc.status_code
-    )
+# Error handling should be done in your route handlers
+@app.get("/tasks/{task_id}")
+async def get_task(task_id: int):
+    try:
+        task = get_task_from_db(task_id)
+        if not task:
+            raise TaskNotFoundError(task_id)
+        return task
+    except TaskNotFoundError as exc:
+        return JSONResponse(
+            content={"error": exc.detail},
+            status_code=exc.status_code
+        )
+```
 ```
 
 ### 3. Environment Configuration

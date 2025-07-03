@@ -464,28 +464,26 @@ def build_middleware_stack() -> RSGIApp
 
 Build the middleware stack. Called automatically when the application starts.
 
-## Exception Handling
+## Error Handling
 
-### add_exception_handler()
-
-```python
-def add_exception_handler(
-    exc_class_or_status_code: type[Exception] | int,
-    handler: Callable[[Request, Exception], Response]
-) -> None
-```
-
-Add a custom exception handler.
+Velithon uses exception-based error handling. Handle errors within your route functions:
 
 **Example:**
 ```python
-async def validation_exception_handler(request: Request, exc: ValueError):
-    return JSONResponse(
-        {"error": "Validation failed", "detail": str(exc)},
-        status_code=400
-    )
+from velithon.exceptions import HTTPException, ValidationException
 
-app.add_exception_handler(ValueError, validation_exception_handler)
+@app.get("/users/{user_id}")
+async def get_user(user_id: int):
+    try:
+        user = get_user_from_database(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        return user
+    except ValueError as e:
+        return JSONResponse(
+            {"error": "Validation failed", "detail": str(e)},
+            status_code=400
+        )
 ```
 
 ## Properties
