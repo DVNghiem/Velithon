@@ -145,7 +145,7 @@ New to Velithon? Follow our structured learning path:
 
 Velithon is perfect for:
 
-- **High-Performance APIs**: REST and GraphQL APIs that need to handle thousands of requests per second
+- **High-Performance APIs**: REST API that need to handle thousands of requests per second
 - **Real-Time Applications**: Chat applications, live dashboards, and collaborative tools using WebSockets
 - **Microservices**: Lightweight services in a microservices architecture
 - **IoT Backends**: High-throughput backends for IoT device data collection
