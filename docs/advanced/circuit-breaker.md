@@ -10,12 +10,11 @@ The circuit breaker pattern helps prevent cascading failures by monitoring for f
 
 ```python
 from velithon import Velithon
-from velithon.di import ServiceContainer, Provide, inject
+from velithon.di import ServiceContainer, Provide, inject, SingletonProvider, FactoryProvider
 import asyncio
 from datetime import datetime, timedelta
 
 app = Velithon()
-container = ServiceContainer()
 
 class CircuitBreakerService:
     def __init__(self, failure_threshold=5, timeout=60):
@@ -59,7 +58,10 @@ class CircuitBreakerService:
         self.last_failure_time = None
         self.state = "closed"
 
-container.register(CircuitBreakerService, lambda: CircuitBreakerService())
+class AppContainer(ServiceContainer):
+    circuit_breaker_service = SingletonProvider(CircuitBreakerService)
+
+container = AppContainer()
 ```
 
 ## Usage Example
@@ -79,15 +81,19 @@ class ExternalAPIService:
             response = await client.get(endpoint)
             return response.json()
 
-container.register(
-    ExternalAPIService, 
-    lambda: ExternalAPIService(container.get(CircuitBreakerService))
-)
+class AppContainer(ServiceContainer):
+    circuit_breaker_service = SingletonProvider(CircuitBreakerService)
+    external_api_service = FactoryProvider(
+        ExternalAPIService,
+        factory=lambda: ExternalAPIService(container.circuit_breaker_service)
+    )
+
+container = AppContainer()
 
 @app.get("/external-data")
 @inject
 async def get_external_data(
-    api_service: ExternalAPIService = Provide(ExternalAPIService)
+    api_service: ExternalAPIService = Provide[container.external_api_service]
 ):
     try:
         data = await api_service.fetch_data("https://api.example.com/data")

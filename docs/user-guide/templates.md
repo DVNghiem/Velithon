@@ -431,7 +431,15 @@ def render_cached_template(template_name, context_hash):
 ### With Dependency Injection
 
 ```python
-from velithon.di import Provide, ServiceContainer
+from velithon.di import Provide, ServiceContainer, FactoryProvider
+
+class AppContainer(ServiceContainer):
+    template_service = FactoryProvider(
+        TemplateEngine,
+        factory=lambda: create_template_service(container)
+    )
+
+container = AppContainer()
 
 def create_template_service(container: ServiceContainer):
     config = container.get("config")
@@ -442,7 +450,7 @@ def create_template_service(container: ServiceContainer):
     )
 
 @app.get("/")
-async def home(templates: TemplateEngine = Provide(create_template_service)):
+async def home(templates: TemplateEngine = Provide[container.template_service]):
     return templates.render_response("home.html", {"title": "Home"})
 ```
 

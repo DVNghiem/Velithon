@@ -278,35 +278,35 @@ __all__ = [
 """Central dependency injection configuration."""
 
 from typing import Generator
-from velithon.di import Provide, ServiceContainer
+from velithon.di import Provide, ServiceContainer, SingletonProvider, FactoryProvider
 from app.services import DatabaseService, AuthService, CacheService
 from app.config import settings
 
 # Service container setup
-container = ServiceContainer()
+class AppContainer(ServiceContainer):
+    database_service = SingletonProvider(DatabaseService)
+    auth_service = SingletonProvider(AuthService)
+    cache_service = SingletonProvider(CacheService)
 
-# Register services
-container.register(DatabaseService, singleton=True)
-container.register(AuthService, singleton=True)
-container.register(CacheService, singleton=True)
+container = AppContainer()
 
 # Dependency providers
 def get_database() -> DatabaseService:
     """Get database service instance."""
-    return container.get(DatabaseService)
+    return container.database_service
 
 def get_auth_service() -> AuthService:
     """Get authentication service instance."""
-    return container.get(AuthService)
+    return container.auth_service
 
 def get_cache() -> CacheService:
     """Get cache service instance."""
-    return container.get(CacheService)
+    return container.cache_service
 
 # Usage in routers
-DatabaseDep = Provide(get_database)
-AuthDep = Provide(get_auth_service)
-CacheDep = Provide(get_cache)
+DatabaseDep = Provide[container.database_service]
+AuthDep = Provide[container.auth_service]
+CacheDep = Provide[container.cache_service]
 ```
 
 ## 🧪 Testing Structure

@@ -10,10 +10,9 @@ Connection pooling helps manage database and external service connections effici
 
 ```python
 from velithon import Velithon
-from velithon.di import ServiceContainer, Provide
+from velithon.di import ServiceContainer, Provide, SingletonProvider, FactoryProvider
 
 app = Velithon()
-container = ServiceContainer()
 
 # Configure connection pool settings
 class DatabaseConfig:
@@ -22,7 +21,8 @@ class DatabaseConfig:
         self.max_overflow = 10
         self.pool_timeout = 30
 
-container.register(DatabaseConfig, lambda: DatabaseConfig())
+class AppContainer(ServiceContainer):
+    database_config = SingletonProvider(DatabaseConfig)
 ```
 
 ## Usage with Dependency Injection
@@ -39,11 +39,15 @@ class DatabaseService:
         # Initialize connection pool
         pass
 
-container.register(DatabaseService, lambda: DatabaseService(container.get(DatabaseConfig)))
+class AppContainer(ServiceContainer):
+    database_config = SingletonProvider(DatabaseConfig)
+    database_service = FactoryProvider(DatabaseService, factory=lambda: DatabaseService(container.database_config))
+
+container = AppContainer()
 
 @app.get("/users")
 @inject
-async def get_users(db_service: DatabaseService = Provide(DatabaseService)):
+async def get_users(db_service: DatabaseService = Provide[container.database_service]):
     # Use pooled connection
     return await db_service.get_all_users()
 ```

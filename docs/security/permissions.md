@@ -301,7 +301,8 @@ def check_any_permission(*permission_ids):
 app = Velithon()
 
 # Register services
-ServiceContainer.register(PermissionService, PermissionService())
+class PermissionContainer(ServiceContainer):
+    permission_service = PermissionService()
 
 # Mock authentication middleware
 @app.middleware("http")
@@ -658,7 +659,8 @@ def require_resource_access(resource_type: str, permission: str):
     return decorator
 
 # Register resource permission service
-ServiceContainer.register(ResourcePermissionService, ResourcePermissionService())
+class ResourcePermissionContainer(ServiceContainer):
+    resource_permission_service = ResourcePermissionService()
 
 @app.get("/files/{file_id}")
 @require_resource_access("file", "read")

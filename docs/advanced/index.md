@@ -105,11 +105,8 @@ Velithon's dependency injection system supports complex scenarios including scop
 
 #### Scoped Dependencies
 ```python
-from velithon.di import Container, Provide, Scope
+from velithon.di import ServiceContainer, Provide, SingletonProvider, FactoryProvider, Scope
 
-container = Container()
-
-@container.register(scope=Scope.REQUEST)
 class DatabaseSession:
     def __init__(self):
         self.connection = create_connection()
@@ -117,18 +114,29 @@ class DatabaseSession:
     def __del__(self):
         self.connection.close()
 
+class Container(ServiceContainer):
+    database_session = FactoryProvider(DatabaseSession, scope=Scope.REQUEST)
+
+container = Container()
+
 @app.get("/users")
-async def get_users(db: DatabaseSession = Provide(DatabaseSession)):
+async def get_users(db: DatabaseSession = Provide[container.database_session]):
     return await db.fetch_users()
 ```
 
 #### Conditional Injection
 ```python
-@container.register_conditional(lambda: settings.use_redis_cache)
+class ConditionalContainer(ServiceContainer):
+    @property
+    def cache_service(self):
+        if settings.use_redis_cache:
+            return RedisCache()
+        else:
+            return MemoryCache()
+
 class RedisCache:
     pass
 
-@container.register_conditional(lambda: not settings.use_redis_cache)
 class MemoryCache:
     pass
 ```

@@ -294,9 +294,10 @@ Register a dependency injection container.
 ```python
 from velithon.di import ServiceContainer
 
-container = ServiceContainer()
-container.register("database", "postgresql://localhost/db")
-app.register_container(container)
+class DatabaseContainer(ServiceContainer):
+    database = "postgresql://localhost/db"
+
+app.register_container(DatabaseContainer)
 ```
 
 ## VSP Integration
@@ -564,9 +565,10 @@ app = Velithon(
 )
 
 # Set up dependency injection
-container = ServiceContainer()
-container.register("database_url", "postgresql://localhost/db")
-app.register_container(container)
+class AppContainer(ServiceContainer):
+    database_url = "postgresql://localhost/db"
+
+app.register_container(AppContainer)
 
 # Routes
 @app.get("/", tags=["Root"])

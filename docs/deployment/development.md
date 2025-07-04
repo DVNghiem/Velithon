@@ -205,14 +205,14 @@ class DevelopmentDatabase:
         # Implementation for seeding test data
         pass
 
-container = ServiceContainer()
-container.register(DevelopmentDatabase, lambda: DevelopmentDatabase())
+class DevelopmentContainer(ServiceContainer):
+    database = DevelopmentDatabase()
 
 # Initialize development data
 @app.on_event("startup")
 async def startup():
     if app.debug:
-        db = container.get(DevelopmentDatabase)
+        db = DevelopmentContainer.database
         await db.create_tables()
         await db.seed_data()
 ```

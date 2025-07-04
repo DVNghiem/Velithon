@@ -156,8 +156,8 @@ class AuthService:
             raise HTTPException(status_code=401, detail="Invalid token")
 
 # Dependency setup
-container = ServiceContainer()
-container.register(AuthService, AuthService())
+class AuthContainer(ServiceContainer):
+    auth_service = AuthService()
 
 # Security scheme
 bearer_auth = HTTPBearer()
@@ -167,7 +167,7 @@ bearer_auth = HTTPBearer()
 @inject
 async def register(
     user_data: UserRegister,
-    auth_service: Provide[AuthService]
+    auth_service: Provide[AuthContainer.auth_service]
 ):
     """Register a new user"""
     user = auth_service.create_user(user_data)

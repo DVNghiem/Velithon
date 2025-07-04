@@ -14,16 +14,19 @@ from velithon import Velithon
 # Optimized application configuration
 app = Velithon(
     debug=False,  # Disable debug mode in production
-    gzip_compression=True,  # Enable gzip compression
-    max_request_size=10 * 1024 * 1024,  # 10MB max request size
 )
+
+# Note: Compression should be handled at the server level (uvicorn/gunicorn)
+# or through middleware, not application configuration
 ```
 
 ## Async Best Practices
 
 ```python
 import asyncio
-from velithon.di import inject, Provide
+from velithon import Velithon
+
+app = Velithon()
 
 # Use async/await properly
 @app.get("/fast-endpoint")
@@ -80,14 +83,24 @@ class OptimizedDatabaseService:
         await self.set_cache(key, result, ttl=300)
         return result
 
-container = ServiceContainer()
-container.register(OptimizedDatabaseService, lambda: OptimizedDatabaseService())
+class DatabaseContainer(ServiceContainer):
+    database_service = OptimizedDatabaseService()
+
+# Use with dependency injection
+from velithon.di import inject, Provide
+
+@app.get("/users/{user_id}")
+async def get_user(
+    user_id: int,
+    db_service: OptimizedDatabaseService = Provide[DatabaseContainer.database_service]
+):
+    return await db_service.get_user(user_id)
 ```
 
 ## JSON Optimization
 
 ```python
-from velithon.json import JSONResponse
+from velithon.response import JSONResponse
 import orjson
 
 # Use optimized JSON serialization
@@ -161,7 +174,8 @@ from velithon import Request, Response
 async def compression_middleware(request: Request, call_next):
     response = await call_next(request)
     
-    # Add compression headers
+    # Note: Actual compression should be handled at the server level
+    # This is just for demonstration of header manipulation
     if "gzip" in request.headers.get("accept-encoding", ""):
         response.headers["content-encoding"] = "gzip"
     
@@ -248,7 +262,7 @@ if __name__ == "__main__":
 
 1. **Use async/await consistently**
 2. **Implement connection pooling**
-3. **Enable gzip compression**
+3. **Enable compression at server level (uvicorn/nginx)**
 4. **Use caching strategies**
 5. **Optimize database queries**
 6. **Profile your application regularly**

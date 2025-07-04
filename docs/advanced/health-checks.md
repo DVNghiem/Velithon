@@ -10,11 +10,10 @@ Health checks are essential for monitoring application health, load balancer con
 
 ```python
 from velithon import Velithon
-from velithon.di import ServiceContainer, Provide, inject
+from velithon.di import ServiceContainer, Provide, inject, SingletonProvider
 from datetime import datetime
 
 app = Velithon()
-container = ServiceContainer()
 
 class HealthService:
     def __init__(self):
@@ -53,7 +52,10 @@ class HealthService:
         status["status"] = "healthy" if overall_healthy else "unhealthy"
         return status
 
-container.register(HealthService, lambda: HealthService())
+class AppContainer(ServiceContainer):
+    health_service = SingletonProvider(HealthService)
+
+container = AppContainer()
 ```
 
 ## Health Check Endpoints
@@ -62,7 +64,7 @@ container.register(HealthService, lambda: HealthService())
 @app.get("/health")
 @inject
 async def health_check(
-    health_service: HealthService = Provide(HealthService)
+    health_service: HealthService = Provide[container.health_service]
 ):
     """Basic health check endpoint"""
     return {"status": "healthy", "timestamp": datetime.utcnow().isoformat()}
@@ -70,7 +72,7 @@ async def health_check(
 @app.get("/health/detailed")
 @inject
 async def detailed_health_check(
-    health_service: HealthService = Provide(HealthService)
+    health_service: HealthService = Provide[container.health_service]
 ):
     """Detailed health check with all registered checks"""
     status = await health_service.get_health_status()
@@ -80,7 +82,7 @@ async def detailed_health_check(
 @app.get("/health/ready")
 @inject
 async def readiness_check(
-    health_service: HealthService = Provide(HealthService)
+    health_service: HealthService = Provide[container.health_service]
 ):
     """Readiness probe for Kubernetes"""
     # Check if application is ready to serve traffic

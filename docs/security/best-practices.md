@@ -488,7 +488,8 @@ def require_api_key_with_scope(required_scope: str):
     return decorator
 
 # Register API security service
-ServiceContainer.register(APISecurityService, APISecurityService("your-secret-key"))
+class SecurityContainer(ServiceContainer):
+    api_security_service = APISecurityService("your-secret-key")
 
 @app.get("/api/secure-data")
 @require_api_key_with_scope("read:data")

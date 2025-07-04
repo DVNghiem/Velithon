@@ -144,7 +144,8 @@ def require_role(required_role: Role):
 app = Velithon()
 
 # Register services
-ServiceContainer.register(AuthorizationService, AuthorizationService())
+class AuthorizationContainer(ServiceContainer):
+    authorization_service = AuthorizationService()
 
 @app.post("/login")
 async def login(request: Request):
@@ -314,7 +315,8 @@ def require_resource_permission(action: str):
 app = Velithon()
 
 # Register services
-ServiceContainer.register(ResourceService, ResourceService())
+class ResourceContainer(ServiceContainer):
+    resource_service = ResourceService()
 
 @app.get("/resources/{resource_id}")
 @require_auth
@@ -461,7 +463,8 @@ def check_abac_access(func):
     return wrapper
 
 app = Velithon()
-ServiceContainer.register(PolicyEngine, PolicyEngine())
+class PolicyContainer(ServiceContainer):
+    policy_engine = PolicyEngine()
 
 @app.get("/resources/{resource_type}/{resource_id}")
 @require_auth

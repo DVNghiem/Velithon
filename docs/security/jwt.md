@@ -129,8 +129,9 @@ class UserService:
 app = Velithon()
 
 # Register services
-ServiceContainer.register(JWTService, JWTService())
-ServiceContainer.register(UserService, UserService())
+class JWTContainer(ServiceContainer):
+    jwt_service = JWTService()
+    user_service = UserService()
 
 def get_current_user(request: Request) -> Optional[User]:
     """Extract current user from JWT token."""
@@ -139,8 +140,8 @@ def get_current_user(request: Request) -> Optional[User]:
         return None
     
     token = auth_header.split(" ")[1]
-    jwt_service = ServiceContainer.get(JWTService)
-    user_service = ServiceContainer.get(UserService)
+    jwt_service = JWTContainer.jwt_service
+    user_service = JWTContainer.user_service
     
     try:
         payload = jwt_service.verify_token(token, "access")

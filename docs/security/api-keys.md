@@ -132,7 +132,7 @@ def require_api_key(scopes: List[str] = None):
                     headers={"WWW-Authenticate": "ApiKey"}
                 )
             
-            api_key_service = ServiceContainer.get(APIKeyService)
+            api_key_service = APIKeyContainer.api_key_service
             key_data = api_key_service.verify_api_key(api_key)
             
             if not key_data:
@@ -161,7 +161,8 @@ def require_api_key(scopes: List[str] = None):
 app = Velithon()
 
 # Register services
-ServiceContainer.register(APIKeyService, APIKeyService())
+class APIKeyContainer(ServiceContainer):
+    api_key_service = APIKeyService()
 
 @app.post("/api-keys")
 async def create_api_key(request: Request):
@@ -405,7 +406,8 @@ def rate_limit(func):
     return wrapper
 
 # Register rate limiter
-ServiceContainer.register(RateLimiter, RateLimiter())
+class RateLimitContainer(ServiceContainer):
+    rate_limiter = RateLimiter()
 
 @app.get("/api/rate-limited")
 @require_api_key()
@@ -535,7 +537,8 @@ def track_usage(func):
     return wrapper
 
 # Register analytics service
-ServiceContainer.register(AnalyticsService, AnalyticsService())
+class AnalyticsContainer(ServiceContainer):
+    analytics_service = AnalyticsService()
 
 @app.get("/api-keys/{key_id}/analytics")
 async def get_api_key_analytics(request: Request):
@@ -544,8 +547,7 @@ async def get_api_key_analytics(request: Request):
     days = int(request.query_params.get("days", 30))
     
     # In production, verify user owns this API key
-    analytics_service = ServiceContainer.get(AnalyticsService)
-    analytics = analytics_service.get_key_analytics(key_id, days)
+    analytics = AnalyticsContainer.analytics_service.get_key_analytics(key_id, days)
     
     return JSONResponse(analytics)
 

@@ -102,18 +102,21 @@ Unlike traditional ASGI frameworks, Velithon uses **RSGI (Rust Server Gateway In
 Velithon provides enterprise-grade dependency injection:
 
 ```python
-from velithon.di import ServiceContainer, inject, Provide
+from velithon.di import ServiceContainer, inject, Provide, SingletonProvider, FactoryProvider
 
-# Register services
-container = ServiceContainer()
-container.register(DatabaseService, singleton=True)
-container.register(CacheService, factory=create_cache)
+# Define service container
+class AppContainer(ServiceContainer):
+    database_service = SingletonProvider(DatabaseService)
+    cache_service = FactoryProvider(CacheService, factory=create_cache)
+
+# Register container
+container = AppContainer()
 
 @app.get("/users/{user_id}")
 async def get_user(
     user_id: int,
-    db: DatabaseService = Provide(DatabaseService),
-    cache: CacheService = Provide(CacheService)
+    db: DatabaseService = Provide[container.database_service],
+    cache: CacheService = Provide[container.cache_service]
 ):
     # Services are automatically injected
     return await db.get_user(user_id)

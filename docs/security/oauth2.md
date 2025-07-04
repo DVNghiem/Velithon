@@ -286,7 +286,8 @@ def require_oauth2_scope(*required_scopes):
 app = Velithon()
 
 # Register services
-ServiceContainer.register(OAuth2Service, OAuth2Service())
+class OAuth2Container(ServiceContainer):
+    oauth2_service = OAuth2Service()
 
 # Mock user authentication - replace with real authentication
 def authenticate_user(username: str, password: str) -> Optional[str]:
