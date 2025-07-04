@@ -221,14 +221,26 @@ Velithon includes a powerful dependency injection system:
 ### Service Container
 
 ```python
-from velithon.di import ServiceContainer, Provide
+from velithon.di import ServiceContainer, SingletonProvider, FactoryProvider
+
+class DatabaseService:
+    def __init__(self, url: str):
+        self.url = url
+    
+    async def get_connection(self):
+        # Return database connection
+        pass
+
+class ApiService:
+    def __init__(self, api_key: str):
+        self.api_key = api_key
 
 # Create a service container
-container = ServiceContainer()
+class AppContainer(ServiceContainer):
+    database = SingletonProvider(DatabaseService, url="postgresql://localhost/mydb")
+    api_service = SingletonProvider(ApiService, api_key="secret-key")
 
-# Register services
-container.register("database_url", "postgresql://localhost/mydb")
-container.register("api_key", "secret-key")
+container = AppContainer()
 
 # Register the container with the app
 app.register_container(container)
@@ -242,11 +254,12 @@ from velithon.di import inject
 @app.get("/users")
 @inject
 async def list_users(
-    database_url: str = Provide("database_url"),
-    api_key: str = Provide("api_key")
+    database: DatabaseService = Provide[container.database],
+    api_service: ApiService = Provide[container.api_service]
 ):
     # Use injected dependencies
-    return {"database_url": database_url}
+    conn = await database.get_connection()
+    return {"api_key": api_service.api_key}
 ```
 
 ### Service Providers
@@ -261,11 +274,14 @@ class DatabaseService:
         pass
 
 # Register as a factory
-container.register("database", lambda: DatabaseService("postgresql://localhost/db"))
+class AppContainer(ServiceContainer):
+    database = FactoryProvider(DatabaseService, url="postgresql://localhost/db")
+
+container = AppContainer()
 
 @app.get("/data")
 @inject
-async def get_data(db: DatabaseService = Provide("database")):
+async def get_data(db: DatabaseService = Provide[container.database]):
     conn = await db.get_connection()
     return {"data": "from_database"}
 ```
@@ -333,12 +349,18 @@ async def shutdown_handler():
     print("Application shutting down...")
     # Close database connections, cleanup resources
 
-app = Velithon(
-    on_startup=[startup_handler],
-    on_shutdown=[shutdown_handler]
-)
+app = Velithon()
 
-# Alternative decorator syntax
+# Register lifecycle handlers using decorators
+@app.on_startup()
+async def register_startup_handler():
+    await startup_handler()
+
+@app.on_shutdown()
+async def register_shutdown_handler():
+    await shutdown_handler()
+
+# Alternative decorator syntax for multiple handlers
 @app.on_startup()
 async def another_startup_handler():
     print("Another startup task...")
