@@ -129,38 +129,32 @@ class TestAuthenticationMiddleware:
         args = protocol.response_bytes.call_args[0]
         status = args[0]
         assert status == 401
-    
+
     @pytest.mark.asyncio
     async def test_authentication_middleware_handles_auth_z_error(self, mock_app):
         """Test that authentication middleware handles authorization errors."""
         # Make the app raise an authorization error
         mock_app.side_effect = AuthorizationError("Access denied")
-        
+
         middleware = AuthenticationMiddleware(mock_app)
-        
+
         scope = MockRSGIScope(
             proto="http",
             method="GET",
             path="/admin",
             headers=[]
         )
-        
+
         protocol = AsyncMock()
-        messages = []
-        
-        async def mock_send(message):
-            messages.append(message)
-        
-        protocol.send = mock_send
         
         # Call middleware
         await middleware(scope, protocol)
-        
-        # Check that a 403 response was sent
-        assert len(messages) >= 2
-        start_message = messages[0]
-        assert start_message["type"] == "http.response.start"
-        assert start_message["status"] == 403
+
+        # Check that protocol.response_bytes was called with 403 status
+        protocol.response_bytes.assert_called_once()
+        args = protocol.response_bytes.call_args[0]
+        status = args[0]
+        assert status == 403
 
 
 class TestSecurityMiddleware:
