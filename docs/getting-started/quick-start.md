@@ -1,21 +1,52 @@
 # Quick Start
 
+<div class="performance-box">
+🚀 <strong>Fast Track to Velithon Mastery!</strong><br>
 Let's build your first Velithon application! This guide will take you from zero to a running RSGI web server in just a few minutes.
+</div>
 
 ## 🎯 What We'll Build
 
-In this quick start, you'll create a simple API with:
+<div class="grid cards">
+<div markdown>
+**🌐 Welcome Endpoint**
+- Simple GET route
+- JSON response handling
+- Basic application structure
+</div>
+<div markdown>
+**👤 User Information**
+- Path parameters
+- Dynamic responses
+- Error handling
+</div>
+<div markdown>
+**📊 JSON Optimization**
+- Optimized responses
+- Performance features
+- Real-world examples
+</div>
+<div markdown>
+**🔧 Error Handling**
+- HTTP exceptions
+- Custom error responses
+- Best practices
+</div>
+</div>
 
-- A welcome endpoint
-- A user information endpoint with path parameters
-- JSON response handling with Velithon's optimized responses
-- Basic error handling
+!!! tip "Interactive Features"
+    This page includes enhanced code blocks with:
+    
+    - **Copy to clipboard** buttons
+    - **Syntax highlighting** with enhanced colors
+    - **Line numbers** for longer code blocks
+    - **Expand/collapse** for better readability
 
 ## 📝 Step 1: Create Your First App
 
 Create a new file called `main.py`:
 
-```python title="main.py"
+```python title="main.py" hl_lines="4 11 18"
 from velithon import Velithon
 from velithon.responses import JSONResponse
 
@@ -29,25 +60,63 @@ app = Velithon(
 # Define a simple GET endpoint
 @app.get("/")
 async def root():
-    """Welcome endpoint."""
-    return JSONResponse({"message": "Welcome to Velithon!", "version": "1.0.0"})
+    """Welcome endpoint with enhanced JSON response."""
+    return JSONResponse({
+        "message": "Welcome to Velithon!",
+        "version": "1.0.0",
+        "features": [
+            "High Performance RSGI",
+            "Rust-powered JSON serialization",
+            "Async/await support",
+            "Type safety"
+        ]
+    })
 
 # Define an endpoint with path parameters
 @app.get("/hello/{name}")
 async def say_hello(name: str):
-    """Personalized greeting endpoint."""
-    return JSONResponse({"message": f"Hello, {name}!"})
+    """Personalized greeting endpoint with validation."""
+    if not name.isalpha():
+        return JSONResponse(
+            {"error": "Name must contain only letters"},
+            status_code=400
+        )
+    
+    return JSONResponse({
+        "message": f"Hello, {name}!",
+        "timestamp": "2025-07-04T12:00:00Z",
+        "greeting_id": hash(name) % 10000
+    })
 
-# Define a POST endpoint
+# Define a POST endpoint with request body
 @app.post("/items")
 async def create_item(item: dict):
-    """Create a new item."""
-    return JSONResponse({"message": "Item created successfully", "item": item})
+    """Create a new item with enhanced response."""
+    # Basic validation
+    if not item.get("name"):
+        return JSONResponse(
+            {"error": "Item name is required"},
+            status_code=400
+        )
+    
+    # Simulate item creation
+    created_item = {
+        "id": hash(str(item)) % 100000,
+        "name": item["name"],
+        "description": item.get("description", "No description"),
+        "created_at": "2025-07-04T12:00:00Z",
+        "status": "active"
+    }
+    
+    return JSONResponse({
+        "message": "Item created successfully",
+        "item": created_item
+    }, status_code=201)
 
 # Health check endpoint
 @app.get("/health")
 async def health_check():
-    """Health check endpoint."""
+    """Enhanced health check with system information."""
     return JSONResponse({"status": "healthy", "service": "velithon-app"})
 ```
 

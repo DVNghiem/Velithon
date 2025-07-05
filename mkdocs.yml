@@ -222,9 +222,16 @@ extra:
 
 extra_css:
   - stylesheets/extra.css
+  - stylesheets/enhanced-components.css
+  - stylesheets/homepage-enhancements.css
+  - stylesheets/code-block-enhanced.css
+  - stylesheets/code-block-themes.css
 
 extra_javascript:
   - javascripts/mathjax.js
+  - javascripts/enhanced-ui.js
+  - javascripts/theme-enhancer.js
+  - javascripts/homepage-enhancements.js
   - https://polyfill.io/v3/polyfill.min.js?features=es6
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 

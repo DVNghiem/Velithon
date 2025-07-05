@@ -1,56 +1,352 @@
 /* Custom styles for Velithon documentation */
 
-/* Improve code block appearance */
-.highlight {
-    border-radius: 6px;
+/* ========================= */
+/* Enhanced Visual Design    */
+/* ========================= */
+
+/* Smooth scrolling for the entire page */
+html {
+    scroll-behavior: smooth;
 }
 
-/* Custom admonition colors */
+/* Enhanced gradient backgrounds */
+:root {
+    --velithon-primary: #667eea;
+    --velithon-secondary: #764ba2;
+    --velithon-accent: #00c853;
+    --velithon-warning: #ff9100;
+    --velithon-error: #f44336;
+    --velithon-success: #4caf50;
+    --shadow-light: rgba(0, 0, 0, 0.1);
+    --shadow-medium: rgba(0, 0, 0, 0.2);
+    --shadow-heavy: rgba(0, 0, 0, 0.3);
+}
+
+/* Code block styles removed - using default MkDocs styling */
+
+/* Enhanced admonition styles with animations */
+.md-typeset .admonition {
+    border-radius: 8px;
+    box-shadow: 0 2px 8px var(--shadow-light);
+    transition: all 0.3s ease;
+    overflow: hidden;
+    position: relative;
+}
+
+.md-typeset .admonition::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--velithon-primary), var(--velithon-secondary));
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+.md-typeset .admonition:hover::before {
+    transform: scaleX(1);
+}
+
+.md-typeset .admonition:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px var(--shadow-medium);
+}
+
 .md-typeset .admonition.note {
     border-left-color: #448aff;
 }
 
 .md-typeset .admonition.tip {
-    border-left-color: #00c853;
+    border-left-color: var(--velithon-accent);
 }
 
 .md-typeset .admonition.warning {
-    border-left-color: #ff9100;
+    border-left-color: var(--velithon-warning);
 }
 
-/* Performance highlight boxes */
+.md-typeset .admonition.danger {
+    border-left-color: var(--velithon-error);
+}
+
+/* Enhanced performance highlight boxes */
 .performance-box {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--velithon-primary) 0%, var(--velithon-secondary) 100%);
     color: white;
-    padding: 1rem;
-    border-radius: 8px;
-    margin: 1rem 0;
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin: 1.5rem 0;
+    box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
 }
 
-/* Feature grid styling */
+.performance-box::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(45deg, #667eea, #764ba2, #667eea);
+    background-size: 200% 200%;
+    border-radius: 14px;
+    z-index: -1;
+    animation: gradientMove 3s ease infinite;
+}
+
+.performance-box:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 40px rgba(102, 126, 234, 0.4);
+}
+
+@keyframes gradientMove {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* Enhanced feature grid styling */
 .grid.cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1rem;
-    margin: 1rem 0;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.5rem;
+    margin: 2rem 0;
 }
 
 .grid.cards > div {
     border: 1px solid var(--md-default-fg-color--lightest);
-    border-radius: 8px;
-    padding: 1rem;
-    transition: box-shadow 0.2s ease;
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+    backdrop-filter: blur(10px);
+    position: relative;
+    overflow: hidden;
+}
+
+.grid.cards > div::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--velithon-primary), var(--velithon-secondary));
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+.grid.cards > div:hover::before {
+    transform: scaleX(1);
 }
 
 .grid.cards > div:hover {
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 12px 30px var(--shadow-medium);
+    transform: translateY(-5px);
+    border-color: var(--velithon-primary);
 }
 
-/* Velithon branding */
+/* Enhanced Velithon branding */
 .velithon-brand {
-    background: linear-gradient(45deg, #667eea, #764ba2);
+    background: linear-gradient(45deg, var(--velithon-primary), var(--velithon-secondary));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
     font-weight: bold;
+    animation: brandGlow 2s ease-in-out infinite alternate;
 }
+
+@keyframes brandGlow {
+    from { filter: brightness(1); }
+    to { filter: brightness(1.2); }
+}
+
+/* ========================= */
+/* Interactive Elements      */
+/* ========================= */
+
+/* Enhanced buttons */
+.md-button {
+    background: linear-gradient(45deg, var(--velithon-primary), var(--velithon-secondary));
+    border: none;
+    border-radius: 25px;
+    padding: 12px 24px;
+    color: white;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.md-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s ease;
+}
+
+.md-button:hover::before {
+    left: 100%;
+}
+
+.md-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+
+/* Enhanced navigation tabs */
+.md-tabs {
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.md-tabs__link {
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.md-tabs__link::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--velithon-primary), var(--velithon-secondary));
+    transition: all 0.3s ease;
+    transform: translateX(-50%);
+}
+
+.md-tabs__link:hover::after {
+    width: 100%;
+}
+
+/* Code and inline code styles removed - using default MkDocs styling */
+
+/* ========================= */
+/* Loading and Progress Animations */
+/* ========================= */
+
+/* Skeleton loading animation */
+.skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+    border-radius: 4px;
+}
+
+@keyframes loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Progress bar */
+.progress-bar {
+    width: 100%;
+    height: 4px;
+    background: rgba(102, 126, 234, 0.1);
+    border-radius: 2px;
+    overflow: hidden;
+    margin: 1rem 0;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--velithon-primary), var(--velithon-secondary));
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+/* ========================= */
+/* Interactive Features      */
+/* ========================= */
+
+/* Copy to clipboard button enhancement */
+.md-clipboard {
+    background: linear-gradient(45deg, var(--velithon-primary), var(--velithon-secondary));
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.md-clipboard:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+/* Search enhancement */
+.md-search__input {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(102, 126, 234, 0.2);
+    border-radius: 25px;
+    transition: all 0.3s ease;
+}
+
+.md-search__input:focus {
+    border-color: var(--velithon-primary);
+    box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+}
+
+/* ========================= */
+/* Responsive Design         */
+/* ========================= */
+
+@media (max-width: 768px) {
+    .grid.cards {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .performance-box {
+        padding: 1rem;
+        margin: 1rem 0;
+    }
+    
+/* Code highlighting styles removed - using default MkDocs styling */
+}
+
+/* ========================= */
+/* Dark mode enhancements    */
+/* ========================= */
+
+[data-md-color-scheme="slate"] {
+    --shadow-light: rgba(0, 0, 0, 0.3);
+    --shadow-medium: rgba(0, 0, 0, 0.5);
+    --shadow-heavy: rgba(0, 0, 0, 0.7);
+}
+
+[data-md-color-scheme="slate"] .grid.cards > div {
+    background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+}
+
+/* Dark mode code styles removed - using default MkDocs styling */
+
+/* ========================= */
+/* Accessibility improvements */
+/* ========================= */
+
+/* Focus indicators */
+*:focus {
+    outline: 2px solid var(--velithon-primary);
+    outline-offset: 2px;
+}
+
+/* Reduced motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* All syntax highlighting overrides removed - using default MkDocs styling */

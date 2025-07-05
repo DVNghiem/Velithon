@@ -442,5 +442,4 @@ async def direct_proxy(request: Request):
 - **[Load Balancing](load-balancing.md)** - Advanced load balancing strategies
 - **[Circuit Breaker](circuit-breaker.md)** - Detailed circuit breaker patterns  
 - **[Health Checks](health-checks.md)** - Health monitoring strategies
-- **[Proxy Middleware](../middleware/proxy.md)** - Middleware-based proxy functionality
 - **[Performance Optimization](performance.md)** - Gateway performance tuning

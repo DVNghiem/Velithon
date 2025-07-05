@@ -1,0 +1,667 @@
+/* Additional CSS for Enhanced JavaScript Features */
+
+/* ========================= */
+/* Reading Progress Bar      */
+/* ========================= */
+
+.reading-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: rgba(0, 0, 0, 0.1);
+    z-index: 9999;
+    pointer-events: none;
+}
+
+.reading-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--velithon-primary), var(--velithon-secondary));
+    transition: width 0.3s ease;
+    width: 0%;
+}
+
+/* Code block enhancements removed - using default MkDocs styling */
+
+/* ========================= */
+/* Enhanced Tooltips         */
+/* ========================= */
+
+.enhanced-tooltip {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 1000;
+    opacity: 0;
+    transform: translateX(-50%) translateY(-10px);
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
+
+.enhanced-tooltip.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.enhanced-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: rgba(0, 0, 0, 0.9);
+}
+
+/* ========================= */
+/* Performance Indicator     */
+/* ========================= */
+
+.performance-indicator {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, var(--velithon-primary), var(--velithon-secondary));
+    color: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    z-index: 1000;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.performance-indicator.visible {
+    transform: translateX(0);
+}
+
+.perf-icon {
+    font-size: 18px;
+}
+
+/* ========================= */
+/* Search Enhancements       */
+/* ========================= */
+
+.search-suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
+
+.search-suggestions.visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.suggestion-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.suggestion-item:last-child {
+    border-bottom: none;
+}
+
+.suggestion-item:hover {
+    background: rgba(102, 126, 234, 0.1);
+}
+
+/* ========================= */
+/* Accessibility Features    */
+/* ========================= */
+
+.skip-link {
+    position: absolute;
+    top: -40px;
+    left: 6px;
+    background: var(--velithon-primary);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    text-decoration: none;
+    z-index: 10000;
+    transition: top 0.3s ease;
+}
+
+.skip-link:focus {
+    top: 6px;
+}
+
+.contrast-toggle {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    z-index: 1000;
+    transition: all 0.3s ease;
+}
+
+.contrast-toggle:hover {
+    background: rgba(0, 0, 0, 0.9);
+    transform: scale(1.1);
+}
+
+.high-contrast {
+    filter: contrast(150%) brightness(110%);
+}
+
+.keyboard-navigation *:focus {
+    outline: 3px solid var(--velithon-primary) !important;
+    outline-offset: 2px;
+}
+
+/* ========================= */
+/* Theme Panel               */
+/* ========================= */
+
+.theme-panel {
+    position: fixed;
+    top: 50%;
+    right: 20px;
+    transform: translateY(-50%);
+    z-index: 1000;
+}
+
+.theme-toggle {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--velithon-primary), var(--velithon-secondary));
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.theme-toggle:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+.theme-options {
+    position: absolute;
+    right: 60px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: white;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    opacity: 0;
+    transform: translateY(-50%) translateX(20px);
+    transition: all 0.3s ease;
+    pointer-events: none;
+    min-width: 200px;
+}
+
+.theme-options.visible {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+    pointer-events: auto;
+}
+
+.theme-option {
+    display: block;
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-bottom: 8px;
+}
+
+.theme-option:hover {
+    background: rgba(102, 126, 234, 0.1);
+    border-color: var(--velithon-primary);
+}
+
+.theme-feature {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.theme-feature label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.theme-feature input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--velithon-primary);
+}
+
+/* ========================= */
+/* Floating Action Button    */
+/* ========================= */
+
+.floating-action-button {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+}
+
+.fab-main {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--velithon-primary), var(--velithon-secondary));
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.fab-main:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+.fab-menu {
+    position: absolute;
+    bottom: 70px;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
+
+.floating-action-button.active .fab-menu {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.fab-option {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.fab-option:hover {
+    background: rgba(0, 0, 0, 0.9);
+    transform: scale(1.1);
+}
+
+/* ========================= */
+/* Table of Contents Progress */
+/* ========================= */
+
+.toc-progress {
+    position: fixed;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 1000;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    max-width: 250px;
+    max-height: 60vh;
+    overflow-y: auto;
+    opacity: 0;
+    transform: translateY(-50%) translateX(-20px);
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
+
+.toc-progress.visible {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+    pointer-events: auto;
+}
+
+.toc-progress-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    line-height: 1.4;
+    margin-bottom: 4px;
+    position: relative;
+}
+
+.toc-progress-item:hover {
+    background: rgba(102, 126, 234, 0.1);
+}
+
+.toc-progress-item.active {
+    background: var(--velithon-primary);
+    color: white;
+}
+
+.toc-progress-item.active::before {
+    content: '';
+    position: absolute;
+    left: -4px;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--velithon-secondary);
+    border-radius: 2px;
+}
+
+/* ========================= */
+/* Notification System       */
+/* ========================= */
+
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: var(--velithon-primary);
+    color: white;
+    padding: 16px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    z-index: 10000;
+    opacity: 0;
+    transform: translateX(100%);
+    transition: all 0.3s ease;
+}
+
+.notification.visible {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* ========================= */
+/* Feedback Modal            */
+/* ========================= */
+
+.feedback-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.feedback-content {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.feedback-content h3 {
+    margin-top: 0;
+    color: var(--velithon-primary);
+}
+
+.feedback-content textarea {
+    width: 100%;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    padding: 12px;
+    font-family: inherit;
+    resize: vertical;
+    margin: 12px 0;
+}
+
+.feedback-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.feedback-actions button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-cancel {
+    background: rgba(0, 0, 0, 0.1);
+    color: rgba(0, 0, 0, 0.7);
+}
+
+.btn-cancel:hover {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.btn-submit {
+    background: var(--velithon-primary);
+    color: white;
+}
+
+.btn-submit:hover {
+    background: var(--velithon-secondary);
+}
+
+.feedback-button {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--velithon-primary);
+    color: white;
+    border: none;
+    border-radius: 25px;
+    padding: 12px 24px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.feedback-button:hover {
+    background: var(--velithon-secondary);
+    transform: translateX(-50%) translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+/* ========================= */
+/* Animation States          */
+/* ========================= */
+
+.animate-ready {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.6s ease;
+}
+
+.animate-in {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.highlighted {
+    background: rgba(102, 126, 234, 0.1);
+    border-radius: 4px;
+    animation: highlight 2s ease-in-out;
+}
+
+@keyframes highlight {
+    0% { background: rgba(102, 126, 234, 0.3); }
+    100% { background: rgba(102, 126, 234, 0.1); }
+}
+
+/* ========================= */
+/* No Animations Mode        */
+/* ========================= */
+
+.no-animations * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+}
+
+/* ========================= */
+/* Responsive Design         */
+/* ========================= */
+
+@media (max-width: 768px) {
+    .theme-panel {
+        right: 10px;
+    }
+    
+    .theme-options {
+        right: 0;
+        left: auto;
+        transform: translateY(-50%) translateX(0);
+    }
+    
+    .theme-options.visible {
+        transform: translateY(-50%) translateX(0);
+    }
+    
+    .floating-action-button {
+        bottom: 10px;
+        right: 10px;
+    }
+    
+    .toc-progress {
+        left: 10px;
+        max-width: 200px;
+    }
+    
+    .contrast-toggle {
+        bottom: 10px;
+        left: 10px;
+    }
+    
+    .feedback-button {
+        bottom: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+    
+    .performance-indicator {
+        top: 10px;
+        right: 10px;
+        font-size: 12px;
+        padding: 8px 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .theme-options {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        right: auto;
+    }
+    
+    .theme-options.visible {
+        transform: translate(-50%, -50%);
+    }
+    
+    .feedback-content {
+        padding: 16px;
+    }
+    
+    .toc-progress {
+        display: none;
+    }
+}
+
+/* ========================= */
+/* Dark Mode Adjustments     */
+/* ========================= */
+
+[data-md-color-scheme="slate"] .theme-options {
+    background: var(--md-default-bg-color);
+    border-color: var(--md-default-fg-color--lightest);
+}
+
+[data-md-color-scheme="slate"] .theme-option {
+    border-color: var(--md-default-fg-color--lightest);
+    color: var(--md-default-fg-color);
+}
+
+[data-md-color-scheme="slate"] .theme-option:hover {
+    background: rgba(102, 126, 234, 0.2);
+}
+
+[data-md-color-scheme="slate"] .search-suggestions {
+    background: var(--md-default-bg-color);
+    border-color: var(--md-default-fg-color--lightest);
+}
+
+[data-md-color-scheme="slate"] .suggestion-item {
+    border-color: var(--md-default-fg-color--lightest);
+    color: var(--md-default-fg-color);
+}
+
+[data-md-color-scheme="slate"] .feedback-content {
+    background: var(--md-default-bg-color);
+    color: var(--md-default-fg-color);
+}
+
+[data-md-color-scheme="slate"] .toc-progress {
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+}
