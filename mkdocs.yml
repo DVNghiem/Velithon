@@ -221,17 +221,14 @@ extra:
       link: https://pypi.org/project/velithon/
 
 extra_css:
-  - stylesheets/extra.css
-  - stylesheets/enhanced-components.css
-  - stylesheets/homepage-enhancements.css
-  - stylesheets/code-block-enhanced.css
-  - stylesheets/code-block-themes.css
+  - stylesheets/velithon-docs.css
+  - stylesheets/homepage.css
 
 extra_javascript:
   - javascripts/mathjax.js
-  - javascripts/enhanced-ui.js
-  - javascripts/theme-enhancer.js
-  - javascripts/homepage-enhancements.js
+  - javascripts/ui-interactions.js
+  - javascripts/theme-manager.js
+  - javascripts/homepage.js
   - https://polyfill.io/v3/polyfill.min.js?features=es6
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 

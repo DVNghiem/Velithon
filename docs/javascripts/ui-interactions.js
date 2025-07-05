@@ -139,23 +139,52 @@ function initInteractiveElements() {
 function initPerformanceMetrics() {
     // Page load performance indicator
     window.addEventListener('load', function() {
-        const loadTime = performance.timing.loadEventEnd - performance.timing.navigationStart;
-        const perfIndicator = document.createElement('div');
-        perfIndicator.className = 'performance-indicator';
-        perfIndicator.innerHTML = `
-            <div class="perf-icon">⚡</div>
-            <div class="perf-text">Page loaded in ${loadTime}ms</div>
-        `;
+        let loadTime;
+        try {
+            // Use modern Performance API
+            const perfEntries = performance.getEntriesByType('navigation');
+            if (perfEntries.length > 0) {
+                loadTime = Math.round(perfEntries[0].loadEventEnd - perfEntries[0].navigationStart);
+            } else {
+                // Fallback to timing API with validation
+                const start = performance.timing.navigationStart;
+                const end = performance.timing.loadEventEnd;
+                if (start && end && end > start) {
+                    loadTime = end - start;
+                } else {
+                    loadTime = null;
+                }
+            }
+        } catch (error) {
+            console.warn('Performance measurement failed:', error);
+            loadTime = null;
+        }
         
-        document.body.appendChild(perfIndicator);
-        
-        setTimeout(() => {
-            perfIndicator.classList.add('visible');
-        }, 1000);
-        
-        setTimeout(() => {
-            perfIndicator.classList.remove('visible');
-        }, 4000);
+        // Only show indicator if we have valid load time
+        if (loadTime && loadTime > 0 && loadTime < 60000) { // Reasonable range: 0-60 seconds
+            const perfIndicator = document.createElement('div');
+            perfIndicator.className = 'performance-indicator';
+            perfIndicator.innerHTML = `
+                <div class="perf-icon">⚡</div>
+                <div class="perf-text">Page loaded in ${loadTime}ms</div>
+            `;
+            
+            document.body.appendChild(perfIndicator);
+            
+            setTimeout(() => {
+                perfIndicator.classList.add('visible');
+            }, 1000);
+            
+            setTimeout(() => {
+                perfIndicator.classList.remove('visible');
+                // Remove from DOM after animation
+                setTimeout(() => {
+                    if (perfIndicator.parentNode) {
+                        perfIndicator.parentNode.removeChild(perfIndicator);
+                    }
+                }, 300);
+            }, 4000);
+        }
     });
 }
 
@@ -212,19 +241,6 @@ function initAccessibilityFeatures() {
     skipLink.className = 'skip-link';
     skipLink.textContent = 'Skip to main content';
     document.body.insertBefore(skipLink, document.body.firstChild);
-    
-    // High contrast mode toggle
-    const contrastToggle = document.createElement('button');
-    contrastToggle.className = 'contrast-toggle';
-    contrastToggle.innerHTML = '🌗';
-    contrastToggle.title = 'Toggle high contrast mode';
-    
-    contrastToggle.addEventListener('click', function() {
-        document.body.classList.toggle('high-contrast');
-        localStorage.setItem('highContrast', document.body.classList.contains('high-contrast'));
-    });
-    
-    document.body.appendChild(contrastToggle);
     
     // Restore high contrast preference
     if (localStorage.getItem('highContrast') === 'true') {

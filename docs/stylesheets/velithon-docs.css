@@ -1,0 +1,843 @@
+/* Velithon Documentation Styles */
+
+/* ========================= */
+/* Theme Variables           */
+/* ========================= */
+
+:root {
+    --velithon-primary: #667eea;
+    --velithon-secondary: #764ba2;
+    --velithon-accent: #00c853;
+    --velithon-warning: #ff9100;
+    --velithon-error: #f44336;
+    --velithon-success: #4caf50;
+    --shadow-light: rgba(0, 0, 0, 0.1);
+    --shadow-medium: rgba(0, 0, 0, 0.2);
+    --shadow-heavy: rgba(0, 0, 0, 0.3);
+}
+
+/* ========================= */
+/* Global Styles            */
+/* ========================= */
+
+html {
+    scroll-behavior: smooth;
+}
+
+/* ========================= */
+/* Enhanced Admonitions      */
+/* ========================= */
+
+.md-typeset .admonition {
+    border-radius: 8px;
+    box-shadow: 0 2px 8px var(--shadow-light);
+    transition: all 0.3s ease;
+    overflow: hidden;
+    position: relative;
+}
+
+.md-typeset .admonition::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--velithon-primary), var(--velithon-secondary));
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+.md-typeset .admonition:hover::before {
+    transform: scaleX(1);
+}
+
+.md-typeset .admonition:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px var(--shadow-medium);
+}
+
+.md-typeset .admonition.note {
+    border-left-color: #448aff;
+}
+
+.md-typeset .admonition.tip {
+    border-left-color: var(--velithon-accent);
+}
+
+.md-typeset .admonition.warning {
+    border-left-color: var(--velithon-warning);
+}
+
+.md-typeset .admonition.danger {
+    border-left-color: var(--velithon-error);
+}
+
+/* ========================= */
+/* Reading Progress Bar      */
+/* ========================= */
+
+.reading-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: rgba(0, 0, 0, 0.1);
+    z-index: 9999;
+    pointer-events: none;
+}
+
+.reading-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--velithon-primary), var(--velithon-secondary));
+    transition: width 0.3s ease;
+    width: 0%;
+}
+
+/* ========================= */
+/* Enhanced Tooltips         */
+/* ========================= */
+
+.enhanced-tooltip {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 1000;
+    opacity: 0;
+    transform: translateX(-50%) translateY(-10px);
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
+
+.enhanced-tooltip.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.enhanced-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: rgba(0, 0, 0, 0.9);
+}
+
+/* ========================= */
+/* Enhanced Feature Grid     */
+/* ========================= */
+
+.grid.cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.5rem;
+    margin: 2rem 0;
+}
+
+.grid.cards > div {
+    border: 1px solid var(--md-default-fg-color--lightest);
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+    backdrop-filter: blur(10px);
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.grid.cards > div::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--velithon-primary), var(--velithon-secondary));
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+.grid.cards > div::after {
+    content: '→';
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    font-size: 1.2rem;
+    color: var(--velithon-primary);
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: all 0.3s ease;
+}
+
+.grid.cards > div:hover::before {
+    transform: scaleX(1);
+}
+
+.grid.cards > div:hover::after {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.grid.cards > div:hover {
+    box-shadow: 0 12px 30px var(--shadow-medium);
+    transform: translateY(-5px);
+    border-color: var(--velithon-primary);
+}
+
+/* ========================= */
+/* Performance Boxes         */
+/* ========================= */
+
+.performance-box {
+    background: linear-gradient(135deg, var(--velithon-primary) 0%, var(--velithon-secondary) 100%);
+    color: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin: 1.5rem 0;
+    box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.performance-box::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(45deg, #667eea, #764ba2, #667eea);
+    background-size: 200% 200%;
+    border-radius: 14px;
+    z-index: -1;
+    animation: gradientMove 3s ease infinite;
+}
+
+.performance-box:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 40px rgba(102, 126, 234, 0.4);
+}
+
+@keyframes gradientMove {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* ========================= */
+/* Enhanced Branding         */
+/* ========================= */
+
+.velithon-brand {
+    background: linear-gradient(45deg, var(--velithon-primary), var(--velithon-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: bold;
+    animation: brandGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes brandGlow {
+    from { filter: brightness(1); }
+    to { filter: brightness(1.2); }
+}
+
+/* ========================= */
+/* Interactive Elements      */
+/* ========================= */
+
+.interactive-element {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.interactive-element:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px var(--shadow-medium);
+}
+
+/* Enhanced buttons */
+.md-button {
+    background: linear-gradient(45deg, var(--velithon-primary), var(--velithon-secondary));
+    border: none;
+    border-radius: 25px;
+    padding: 12px 24px;
+    color: white;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.md-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s ease;
+}
+
+.md-button:hover::before {
+    left: 100%;
+}
+
+.md-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+
+/* ========================= */
+/* Navigation Enhancements   */
+/* ========================= */
+
+.md-tabs {
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.md-tabs__link {
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.md-tabs__link::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--velithon-primary), var(--velithon-secondary));
+    transition: all 0.3s ease;
+    transform: translateX(-50%);
+}
+
+.md-tabs__link:hover::after {
+    width: 100%;
+}
+
+/* ========================= */
+/* Search Enhancements       */
+/* ========================= */
+
+.md-search__input {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(102, 126, 234, 0.2);
+    border-radius: 25px;
+    transition: all 0.3s ease;
+}
+
+.md-search__input:focus {
+    border-color: var(--velithon-primary);
+    box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+}
+
+/* ========================= */
+/* Animation Utilities       */
+/* ========================= */
+
+.fade-in {
+    opacity: 0;
+    animation: fadeIn 0.6s ease-out forwards;
+}
+
+.slide-in-up {
+    opacity: 0;
+    transform: translateY(30px);
+    animation: slideInUp 0.6s ease-out forwards;
+}
+
+.highlighted {
+    background: rgba(102, 126, 234, 0.1);
+    border-radius: 4px;
+    animation: highlight 2s ease-in-out;
+    transition: background-color 0.3s ease;
+}
+
+@keyframes fadeIn {
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideInUp {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes highlight {
+    0% { background: rgba(102, 126, 234, 0.3); }
+    100% { background: rgba(102, 126, 234, 0.1); }
+}
+
+/* ========================= */
+/* Progress & Loading        */
+/* ========================= */
+
+.skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+    border-radius: 4px;
+}
+
+@keyframes loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.progress-bar {
+    width: 100%;
+    height: 4px;
+    background: rgba(102, 126, 234, 0.1);
+    border-radius: 2px;
+    overflow: hidden;
+    margin: 1rem 0;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--velithon-primary), var(--velithon-secondary));
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+/* ========================= */
+/* Accessibility Features    */
+/* ========================= */
+
+.skip-link {
+    position: absolute;
+    top: -40px;
+    left: 6px;
+    background: var(--velithon-primary);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    text-decoration: none;
+    z-index: 10000;
+    transition: top 0.3s ease;
+}
+
+.skip-link:focus {
+    top: 6px;
+}
+
+/* Focus indicators */
+*:focus {
+    outline: 2px solid var(--velithon-primary);
+    outline-offset: 2px;
+}
+
+/* ========================= */
+/* Responsive Design         */
+/* ========================= */
+
+@media (max-width: 768px) {
+    .enhanced-tooltip {
+        font-size: 11px;
+        padding: 6px 8px;
+    }
+    
+    .reading-progress {
+        height: 3px;
+    }
+    
+    .grid.cards {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .performance-box {
+        padding: 1rem;
+        margin: 1rem 0;
+    }
+    
+    .theme-panel {
+        right: 10px;
+    }
+    
+    .theme-options {
+        right: 0;
+        left: auto;
+        transform: translateY(-50%) translateX(0);
+        max-width: calc(100vw - 20px);
+    }
+    
+    .theme-options.visible {
+        transform: translateY(-50%) translateX(0);
+    }
+    
+    .performance-indicator {
+        top: 10px;
+        right: 10px;
+        font-size: 12px;
+        padding: 8px 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .theme-options {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        right: auto;
+        max-width: calc(100vw - 40px);
+    }
+    
+    .theme-options.visible {
+        transform: translate(-50%, -50%);
+    }
+}
+
+/* ========================= */
+/* Dark Mode Support         */
+/* ========================= */
+
+[data-md-color-scheme="slate"] {
+    --shadow-light: rgba(0, 0, 0, 0.3);
+    --shadow-medium: rgba(0, 0, 0, 0.5);
+    --shadow-heavy: rgba(0, 0, 0, 0.7);
+}
+
+[data-md-color-scheme="slate"] .grid.cards > div {
+    background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+}
+
+/* ========================= */
+/* Reduced Motion Support    */
+/* ========================= */
+
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* ========================= */
+/* Theme Panel               */
+/* ========================= */
+
+.theme-panel {
+    position: fixed;
+    top: 50%;
+    right: 20px;
+    transform: translateY(-50%);
+    z-index: 1001;
+}
+
+.theme-toggle {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--velithon-primary), var(--velithon-secondary));
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.theme-toggle:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+.theme-options {
+    position: absolute;
+    right: 60px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: white;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    opacity: 0;
+    transform: translateY(-50%) translateX(20px);
+    transition: all 0.3s ease;
+    pointer-events: none;
+    min-width: 200px;
+}
+
+.theme-options.visible {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+    pointer-events: auto;
+}
+
+.theme-option {
+    display: block;
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-bottom: 8px;
+    font-family: inherit;
+}
+
+.theme-option:hover {
+    background: rgba(102, 126, 234, 0.1);
+    border-color: var(--velithon-primary);
+}
+
+.theme-feature {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.theme-feature label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.theme-feature input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--velithon-primary);
+}
+
+/* ========================= */
+/* Performance Indicator     */
+/* ========================= */
+
+.performance-indicator {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, var(--velithon-primary), var(--velithon-secondary));
+    color: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    z-index: 1002;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.performance-indicator.visible {
+    transform: translateX(0);
+}
+
+.perf-icon {
+    font-size: 18px;
+}
+
+/* ========================= */
+/* Dark Mode Theme Panel     */
+/* ========================= */
+
+[data-md-color-scheme="slate"] .theme-options {
+    background: var(--md-default-bg-color);
+    border-color: var(--md-default-fg-color--lightest);
+    color: var(--md-default-fg-color);
+}
+
+[data-md-color-scheme="slate"] .theme-option {
+    border-color: var(--md-default-fg-color--lightest);
+    color: var(--md-default-fg-color);
+}
+
+[data-md-color-scheme="slate"] .theme-option:hover {
+    background: rgba(102, 126, 234, 0.2);
+}
+
+[data-md-color-scheme="slate"] .theme-feature {
+    border-color: var(--md-default-fg-color--lightest);
+}
+
+/* ========================= */
+/* Footer Styling            */
+/* ========================= */
+
+.md-footer {
+    position: relative;
+    z-index: 1;
+}
+
+.md-footer-meta {
+    padding: 1rem 0;
+    background: var(--md-footer-bg-color);
+    border-top: 1px solid var(--md-default-fg-color--lightest);
+}
+
+.md-footer-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+}
+
+/* Feedback Button Styling */
+.md-feedback {
+    position: relative;
+    z-index: 2;
+}
+
+.md-feedback__button {
+    background: var(--velithon-primary);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.md-feedback__button:hover {
+    background: var(--velithon-secondary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.md-feedback__list {
+    position: absolute;
+    bottom: 100%;
+    right: 0;
+    background: white;
+    border: 1px solid var(--md-default-fg-color--lightest);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 8px 0;
+    min-width: 200px;
+    z-index: 1000;
+}
+
+.md-feedback__item {
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.md-feedback__item:hover {
+    background: var(--md-default-fg-color--lightest);
+}
+
+/* Dark mode feedback styling */
+[data-md-color-scheme="slate"] .md-feedback__list {
+    background: var(--md-default-bg-color);
+    border-color: var(--md-default-fg-color--lightest);
+    color: var(--md-default-fg-color);
+}
+
+[data-md-color-scheme="slate"] .md-feedback__item:hover {
+    background: rgba(102, 126, 234, 0.2);
+}
+
+/* Ensure footer doesn't interfere with fixed elements */
+.md-footer {
+    margin-bottom: 0;
+}
+
+.md-main__inner {
+    padding-bottom: 2rem;
+}
+
+/* Media queries for responsive footer */
+@media screen and (max-width: 76.25em) {
+    .md-footer-nav {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .md-feedback {
+        margin-top: 1rem;
+    }
+}
+
+@media screen and (max-width: 44.9375em) {
+    .md-footer-meta {
+        padding: 0.5rem 0;
+    }
+    
+    .md-feedback__button {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+}
+
+/* ========================= */
+/* Responsive Adjustments    */
+/* ========================= */
+
+/* Adjust theme panel on smaller screens */
+@media screen and (max-width: 76.25em) {
+    .theme-panel {
+        right: 10px;
+    }
+    
+    .performance-indicator {
+        right: 10px;
+        top: 10px;
+    }
+}
+
+/* Hide theme panel on very small screens to avoid footer overlap */
+@media screen and (max-width: 44.9375em) {
+    .theme-panel {
+        display: none;
+    }
+}
+
+/* Ensure fixed elements don't interfere with footer content */
+.md-footer {
+    clear: both;
+    position: relative;
+}
+
+/* Add padding to prevent content from being hidden behind fixed elements */
+@media screen and (min-width: 76.25em) {
+    .md-content {
+        padding-right: 120px; /* Space for theme panel */
+    }
+}
+
+/* Ensure footer is always above background but below fixed UI elements */
+.md-footer {
+    z-index: 1;
+}
+
+.md-footer-meta {
+    position: relative;
+    z-index: 2;
+}
+
+.md-footer-nav {
+    position: relative;
+    z-index: 2;
+}

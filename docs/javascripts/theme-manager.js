@@ -385,58 +385,7 @@ class InteractiveFeatures {
     }
     
     init() {
-        this.createFloatingActionButton();
         this.initQuickNavigation();
-        this.initTableOfContents();
-        this.initFeedbackSystem();
-    }
-    
-    createFloatingActionButton() {
-        const fab = document.createElement('div');
-        fab.className = 'floating-action-button';
-        fab.innerHTML = `
-            <button class="fab-main">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="3"></circle>
-                    <path d="M12 1v6m0 6v6"></path>
-                    <path d="M1 12h6m6 0h6"></path>
-                </svg>
-            </button>
-            <div class="fab-menu">
-                <button class="fab-option" data-action="scroll-top" title="Back to Top">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M18 15l-6-6-6 6"></path>
-                    </svg>
-                </button>
-                <button class="fab-option" data-action="toggle-toc" title="Table of Contents">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="8" y1="6" x2="21" y2="6"></line>
-                        <line x1="8" y1="12" x2="21" y2="12"></line>
-                        <line x1="8" y1="18" x2="21" y2="18"></line>
-                        <line x1="3" y1="6" x2="3.01" y2="6"></line>
-                        <line x1="3" y1="12" x2="3.01" y2="12"></line>
-                        <line x1="3" y1="18" x2="3.01" y2="18"></line>
-                    </svg>
-                </button>
-                <button class="fab-option" data-action="print" title="Print Page">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="6,9 6,2 18,2 18,9"></polyline>
-                        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                        <rect x="6" y="14" width="12" height="8"></rect>
-                    </svg>
-                </button>
-                <button class="fab-option" data-action="share" title="Share Page">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
-                        <polyline points="16,6 12,2 8,6"></polyline>
-                        <line x1="12" y1="2" x2="12" y2="15"></line>
-                    </svg>
-                </button>
-            </div>
-        `;
-        
-        document.body.appendChild(fab);
-        this.bindFabEvents(fab);
     }
     
     bindFabEvents(fab) {
@@ -545,56 +494,6 @@ class InteractiveFeatures {
         }
     }
     
-    initTableOfContents() {
-        // Enhanced table of contents with progress tracking
-        const headings = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
-        const tocProgress = document.createElement('div');
-        tocProgress.className = 'toc-progress';
-        
-        headings.forEach((heading, index) => {
-            const progress = document.createElement('div');
-            progress.className = 'toc-progress-item';
-            progress.textContent = heading.textContent;
-            progress.addEventListener('click', () => {
-                heading.scrollIntoView({ behavior: 'smooth' });
-            });
-            tocProgress.appendChild(progress);
-        });
-        
-        document.body.appendChild(tocProgress);
-        
-        // Update progress on scroll
-        window.addEventListener('scroll', () => {
-            const scrollTop = window.scrollY;
-            const windowHeight = window.innerHeight;
-            
-            headings.forEach((heading, index) => {
-                const rect = heading.getBoundingClientRect();
-                const progressItem = tocProgress.children[index];
-                
-                if (rect.top <= windowHeight / 2 && rect.bottom >= windowHeight / 2) {
-                    progressItem.classList.add('active');
-                } else {
-                    progressItem.classList.remove('active');
-                }
-            });
-        });
-    }
-    
-    initFeedbackSystem() {
-        // Simple feedback system
-        const feedbackButton = document.createElement('button');
-        feedbackButton.className = 'feedback-button';
-        feedbackButton.innerHTML = '💬 Feedback';
-        feedbackButton.title = 'Send feedback about this page';
-        
-        feedbackButton.addEventListener('click', () => {
-            this.showFeedbackModal();
-        });
-        
-        document.body.appendChild(feedbackButton);
-    }
-    
     showFeedbackModal() {
         const modal = document.createElement('div');
         modal.className = 'feedback-modal';
@@ -636,9 +535,13 @@ class InteractiveFeatures {
 
 // Initialize all enhancements
 document.addEventListener('DOMContentLoaded', () => {
-    new ThemeManager();
-    new SyntaxHighlighter();
-    new InteractiveFeatures();
+    try {
+        new ThemeManager();
+        new SyntaxHighlighter();
+        new InteractiveFeatures();
+    } catch (error) {
+        console.warn('Enhancement initialization failed:', error);
+    }
 });
 
 // Export for testing
