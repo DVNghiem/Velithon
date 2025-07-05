@@ -439,7 +439,12 @@ async def send_message(request):
 
 
 if __name__ == "__main__":
-    import uvicorn
     print("Starting SSE example server...")
     print("Visit http://localhost:8000 to see the examples")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    app._serve(
+        app="examples.sse_example:app",
+        host="0.0.0.0",
+        port=8000,
+        workers=1,
+        log_level="INFO"
+    )

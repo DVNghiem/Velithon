@@ -112,4 +112,4 @@ if __name__ == "__main__":
     print("Server will start on http://localhost:8000")
     
     # The app can be run with: python examples/router_path_example.py
-    # Or using uvicorn: uvicorn examples.router_path_example:app --reload
+    # Or using velithon CLI: velithon run --app examples.router_path_example:app --reload

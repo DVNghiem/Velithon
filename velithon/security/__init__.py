@@ -3,7 +3,7 @@
 A comprehensive authentication and authorization system inspired by FastAPI's excellent design
 but enhanced for Velithon's architecture. Provides OAuth2, JWT, API Key, and various
 authentication schemes with seamless OpenAPI integration.
-"""
+"""  # noqa: E501
 
 from .auth import (
     APIKeyCookie,
@@ -35,7 +35,6 @@ from .jwt import JWTHandler
 from .models import LoginRequest, Token, TokenData, User, UserCreate, UserInDB
 from .permissions import (
     CommonPermissions,
-    Depends,
     Permission,
     PermissionChecker,
     PermissionDependency,
@@ -50,53 +49,46 @@ __all__ = [
     "APIKeyCookie",
     "APIKeyHeader",
     "APIKeyQuery",
+    # Exceptions
+    "AuthenticationError",
+    "AuthorizationError",
+    # Permissions
+    "CommonPermissions",
     "HTTPBasic",
     "HTTPBearer",
+    "InvalidTokenError",
+    # JWT
+    "JWTHandler",
+    # Models
+    "LoginRequest",
+    "MissingTokenError",
     "OAuth2AuthorizationCodeBearer",
     "OAuth2PasswordBearer",
     "OAuth2PasswordRequestForm",
-    "Security",
-    "SecurityBase",
-    
-    # Dependencies
-    "authenticate_user",
-    "get_current_active_user",
-    "get_current_user",
-    "get_user_from_database",
-    
-    # Permissions
-    "CommonPermissions",
-    "Depends",
     "Permission",
     "PermissionChecker",
     "PermissionDependency",
     "RequirePermissions",
-    "require_permission",
-    "require_permissions",
-    
-    # JWT
-    "JWTHandler",
-    
-    # Models
-    "LoginRequest",
+    "Security",
+    "SecurityBase",
+    "SecurityError",
     "Token",
     "TokenData",
+    "TokenExpiredError",
     "User",
     "UserCreate",
     "UserInDB",
-    
+    # Dependencies
+    "authenticate_user",
+    "get_current_active_user",
+    "get_current_user",
     # Utils
     "get_password_hash",
+    "get_user_from_database",
     "hash_password",  # Alias for backward compatibility
+    "require_permission",
+    "require_permissions",
     "verify_password",
-    
-    # Exceptions
-    "AuthenticationError",
-    "AuthorizationError",
-    "InvalidTokenError",
-    "MissingTokenError",
-    "SecurityError",
-    "TokenExpiredError",
 ]
 
 # Backward compatibility aliases

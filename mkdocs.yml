@@ -1,0 +1,236 @@
+site_name: Velithon Documentation
+site_description: A lightweight, high-performance, asynchronous web framework for Python
+site_author: Dang Van Nghiem
+site_url: https://velithon.readthedocs.io
+
+repo_name: DVNghiem/velithon
+repo_url: https://github.com/DVNghiem/velithon
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  language: en
+  features:
+    - announce.dismiss
+    - content.action.edit
+    - content.action.view
+    - content.code.annotate
+    - content.code.copy
+    - content.code.select
+    - content.tabs.link
+    - content.tooltips
+    - navigation.expand
+    - navigation.footer
+    - navigation.indexes
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.instant.progress
+    - navigation.prune
+    - navigation.sections
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.top
+    - navigation.tracking
+    - search.highlight
+    - search.share
+    - search.suggest
+    - toc.follow
+    - toc.integrate
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+  font:
+    text: Roboto
+    code: Roboto Mono
+  favicon: assets/favicon.png
+  icon:
+    logo: logo
+
+nav:
+  - 'Home': 'index.md'
+  - 'Getting Started':
+    - 'Overview': 'getting-started/index.md'
+    - 'Installation': 'getting-started/installation.md'
+    - 'Quick Start': 'getting-started/quick-start.md'
+    - 'First Application': 'getting-started/first-application.md'
+    - 'Project Structure': 'getting-started/project-structure.md'
+  - 'User Guide':
+    - 'Overview': 'user-guide/index.md'
+    - 'Core Concepts': 'user-guide/core-concepts.md'
+    - 'HTTP Endpoints': 'user-guide/http-endpoints.md'
+    - 'Request & Response': 'user-guide/request-response.md'
+    - 'Routing': 'user-guide/routing.md'
+    - 'Middleware': 'user-guide/middleware.md'
+    - 'Dependency Injection': 'user-guide/dependency-injection.md'
+    - 'Background Tasks': 'user-guide/background-tasks.md'
+    - 'WebSocket Support': 'user-guide/websocket.md'
+    - 'Server-Sent Events': 'user-guide/sse.md'
+    - 'Template Engine': 'user-guide/templates.md'
+    - 'File Uploads': 'user-guide/file-uploads.md'
+    - 'Error Handling': 'user-guide/error-handling.md'
+    - 'Best Practices': 'user-guide/best-practices.md'
+    - 'Security':
+      - 'Overview': 'security/index.md'
+      - 'Authentication': 'security/authentication.md'
+      - 'Authorization': 'security/authorization.md'
+      - 'JWT Tokens': 'security/jwt.md'
+      - 'API Keys': 'security/api-keys.md'
+      - 'OAuth2': 'security/oauth2.md'
+      - 'Permissions': 'security/permissions.md'
+      - 'Security Middleware': 'security/middleware.md'
+      - 'Best Practices': 'security/best-practices.md'
+  - 'Advanced & Deployment':
+    - 'Advanced Features':
+      - 'Overview': 'advanced/index.md'
+      - 'Gateway & Proxy': 'advanced/gateway.md'
+      - 'VSP Protocol': 'advanced/vsp.md'
+      - 'Connection Pooling': 'advanced/connection-pooling.md'
+      - 'Load Balancing': 'advanced/load-balancing.md'
+      - 'Circuit Breaker': 'advanced/circuit-breaker.md'
+      - 'Health Checks': 'advanced/health-checks.md'
+      - 'Performance Optimization': 'advanced/performance.md'
+      - 'JSON Optimization': 'advanced/json-optimization.md'
+    - 'Deployment':
+      - 'Overview': 'deployment/index.md'
+      - 'Development Server': 'deployment/development.md'
+      - 'Production Deployment': 'deployment/production.md'
+      - 'Docker': 'deployment/docker.md'
+      - 'Configuration': 'deployment/configuration.md'
+      - 'Monitoring': 'deployment/monitoring.md'
+      - 'Scaling': 'deployment/scaling.md'
+  - 'Reference':
+    - 'API Reference':
+      - 'Application': 'api/application.md'
+      - 'Routing': 'api/routing.md'
+      - 'Requests': 'api/requests.md'
+      - 'Responses': 'api/responses.md'
+      - 'Middleware': 'api/middleware.md'
+      - 'Security': 'api/security.md'
+      - 'WebSocket': 'api/websocket.md'
+      - 'Templates': 'api/templates.md'
+      - 'DI Container': 'api/di.md'
+      - 'VSP': 'api/vsp.md'
+    - 'CLI Reference':
+      - 'Overview': 'cli/index.md'
+      - 'Run Command': 'cli/run.md'
+      - 'Export Documentation': 'cli/export-docs.md'
+      - 'Configuration Options': 'cli/configuration.md'
+    - 'OpenAPI & Documentation':
+      - 'Overview': 'openapi/index.md'
+      - 'Automatic Documentation': 'openapi/automatic.md'
+      - 'Custom Documentation': 'openapi/custom.md'
+      - 'Export Documentation': 'openapi/export.md'
+      - 'Swagger UI': 'openapi/swagger-ui.md'
+  - 'Examples':
+    - 'Basic Examples': 'examples/basic.md'
+    - 'CRUD API': 'examples/crud-api.md'
+    - 'Authentication': 'examples/authentication.md'
+    - 'WebSocket Chat': 'examples/websocket-chat.md'
+    - 'Microservices': 'examples/microservices.md'
+    - 'File Upload': 'examples/file-upload.md'
+    - 'Real-time Updates': 'examples/real-time.md'
+  - 'Contributing':
+    - 'Overview': 'contributing/index.md'
+    - 'Development Setup': 'contributing/development.md'
+    - 'Code Style': 'contributing/code-style.md'
+    - 'Testing': 'contributing/testing.md'
+    - 'Documentation': 'contributing/documentation.md'
+
+plugins:
+  - search:
+      separator: '[\s\-,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
+  - mermaid2
+  - awesome-pages
+  - git-revision-date-localized:
+      enable_creation_date: true
+      type: timeago
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: true
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.magiclink:
+      normalize_issue_symbols: true
+      repo_url_shorthand: true
+      user: velithon
+      repo: velithon
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.snippets:
+      auto_append:
+        - includes/mkdocs.md
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+      combine_header_slug: true
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+extra:
+  analytics:
+    provider: google
+    property: ${GOOGLE_ANALYTICS_KEY}
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/DVNghiem
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/velithon/
+
+extra_css:
+  - stylesheets/velithon-docs.css
+  - stylesheets/homepage.css
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - javascripts/ui-interactions.js
+  - javascripts/theme-manager.js
+  - javascripts/homepage.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+copyright: |
+  &copy; 2025 <a href="https://github.com/velithon"  target="_blank" rel="noopener">Velithon Team</a>

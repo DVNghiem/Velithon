@@ -219,11 +219,6 @@ class CommonPermissions:
     FILE_DELETE = Permission("file:delete", "Delete files")
 
 
-def Depends(dependency: Any) -> Any:
-    """Dependency injection marker (placeholder for Velithon's DI system)."""
-    return dependency
-
-
 def RequirePermissions(
     permissions: str | Permission | Sequence[str | Permission],
     require_all: bool = True
