@@ -746,3 +746,108 @@ if __name__ == "__main__":
 - [Template Engine](../user-guide/templates.md) - Template responses
 - [File Uploads](../user-guide/file-uploads.md) - File handling
 - [Server-Sent Events](../user-guide/sse.md) - Real-time responses
+
+## Automatic Response Serialization
+
+Velithon automatically detects and serializes common Python objects to JSON responses, eliminating the need to manually wrap objects in `JSONResponse` or `OptimizedJSONResponse`.
+
+### Supported Objects
+
+The framework automatically serializes:
+- **Pydantic models** - Uses `OptimizedJSONResponse` for better performance
+- **Dataclasses** - Uses `OptimizedJSONResponse` for structured data
+- **Dictionaries and lists** - Uses `OptimizedJSONResponse` for large collections (>50 items), `JSONResponse` for smaller ones
+- **Basic types** - `str`, `int`, `float`, `bool`, `None`
+- **Custom objects** - With `__json__()`, `model_dump()`, `dict()`, or `__dict__` methods
+
+### Examples
+
+```python
+from dataclasses import dataclass
+from datetime import datetime
+from pydantic import BaseModel
+
+@dataclass
+class UserData:
+    id: int
+    name: str
+    created_at: datetime
+
+class User(BaseModel):
+    id: int
+    name: str
+    email: str
+    active: bool = True
+
+@app.get("/user/{user_id}")
+async def get_user(user_id: int):
+    # Returns Pydantic model - automatically uses OptimizedJSONResponse
+    return User(id=user_id, name="John Doe", email="john@example.com")
+
+@app.get("/user-data/{user_id}")
+async def get_user_data(user_id: int):
+    # Returns dataclass - automatically uses OptimizedJSONResponse
+    return UserData(id=user_id, name="Jane Doe", created_at=datetime.utcnow())
+
+@app.get("/simple-data")
+async def get_simple_data():
+    # Returns dict - automatically uses JSONResponse (small size)
+    return {"message": "Hello", "status": "success"}
+
+@app.get("/large-data")
+async def get_large_data():
+    # Returns large dict - automatically uses OptimizedJSONResponse
+    return {"items": [{"id": i, "name": f"Item {i}"} for i in range(100)]}
+
+@app.get("/mixed-data")
+async def get_mixed_data():
+    # Returns list of mixed objects - automatically serialized
+    return [
+        {"type": "dict", "data": {"key": "value"}},
+        User(id=1, name="Alice", email="alice@example.com"),
+        UserData(id=2, name="Bob", created_at=datetime.utcnow())
+    ]
+```
+
+### Custom Serialization
+
+Objects can provide custom serialization methods:
+
+```python
+class CustomObject:
+    def __init__(self, value: str):
+        self.value = value
+    
+    def __json__(self):
+        return {"custom_value": self.value, "type": "custom"}
+
+@app.get("/custom")
+async def get_custom():
+    # Uses custom __json__ method
+    return CustomObject("example")
+```
+
+### Backward Compatibility
+
+Existing code continues to work unchanged:
+
+```python
+@app.get("/explicit-response")
+async def explicit_response():
+    # Still works - response objects are returned as-is
+    return JSONResponse({"message": "explicit"})
+
+@app.get("/mixed-return")
+async def mixed_return():
+    if some_condition:
+        return JSONResponse({"type": "explicit"})
+    else:
+        return {"type": "automatic"}  # Auto-serialized
+```
+
+### Performance Optimization
+
+The framework automatically chooses the optimal response type:
+- **Simple objects** (dicts <50 items, basic types) → `JSONResponse`
+- **Complex objects** (Pydantic models, dataclasses, large collections) → `OptimizedJSONResponse`
+- **Response objects** → Returned unchanged
