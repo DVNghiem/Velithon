@@ -14,6 +14,19 @@ app = Velithon(
 )
 ```
 
+**Example with custom validation error formatter:**
+```python
+from velithon import Velithon
+from velithon.exceptions import DetailedValidationErrorFormatter
+
+app = Velithon(
+    title="My API",
+    description="API built with Velithon",
+    version="1.0.0",
+    validation_error_formatter=DetailedValidationErrorFormatter()
+)
+```
+
 ### Constructor Parameters
 
 | Parameter | Type | Default | Description |
@@ -38,6 +51,7 @@ app = Velithon(
 | `contact` | `dict \| None` | `None` | Contact information |
 | `license_info` | `dict \| None` | `None` | License information |
 | `include_security_middleware` | `bool` | `False` | Enable default security middleware |
+| `validation_error_formatter` | `ValidationErrorFormatter \| None` | `None` | Custom validation error formatter for controlling how validation errors are presented in API responses |
 
 ## HTTP Method Decorators
 
@@ -52,7 +66,8 @@ app = Velithon(
     description: str | None = None,
     name: str | None = None,
     include_in_schema: bool = True,
-    response_model: type | None = None
+    response_model: type | None = None,
+    validation_error_formatter: ValidationErrorFormatter | None = None
 ) -> Callable
 ```
 
@@ -76,7 +91,8 @@ async def list_users():
     description: str | None = None,
     name: str | None = None,
     include_in_schema: bool = True,
-    response_model: type | None = None
+    response_model: type | None = None,
+    validation_error_formatter: ValidationErrorFormatter | None = None
 ) -> Callable
 ```
 
@@ -90,6 +106,19 @@ async def create_user(request: Request):
     return {"user": user_data}
 ```
 
+**Example with custom validation formatter:**
+```python
+from velithon.exceptions import SimpleValidationErrorFormatter
+
+@app.post("/users", 
+          tags=["Users"], 
+          summary="Create a new user",
+          validation_error_formatter=SimpleValidationErrorFormatter())
+async def create_user(user: UserModel):
+    # Validation errors will be formatted using SimpleValidationErrorFormatter
+    return {"user": user.dict()}
+```
+
 ### PUT
 
 ```python
@@ -101,7 +130,8 @@ async def create_user(request: Request):
     description: str | None = None,
     name: str | None = None,
     include_in_schema: bool = True,
-    response_model: type | None = None
+    response_model: type | None = None,
+    validation_error_formatter: ValidationErrorFormatter | None = None
 ) -> Callable
 ```
 
@@ -118,7 +148,8 @@ Define a PUT endpoint.
     description: str | None = None,
     name: str | None = None,
     include_in_schema: bool = True,
-    response_model: type | None = None
+    response_model: type | None = None,
+    validation_error_formatter: ValidationErrorFormatter | None = None
 ) -> Callable
 ```
 
@@ -135,7 +166,8 @@ Define a PATCH endpoint.
     description: str | None = None,
     name: str | None = None,
     include_in_schema: bool = True,
-    response_model: type | None = None
+    response_model: type | None = None,
+    validation_error_formatter: ValidationErrorFormatter | None = None
 ) -> Callable
 ```
 
@@ -152,7 +184,8 @@ Define a DELETE endpoint.
     description: str | None = None,
     name: str | None = None,
     include_in_schema: bool = True,
-    response_model: type | None = None
+    response_model: type | None = None,
+    validation_error_formatter: ValidationErrorFormatter | None = None
 ) -> Callable
 ```
 
@@ -169,7 +202,8 @@ Define a HEAD endpoint.
     description: str | None = None,
     name: str | None = None,
     include_in_schema: bool = True,
-    response_model: type | None = None
+    response_model: type | None = None,
+    validation_error_formatter: ValidationErrorFormatter | None = None
 ) -> Callable
 ```
 

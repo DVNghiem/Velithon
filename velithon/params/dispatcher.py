@@ -1,3 +1,9 @@
+"""Request dispatcher module for Velithon framework.
+
+This module provides functionality to dispatch HTTP requests to their appropriate
+handlers with parameter resolution and response processing.
+"""
+
 from __future__ import annotations
 
 import inspect
@@ -8,6 +14,7 @@ from pydantic import BaseModel
 from velithon._utils import is_async_callable, run_in_threadpool
 from velithon.cache import cache_manager, signature_cache
 from velithon.exceptions import HTTPException
+from velithon.exceptions.validation_formatters import ValidationErrorFormatter
 from velithon.requests import Request
 from velithon.responses import JSONResponse, Response
 
@@ -33,7 +40,11 @@ cache_manager.register_lru_cache('signature_cache', _get_cached_signature)
 cache_manager.register_lru_cache('method_lookup_cache', _get_method_lookup_cache)
 
 
-async def dispatch(handler: typing.Any, request: Request) -> Response:
+async def dispatch(
+    handler: typing.Any,
+    request: Request,
+    validation_formatter: ValidationErrorFormatter | None = None,
+) -> Response:
     """OPTIMIZED request dispatcher with caching and reduced overhead."""
     is_class_based = not (
         inspect.isfunction(handler) or inspect.iscoroutinefunction(handler)
@@ -57,7 +68,7 @@ async def dispatch(handler: typing.Any, request: Request) -> Response:
     is_async = is_async_callable(handler)
 
     # Optimize input handling
-    input_handler = InputHandler(request)
+    input_handler = InputHandler(request, validation_formatter)
     _response_type = signature.return_annotation
     _kwargs = await input_handler.get_input(signature)
 

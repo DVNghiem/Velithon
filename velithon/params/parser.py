@@ -1,3 +1,9 @@
+"""Parameter parsing and validation module for Velithon framework.
+
+This module provides functionality to parse and validate request parameters,
+including query parameters, path parameters, form data, and JSON bodies.
+"""
+
 from __future__ import annotations
 
 import inspect
@@ -18,6 +24,7 @@ from velithon.exceptions import (
     UnsupportParameterException,
     ValidationException,
 )
+from velithon.exceptions.validation_formatters import ValidationErrorFormatter
 from velithon.params.params import Body, File, Form, Path, Query
 from velithon.requests import Request
 
@@ -32,8 +39,26 @@ _TYPE_CONVERTERS = {
 
 
 class ParameterResolver:
-    def __init__(self, request: Request):
+    """Resolve and validate parameters from HTTP requests.
+    
+    This class handles parsing and validation of various parameter types
+    including query parameters, path parameters, form data, and JSON bodies.
+    """
+    
+    def __init__(
+        self,
+        request: Request,
+        validation_formatter: ValidationErrorFormatter | None = None,
+    ):
+        """Initialize the parameter resolver.
+        
+        Args:
+            request: The HTTP request to parse parameters from
+            validation_formatter: Optional custom validation error formatter
+            
+        """
         self.request = request
+        self.validation_formatter = validation_formatter
         self.data_cache = {}
         self.type_handlers = {
             int: self._parse_primitive,
@@ -56,6 +81,66 @@ class ParameterResolver:
             Form: 'form_data',
             File: 'file_data',
         }
+
+    def _create_validation_exception(
+        self,
+        field: str,
+        message: str,
+        annotation: Any = None,
+        original_error: Exception | None = None,
+    ) -> ValidationException:
+        """Create a ValidationException with custom formatting if available.
+        
+        Args:
+            field: The field name that caused the validation error
+            message: The validation error message
+            annotation: The type annotation that was being validated
+            original_error: The original exception that caused the validation error
+            
+        Returns:
+            A ValidationException with appropriate formatting
+        """
+        error_data = {
+            'field': field,
+            'msg': message,
+        }
+        
+        if annotation:
+            error_data['type'] = getattr(annotation, '__name__', str(annotation))
+        
+        if self.validation_formatter:
+            formatter = self.validation_formatter
+            details = formatter.format_validation_errors([error_data])
+        else:
+            details = error_data
+            
+    def _create_validation_exception_from_pydantic(
+        self,
+        validation_error: ValidationError,
+    ) -> ValidationException:
+        """Create a ValidationException from a Pydantic ValidationError.
+        
+        Args:
+            validation_error: The Pydantic ValidationError to convert
+            
+        Returns:
+            A ValidationException with appropriate formatting
+        """
+        invalid_fields = orjson.loads(validation_error.json())
+        error_data = [
+            {'field': get(item, 'loc')[0], 'msg': get(item, 'msg')}
+            for item in invalid_fields
+        ]
+        
+        if self.validation_formatter:
+            details = self.validation_formatter.format_validation_errors(error_data)
+        else:
+            details = error_data
+            
+        return ValidationException(
+            details=details,
+            formatter=self.validation_formatter,
+        )
 
     async def _fetch_data(self, param_type: str) -> Any:
         """Fetch and cache request data for the given parameter type."""
@@ -133,12 +218,12 @@ class ParameterResolver:
                 return value[0] if isinstance(value, tuple) else value
             return annotation(value)
         except (ValueError, TypeError) as e:
-            raise ValidationException(
-                details={
-                    'field': param_name,
-                    'msg': f'Invalid value for type {annotation}: {e!s}',
-                }
-            )
+            raise self._create_validation_exception(
+                field=param_name,
+                message=f'Invalid value for type {annotation}: {e!s}',
+                annotation=annotation,
+                original_error=e,
+            ) from e
 
     async def _parse_list(
         self,
@@ -171,23 +256,17 @@ class ParameterResolver:
             try:
                 return list_type_map[item_type](values)
             except (ValueError, TypeError) as e:
-                raise ValidationException(
-                    details={
-                        'field': param_name,
-                        'msg': f'Invalid list item type {item_type}: {e!s}',
-                    }
-                )
+                raise self._create_validation_exception(
+                    field=param_name,
+                    message=f'Invalid list item type {item_type}: {e!s}',
+                    annotation=item_type,
+                    original_error=e,
+                ) from e
         elif isinstance(item_type, type) and issubclass(item_type, BaseModel):
             try:
                 return [item_type(**item) for item in values]
             except ValidationError as e:
-                invalid_fields = orjson.loads(e.json())
-                raise ValidationException(
-                    details=[
-                        {'field': get(item, 'loc')[0], 'msg': get(item, 'msg')}
-                        for item in invalid_fields
-                    ]
-                )
+                raise self._create_validation_exception_from_pydantic(e) from e
         raise BadRequestException(
             details={'message': f'Unsupported list item type: {item_type}'}
         )
@@ -213,13 +292,7 @@ class ParameterResolver:
                 return annotation(**data)
             raise ValueError('Invalid data format for model: expected a mapping')
         except ValidationError as e:
-            invalid_fields = orjson.loads(e.json())
-            raise ValidationException(
-                details=[
-                    {'field': get(item, 'loc')[0], 'msg': get(item, 'msg')}
-                    for item in invalid_fields
-                ]
-            )
+            raise self._create_validation_exception_from_pydantic(e) from e
 
     async def _parse_special(
         self,
@@ -386,8 +459,30 @@ class ParameterResolver:
 
 
 class InputHandler:
-    def __init__(self, request: Request):
-        self.resolver = ParameterResolver(request)
+    """Handle input parameter resolution and validation for HTTP requests."""
+    
+    def __init__(
+        self,
+        request: Request,
+        validation_formatter: ValidationErrorFormatter | None = None,
+    ):
+        """Initialize the input handler.
+        
+        Args:
+            request: The HTTP request to handle input for
+            validation_formatter: Optional custom validation error formatter
+            
+        """
+        self.resolver = ParameterResolver(request, validation_formatter)
 
     async def get_input(self, signature: inspect.Signature) -> dict[str, Any]:
+        """Get resolved input parameters for the given function signature.
+        
+        Args:
+            signature: The function signature to resolve parameters for
+            
+        Returns:
+            A dictionary of resolved parameter values
+            
+        """
         return await self.resolver.resolve(signature)

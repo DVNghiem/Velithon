@@ -15,9 +15,9 @@ from velithon._velithon import (
 from velithon.cache import CacheConfig
 from velithon.convertors import CONVERTOR_TYPES
 from velithon.datastructures import Protocol, Scope
+from velithon.exceptions.validation_formatters import ValidationErrorFormatter
 from velithon.middleware import Middleware
 from velithon.openapi import swagger_generate
-
 from velithon.params.dispatcher import dispatch
 from velithon.requests import Request
 from velithon.responses import PlainTextResponse, Response
@@ -34,6 +34,7 @@ def get_name(endpoint: Callable[..., Any]) -> str:
 
 def request_response(
     func: Callable[[Request], Awaitable[Response] | Response],
+    validation_formatter: ValidationErrorFormatter | None = None,
 ) -> RSGIApp:
     """Takes a function or coroutine `func(request) -> response`,
     and returns an ARGI application.
@@ -44,7 +45,7 @@ def request_response(
 
     async def app(scope: Scope, protocol: Protocol) -> None:
         request = Request(scope, protocol)
-        response = await dispatch(f, request)
+        response = await dispatch(f, request, validation_formatter)
         return await response(scope, protocol)
 
     return app
@@ -94,6 +95,7 @@ class Route(BaseRoute):
         tags: Sequence[str] | None = None,
         include_in_schema: bool | None = True,
         response_model: type | None = None,
+        validation_error_formatter: ValidationErrorFormatter | None = None,
     ) -> None:
         assert path.startswith('/'), "Routed paths must start with '/'"
         self.path = path
@@ -104,13 +106,14 @@ class Route(BaseRoute):
         self.tags = tags
         self.include_in_schema = include_in_schema
         self.response_model = response_model
+        self.validation_error_formatter = validation_error_formatter
 
         endpoint_handler = endpoint
         while isinstance(endpoint_handler, functools.partial):
             endpoint_handler = endpoint_handler.func
         if inspect.isfunction(endpoint_handler) or inspect.ismethod(endpoint_handler):
             # Endpoint is function or method. Treat it as `func(request, ....) -> response`.
-            self.app = request_response(endpoint)
+            self.app = request_response(endpoint, validation_error_formatter)
             if methods is None:
                 methods = ['GET']
         else:
@@ -292,6 +295,7 @@ class Router:
         on_shutdown: Sequence[Callable[[], Any]] | None = None,
         middleware: Sequence[Middleware] | None = None,
         route_class: type[BaseRoute] = Route,
+        validation_error_formatter: ValidationErrorFormatter | None = None,
     ):
         self.path = path.rstrip('/') if path else ''
         self.redirect_slashes = redirect_slashes
@@ -300,6 +304,7 @@ class Router:
         self.on_shutdown = [] if on_shutdown is None else list(on_shutdown)
         self.middleware_stack = self.app
         self.route_class = route_class
+        self.validation_error_formatter = validation_error_formatter
         if middleware:
             for cls, args, kwargs in reversed(middleware):
                 self.middleware_stack = cls(self.middleware_stack, *args, **kwargs)
@@ -343,6 +348,11 @@ class Router:
                             tags=getattr(route, 'tags', None),
                             include_in_schema=getattr(route, 'include_in_schema', True),
                             response_model=getattr(route, 'response_model', None),
+                            validation_error_formatter=getattr(
+                                route,
+                                'validation_error_formatter',
+                                self.validation_error_formatter
+                            ),
                         )
                         self.routes.append(new_route)
                 else:
@@ -511,6 +521,7 @@ class Router:
             summary=summary,
             description=description,
             tags=tags,
+            validation_error_formatter=self.validation_error_formatter,
         )
         self.routes.append(route)
         self._rebuild_rust_optimizations()
@@ -529,9 +540,13 @@ class Router:
         include_in_schema: bool | None = True,
         route_class_override: type[BaseRoute] | None = None,
         response_model: type | None = None,
+        validation_error_formatter: ValidationErrorFormatter | None = None,
     ) -> None:
         route_class = route_class_override or self.route_class
         full_path = self._get_full_path(path)
+        effective_formatter = (
+            validation_error_formatter or self.validation_error_formatter
+        )
         route = route_class(
             full_path,
             endpoint=endpoint,
@@ -543,6 +558,7 @@ class Router:
             tags=tags,
             include_in_schema=include_in_schema,
             response_model=response_model,
+            validation_error_formatter=effective_formatter,
         )
         self.routes.append(route)
         self._rebuild_rust_optimizations()
@@ -560,6 +576,7 @@ class Router:
         include_in_schema: bool | None = True,
         route_class_override: type[BaseRoute] | None = None,
         response_model: type | None = None,
+        validation_error_formatter: ValidationErrorFormatter | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
             self.add_api_route(
@@ -574,6 +591,7 @@ class Router:
                 middleware=middleware,
                 include_in_schema=include_in_schema,
                 response_model=response_model,
+                validation_error_formatter=validation_error_formatter,
             )
             return func
 
@@ -590,6 +608,7 @@ class Router:
         name: str | None = None,
         include_in_schema: bool = True,
         response_model: type | None = None,
+        validation_error_formatter: ValidationErrorFormatter | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """Generic factory method for creating HTTP method decorators.
         Eliminates code duplication across get, post, put, delete, patch, options methods.
@@ -603,6 +622,7 @@ class Router:
             name=name,
             include_in_schema=include_in_schema,
             response_model=response_model,
+            validation_error_formatter=validation_error_formatter,
         )
 
     def get(
@@ -615,6 +635,7 @@ class Router:
         name: str | None = None,
         include_in_schema: bool = True,
         response_model: type | None = None,
+        validation_error_formatter: ValidationErrorFormatter | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """Add a *path operation* using an HTTP GET operation.
 
@@ -637,6 +658,7 @@ class Router:
             name=name,
             include_in_schema=include_in_schema,
             response_model=response_model,
+            validation_error_formatter=validation_error_formatter,
         )
 
     def post(
@@ -649,6 +671,7 @@ class Router:
         name: str | None = None,
         include_in_schema: bool = True,
         response_model: type | None = None,
+        validation_error_formatter: ValidationErrorFormatter | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """Add a *path operation* using an HTTP POST operation.
 
@@ -671,6 +694,7 @@ class Router:
             name=name,
             include_in_schema=include_in_schema,
             response_model=response_model,
+            validation_error_formatter=validation_error_formatter,
         )
 
     def put(
@@ -683,6 +707,7 @@ class Router:
         name: str | None = None,
         include_in_schema: bool = True,
         response_model: type | None = None,
+        validation_error_formatter: ValidationErrorFormatter | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """Add a *path operation* using an HTTP PUT operation.
 
@@ -705,6 +730,7 @@ class Router:
             name=name,
             include_in_schema=include_in_schema,
             response_model=response_model,
+            validation_error_formatter=validation_error_formatter,
         )
 
     def delete(
@@ -717,6 +743,7 @@ class Router:
         name: str | None = None,
         include_in_schema: bool = True,
         response_model: type | None = None,
+        validation_error_formatter: ValidationErrorFormatter | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """Add a *path operation* using an HTTP DELETE operation.
 
@@ -751,6 +778,7 @@ class Router:
         name: str | None = None,
         include_in_schema: bool = True,
         response_model: type | None = None,
+        validation_error_formatter: ValidationErrorFormatter | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """Add a *path operation* using an HTTP PATCH operation."""
         return self._create_http_method_decorator(
@@ -762,6 +790,7 @@ class Router:
             name=name,
             include_in_schema=include_in_schema,
             response_model=response_model,
+            validation_error_formatter=validation_error_formatter,
         )
 
     def options(
@@ -774,6 +803,7 @@ class Router:
         name: str | None = None,
         include_in_schema: bool = True,
         response_model: type | None = None,
+        validation_error_formatter: ValidationErrorFormatter | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """Add a *path operation* using an HTTP OPTIONS operation."""
         return self._create_http_method_decorator(
@@ -785,6 +815,7 @@ class Router:
             name=name,
             include_in_schema=include_in_schema,
             response_model=response_model,
+            validation_error_formatter=validation_error_formatter,
         )
 
     def add_websocket_route(
@@ -870,6 +901,7 @@ class Router:
                     new_path = new_path.replace('//', '/')
 
                 # Create new route with updated path
+                formatter = getattr(route, 'validation_error_formatter', None)
                 new_route = Route(
                     new_path,
                     endpoint=route.endpoint,
@@ -883,6 +915,7 @@ class Router:
                     else route.tags or tags,
                     include_in_schema=route.include_in_schema,
                     response_model=getattr(route, 'response_model', None),
+                    validation_error_formatter=formatter,
                 )
                 self.routes.append(new_route)
             else:

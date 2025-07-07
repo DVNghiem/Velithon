@@ -128,6 +128,289 @@ async def create_user(user_data: UserCreateRequest):
         )
 ```
 
+## Validation Error Formatters
+
+Velithon provides a powerful validation error formatting system that allows you to customize how validation errors are presented in API responses. You can configure formatters at the application, router, or individual route level.
+
+### Overview
+
+The validation error formatter system provides:
+- **Multiple built-in formatters** for common error response formats
+- **Custom formatter support** by implementing the `ValidationErrorFormatter` interface
+- **Hierarchical inheritance** where route-level formatters override router-level, which override app-level
+- **Seamless integration** with Pydantic validation and parameter parsing
+
+### Built-in Formatters
+
+#### DefaultValidationErrorFormatter
+
+The default formatter maintains Velithon's standard error format:
+
+```python
+from velithon import Velithon
+from velithon.exceptions import DefaultValidationErrorFormatter
+
+app = Velithon(validation_error_formatter=DefaultValidationErrorFormatter())
+
+# Error response example:
+{
+    "error": {
+        "type": "validation_error",
+        "details": [
+            {
+                "field": "age",
+                "message": "Input should be greater than or equal to 0",
+                "type": "greater_than_equal",
+                "input": -1
+            },
+            {
+                "field": "email",
+                "message": "Input should be a valid email address",
+                "type": "value_error",
+                "input": "invalid-email"
+            }
+        ]
+    }
+}
+```
+
+#### SimpleValidationErrorFormatter
+
+A minimal formatter with concise error messages:
+
+```python
+from velithon.exceptions import SimpleValidationErrorFormatter
+
+app = Velithon(validation_error_formatter=SimpleValidationErrorFormatter())
+
+# Error response example:
+{
+    "error": "Validation failed",
+    "messages": [
+        "age: Input should be greater than or equal to 0",
+        "email: Input should be a valid email address"
+    ]
+}
+```
+
+#### DetailedValidationErrorFormatter
+
+A comprehensive formatter with additional context and help information:
+
+```python
+from velithon.exceptions import DetailedValidationErrorFormatter
+
+app = Velithon(validation_error_formatter=DetailedValidationErrorFormatter())
+
+# Error response example:
+{
+    "status": "error",
+    "error_type": "validation_error",
+    "message": "Request validation failed",
+    "validation_errors": [
+        {
+            "field": "age",
+            "message": "Input should be greater than or equal to 0",
+            "type": "greater_than_equal",
+            "input": -1,
+            "context": {"ge": 0},
+            "url": null,
+            "help": "must be greater than: 0"
+        }
+    ],
+    "error_count": 1,
+    "timestamp": "2025-07-06T16:00:00.000Z"
+}
+```
+
+#### JSONSchemaValidationErrorFormatter
+
+JSON Schema compatible error format:
+
+```python
+from velithon.exceptions import JSONSchemaValidationErrorFormatter
+
+app = Velithon(validation_error_formatter=JSONSchemaValidationErrorFormatter())
+
+# Error response example:
+{
+    "valid": false,
+    "errors": [
+        {
+            "instancePath": "/age",
+            "schemaPath": "#/properties/age",
+            "keyword": "greater_than_equal",
+            "params": {"ge": 0},
+            "message": "Input should be greater than or equal to 0",
+            "data": -1
+        }
+    ]
+}
+```
+
+### Formatter Hierarchy
+
+You can configure formatters at different levels, with route-level formatters taking precedence:
+
+```python
+from velithon import Velithon
+from velithon.routing import Router
+from velithon.exceptions import (
+    DefaultValidationErrorFormatter,
+    SimpleValidationErrorFormatter,
+    DetailedValidationErrorFormatter
+)
+
+# App-level formatter (applies to all routes by default)
+app = Velithon(validation_error_formatter=DefaultValidationErrorFormatter())
+
+# Router-level formatter (overrides app-level for this router)
+api_router = Router(validation_error_formatter=SimpleValidationErrorFormatter())
+
+@api_router.post("/users")
+async def create_user(user_data: UserModel):
+    return {"message": "User created"}
+
+# Route-level formatter (overrides router-level for this specific route)
+@api_router.get("/users/{user_id}", 
+                validation_error_formatter=DetailedValidationErrorFormatter())
+async def get_user(user_id: int):
+    return {"user_id": user_id}
+
+app.include_router(api_router, prefix="/api")
+```
+
+### Custom Validation Error Formatters
+
+Create custom formatters by inheriting from `ValidationErrorFormatter`:
+
+```python
+from velithon.exceptions import ValidationErrorFormatter
+from pydantic import ValidationError
+from typing import Any
+
+class CustomAPIFormatter(ValidationErrorFormatter):
+    """Custom formatter for API responses."""
+    
+    def format_validation_error(
+        self, error: ValidationError, field_name: str | None = None
+    ) -> dict[str, Any]:
+        """Format a single validation error."""
+        errors = []
+        for err in error.errors():
+            field = '.'.join(str(x) for x in err['loc']) if err.get('loc') else field_name
+            errors.append({
+                "parameter": field,
+                "issue": err['msg'],
+                "received": err.get('input'),
+                "error_code": err['type']
+            })
+        
+        return {
+            "success": False,
+            "validation_failed": True,
+            "issues": errors,
+            "help_url": "https://docs.myapi.com/validation-errors"
+        }
+    
+    def format_validation_errors(self, errors: list[dict[str, Any]]) -> dict[str, Any]:
+        """Format multiple validation errors."""
+        all_issues = []
+        for error_dict in errors:
+            if 'issues' in error_dict:
+                all_issues.extend(error_dict['issues'])
+        
+        return {
+            "success": False,
+            "validation_failed": True,
+            "total_issues": len(all_issues),
+            "issues": all_issues,
+            "help_url": "https://docs.myapi.com/validation-errors"
+        }
+
+# Use the custom formatter
+app = Velithon(validation_error_formatter=CustomAPIFormatter())
+```
+
+### Environment-Specific Formatters
+
+Configure different formatters based on your environment:
+
+```python
+import os
+from velithon.exceptions import (
+    SimpleValidationErrorFormatter,
+    DetailedValidationErrorFormatter
+)
+
+def get_validation_formatter():
+    """Get the appropriate formatter based on environment."""
+    env = os.getenv("ENVIRONMENT", "development")
+    
+    if env == "production":
+        # Use simple formatter in production to avoid exposing details
+        return SimpleValidationErrorFormatter()
+    elif env == "development":
+        # Use detailed formatter in development for debugging
+        return DetailedValidationErrorFormatter()
+    else:
+        # Use default formatter for other environments
+        return None
+
+app = Velithon(validation_error_formatter=get_validation_formatter())
+```
+
+### Integration with Pydantic Models
+
+Validation error formatters work seamlessly with Pydantic models:
+
+```python
+from pydantic import BaseModel, Field, validator
+from velithon.params import Body
+
+class CreateUserRequest(BaseModel):
+    name: str = Field(min_length=2, max_length=50)
+    email: str = Field(regex=r'^[^@]+@[^@]+\.[^@]+$')
+    age: int = Field(ge=0, le=120)
+    
+    @validator('name')
+    def validate_name(cls, v):
+        if v.strip() != v:
+            raise ValueError('Name cannot have leading/trailing spaces')
+        return v
+
+@app.post("/users")
+async def create_user(user_data: CreateUserRequest = Body()):
+    # Validation errors will be automatically formatted using the configured formatter
+    return {"message": "User created successfully"}
+```
+
+### Testing Custom Formatters
+
+```python
+import pytest
+from pydantic import ValidationError, BaseModel, Field
+
+class TestModel(BaseModel):
+    name: str = Field(min_length=2)
+    age: int = Field(ge=0)
+
+def test_custom_formatter():
+    formatter = CustomAPIFormatter()
+    
+    # Create a validation error
+    try:
+        TestModel(name="x", age=-1)
+    except ValidationError as e:
+        result = formatter.format_validation_error(e)
+        
+        assert result["success"] is False
+        assert result["validation_failed"] is True
+        assert len(result["issues"]) == 2
+        assert result["issues"][0]["parameter"] == "name"
+        assert "help_url" in result
+```
+
 ## Custom Exception Classes
 
 ### Creating Custom Exceptions

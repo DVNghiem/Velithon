@@ -24,6 +24,7 @@ from velithon.responses import HTMLResponse, JSONResponse, Response
 from velithon.routing import BaseRoute, Router
 from velithon.types import RSGIApp
 from velithon.vsp import VSPManager
+from velithon.exceptions.validation_formatters import ValidationErrorFormatter
 
 _middleware_optimizer = get_middleware_optimizer()
 
@@ -284,13 +285,36 @@ class Velithon:
                 """
             ),
         ] = False,
+        validation_error_formatter: Annotated[
+            'ValidationErrorFormatter | None',
+            Doc(
+                """
+                Custom validation error formatter for controlling how validation 
+                errors are presented in API responses.
+                
+                When provided, this formatter will be used to format validation 
+                errors throughout the application. Can be overridden at the route 
+                level. If None, the default validation error formatter will be used.
+                
+                Example:
+                    from velithon.exceptions import DetailedValidationFormatter
+                    app = Velithon(validation_error_formatter=DetailedValidationFormatter())
+                """
+            ),
+        ] = None,
     ):
-        self.router = Router(routes, on_startup=on_startup, on_shutdown=on_shutdown)
+        self.router = Router(
+            routes, 
+            on_startup=on_startup, 
+            on_shutdown=on_shutdown,
+            validation_error_formatter=validation_error_formatter
+        )
         self.container = None
 
         self.user_middleware = [] if middleware is None else list(middleware)
         self.middleware_stack: RSGIApp | None = None
         self.include_security_middleware = include_security_middleware
+        self.validation_error_formatter = validation_error_formatter
         self.title = title
         self.summary = summary
         self.description = description
@@ -552,6 +576,7 @@ class Velithon:
         name: str | None = None,
         include_in_schema: bool = True,
         response_model: type | None = None,
+        validation_error_formatter: ValidationErrorFormatter | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """Decorator to add a GET route to the application.
 
@@ -577,6 +602,7 @@ class Velithon:
             name=name,
             include_in_schema=include_in_schema,
             response_model=response_model,
+            validation_error_formatter=validation_error_formatter,
         )
 
     def post(
@@ -589,6 +615,7 @@ class Velithon:
         name: str | None = None,
         include_in_schema: bool = True,
         response_model: type | None = None,
+        validation_error_formatter: ValidationErrorFormatter | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """Decorator to add a POST route to the application.
 
@@ -614,6 +641,7 @@ class Velithon:
             name=name,
             include_in_schema=include_in_schema,
             response_model=response_model,
+            validation_error_formatter=validation_error_formatter,
         )
 
     def put(
@@ -626,6 +654,7 @@ class Velithon:
         name: str | None = None,
         include_in_schema: bool = True,
         response_model: type | None = None,
+        validation_error_formatter: ValidationErrorFormatter | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """Decorator to add a PUT route to the application.
 
@@ -651,6 +680,7 @@ class Velithon:
             name=name,
             include_in_schema=include_in_schema,
             response_model=response_model,
+            validation_error_formatter=validation_error_formatter,
         )
 
     def delete(
@@ -663,6 +693,7 @@ class Velithon:
         name: str | None = None,
         include_in_schema: bool = True,
         response_model: type | None = None,
+        validation_error_formatter: ValidationErrorFormatter | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """Decorator to add a DELETE route to the application.
 
@@ -687,6 +718,7 @@ class Velithon:
             name=name,
             include_in_schema=include_in_schema,
             response_model=response_model,
+            validation_error_formatter=validation_error_formatter,
         )
 
     def patch(
@@ -1020,6 +1052,7 @@ class Velithon:
         name: str | None = None,
         include_in_schema: bool = True,
         response_model: type | None = None,
+        validation_error_formatter: ValidationErrorFormatter | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """Generic factory method for creating HTTP method decorators.
         Eliminates code duplication across get, post, put, delete, patch, options methods.
@@ -1035,6 +1068,7 @@ class Velithon:
                 name=name,
                 include_in_schema=include_in_schema,
                 response_model=response_model,
+                validation_error_formatter=validation_error_formatter,
             )
 
         return getattr(self.router, method.lower())(
@@ -1045,6 +1079,7 @@ class Velithon:
             name=name,
             include_in_schema=include_in_schema,
             response_model=response_model,
+            validation_error_formatter=validation_error_formatter,
         )
 
     def route(

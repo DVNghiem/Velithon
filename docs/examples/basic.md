@@ -143,6 +143,36 @@ async def divide(a: int, b: int):
         )
 ```
 
+## Validation Error Formatting
+
+Customize how validation errors are presented:
+
+```python
+from velithon import Velithon
+from velithon.exceptions import SimpleValidationErrorFormatter, DetailedValidationErrorFormatter
+from velithon.params import Body
+from pydantic import BaseModel, Field
+
+# Custom validation error formatter at application level
+app = Velithon(validation_error_formatter=DetailedValidationErrorFormatter())
+
+class UserModel(BaseModel):
+    name: str = Field(min_length=2, max_length=50)
+    age: int = Field(ge=0, le=120)
+    email: str = Field(pattern=r'^[^@]+@[^@]+\.[^@]+$')
+
+@app.post("/users")
+async def create_user(user: UserModel = Body()):
+    # Validation errors will be formatted using DetailedValidationErrorFormatter
+    return {"user": user.dict()}
+
+# Override formatter for specific route
+@app.post("/simple-users", validation_error_formatter=SimpleValidationErrorFormatter())
+async def create_simple_user(user: UserModel = Body()):
+    # Validation errors will be formatted using SimpleValidationErrorFormatter
+    return {"user": user.dict()}
+```
+
 ## Next Steps
 
 - Learn about [CRUD operations](crud-api.md)

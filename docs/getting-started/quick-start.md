@@ -290,7 +290,7 @@ Response:
 }
 ```
 
-## 🎨 Step 5: Add Error Handling
+## 🔧 Step 6: Add Error Handling
 
 Let's add proper error handling to make our API more robust:
 
@@ -376,9 +376,88 @@ async def health_check():
     """Health check endpoint."""
     return JSONResponse({"status": "healthy", "service": "velithon-app"})
 ```
+
+## 🎨 Step 5: Customize Validation Error Formatting
+
+Let's make our validation errors more user-friendly by customizing the error format:
+
+```python title="main.py"
+from velithon import Velithon
+from velithon.responses import JSONResponse
+from velithon.exceptions import SimpleValidationErrorFormatter, DetailedValidationErrorFormatter
+from pydantic import BaseModel, Field
+from typing import Optional
+
+# Use a custom validation error formatter at the application level
+app = Velithon(
+    title="My First Velithon App",
+    description="A sample application built with Velithon RSGI framework",
+    version="1.0.0",
+    validation_error_formatter=DetailedValidationErrorFormatter()
+)
+
+class Item(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    description: Optional[str] = Field(None, max_length=500)
+    price: float = Field(gt=0, description="Price must be positive")
+    tax: Optional[float] = Field(None, ge=0, le=100, description="Tax percentage (0-100)")
+
+@app.post("/items")
+async def create_item(item: Item):
+    """Create a new item with validation."""
+    # Calculate total price
+    total_price = item.price
+    if item.tax:
+        total_price += item.price * (item.tax / 100)
+    
+    return JSONResponse({
+        "id": 12345,
+        "name": item.name,
+        "price": item.price,
+        "total_price": total_price
+    })
+
+# Override formatter for specific route
+@app.post("/simple-items", validation_error_formatter=SimpleValidationErrorFormatter())
+async def create_simple_item(item: Item):
+    """Create an item with simple error formatting."""
+    return JSONResponse({"message": "Item created successfully"})
 ```
 
-## 🔧 Step 6: Velithon CLI Options
+Now test with invalid data to see the custom error format:
+
+```bash
+curl -X POST "http://127.0.0.1:8000/items" \
+     -H "Content-Type: application/json" \
+     -d '{"name": "", "price": -10, "tax": 150}'
+```
+
+You'll get a detailed error response like:
+```json
+{
+  "status": "error",
+  "error_type": "validation_error",
+  "message": "Request validation failed",
+  "validation_errors": [
+    {
+      "field": "name",
+      "message": "String should have at least 1 character",
+      "type": "string_too_short",
+      "context": {"min_length": 1}
+    },
+    {
+      "field": "price",
+      "message": "Input should be greater than 0",
+      "type": "greater_than",
+      "context": {"gt": 0}
+    }
+  ],
+  "error_count": 2
+}
+```
+```
+
+## � Step 7: Velithon CLI Options
 
 Explore different ways to run your Velithon application with the powerful CLI:
 

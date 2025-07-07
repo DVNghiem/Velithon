@@ -120,6 +120,7 @@ nav:
       - 'Routing': 'api/routing.md'
       - 'Requests': 'api/requests.md'
       - 'Responses': 'api/responses.md'
+      - 'Validation Error Formatters': 'api/validation-error-formatters.md'
       - 'Middleware': 'api/middleware.md'
       - 'Security': 'api/security.md'
       - 'WebSocket': 'api/websocket.md'
