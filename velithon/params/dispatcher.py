@@ -1,7 +1,7 @@
-"""Request dispatcher module for Velithon framework.
+"""Request dispatcher module for controller method calls and response generation.
 
-This module provides functionality to dispatch HTTP requests to their appropriate
-handlers with parameter resolution and response processing.
+This module provides the main dispatch logic that handles parameter injection,
+method execution, and automatic response serialization for controllers.
 """
 
 from __future__ import annotations
@@ -78,12 +78,20 @@ async def dispatch(
     else:
         response = await run_in_threadpool(handler, **_kwargs)
 
-    # Fast response handling
+    # Enhanced response handling with automatic serialization
     if not isinstance(response, Response):
-        if isinstance(_response_type, type) and issubclass(_response_type, BaseModel):
-            response = _response_type.model_validate(response).model_dump(mode='json')
-        response = JSONResponse(
-            content={'message': response},
-            status_code=200,
-        )
+        # Try automatic serialization first
+        try:
+            from velithon.serialization import auto_serialize_response
+            response = auto_serialize_response(response, status_code=200)
+        except (ImportError, TypeError):
+            # Fallback to original logic for backward compatibility
+            if (isinstance(_response_type, type) and
+                issubclass(_response_type, BaseModel)):
+                response = (_response_type.model_validate(response)
+                           .model_dump(mode='json'))
+            response = JSONResponse(
+                content={'message': response},
+                status_code=200,
+            )
     return response
