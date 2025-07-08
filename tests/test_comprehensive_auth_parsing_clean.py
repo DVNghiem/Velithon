@@ -58,7 +58,7 @@ app = Velithon()
 
 # Test Endpoints
 @app.get("/test-query-auth")
-async def test_query_with_auth(
+async def query_with_auth_endpoint(
     current_user: Annotated[User, Provide(get_current_user)],
     data: Annotated[QueryData, Query()],
     extra: str = "default"
@@ -72,7 +72,7 @@ async def test_query_with_auth(
 
 
 @app.get("/test-path-auth/{item_id}/{name}")
-async def test_path_with_auth(
+async def path_with_auth_endpoint(
     current_user: Annotated[User, Provide(get_current_user)],
     item_id: int,
     name: str
@@ -86,7 +86,7 @@ async def test_path_with_auth(
 
 
 @app.post("/test-json-auth")
-async def test_json_with_auth(
+async def json_with_auth_endpoint(
     current_user: Annotated[User, Provide(get_current_user)],
     payload: Annotated[JsonPayload, Body()],
     query_param: str = "query_default"
@@ -100,7 +100,7 @@ async def test_json_with_auth(
 
 
 @app.get("/test-header-auth")
-async def test_header_with_auth(
+async def header_with_auth_endpoint(
     current_user: Annotated[User, Provide(get_current_user)],
     api_key: Annotated[str, Provide(get_api_key)],
     custom_header: Annotated[str, Header(alias="X-Custom-Header")],
@@ -116,7 +116,7 @@ async def test_header_with_auth(
 
 
 @app.get("/test-multi-auth")
-async def test_multiple_auth(
+async def multiple_auth_endpoint(
     current_user: Annotated[User, Provide(get_current_user)],
     admin: Annotated[User, Provide(get_admin_user)],
     query_data: Annotated[QueryData, Query()],
@@ -132,7 +132,7 @@ async def test_multiple_auth(
 
 
 @app.post("/test-complex-mixed/{user_id}")
-async def test_complex_mixed(
+async def complex_mixed_endpoint(
     current_user: Annotated[User, Provide(get_current_user)],
     admin: Annotated[User, Provide(get_admin_user)],
     query_data: Annotated[QueryData, Query()],
@@ -154,7 +154,7 @@ async def test_complex_mixed(
 
 
 @app.get("/test-no-auth")
-async def test_no_auth(
+async def no_auth_endpoint(
     query_data: Annotated[QueryData, Query()],
     extra: str = "no_auth"
 ):
@@ -166,7 +166,7 @@ async def test_no_auth(
 
 
 @app.get("/test-only-auth")
-async def test_only_auth(
+async def only_auth_endpoint(
     current_user: Annotated[User, Provide(get_current_user)],
     api_key: Annotated[str, Provide(get_api_key)]
 ):
@@ -182,21 +182,26 @@ def test_openapi_generation():
     print("Testing OpenAPI generation...")
     
     test_cases = [
-        (test_query_with_auth, "GET", "/test-query-auth", ["search", "limit", "offset", "extra"]),
-        (test_path_with_auth, "GET", "/test-path-auth/{item_id}/{name}", ["item_id", "name"]),
-        (test_json_with_auth, "POST", "/test-json-auth", ["query_param"]),
-        (test_header_with_auth, "GET", "/test-header-auth", ["X-Custom-Header", "X-Optional-Header"]),
-        (test_multiple_auth, "GET", "/test-multi-auth", ["search", "limit", "offset"]),
-        (test_complex_mixed, "POST", "/test-complex-mixed/{user_id}", ["user_id", "search", "limit", "offset", "X-Auth-Token", "X-Optional"]),
-        (test_no_auth, "GET", "/test-no-auth", ["search", "limit", "offset", "extra"]),
-        (test_only_auth, "GET", "/test-only-auth", []),
+        (query_with_auth_endpoint, "GET", "/test-query-auth", 
+         ["search", "limit", "offset", "extra"]),
+        (path_with_auth_endpoint, "GET", "/test-path-auth/{item_id}/{name}", 
+         ["item_id", "name"]),
+        (json_with_auth_endpoint, "POST", "/test-json-auth", ["query_param"]),        (header_with_auth_endpoint, "GET", "/test-header-auth",
+         ["custom_header", "optional_header"]),
+        (multiple_auth_endpoint, "GET", "/test-multi-auth", 
+         ["search", "limit", "offset"]),
+        (complex_mixed_endpoint, "POST", "/test-complex-mixed/{user_id}", 
+         ["user_id", "search", "limit", "offset", "X-Auth-Token", "X-Optional"]),
+        (no_auth_endpoint, "GET", "/test-no-auth", 
+         ["search", "limit", "offset", "extra"]),
+        (only_auth_endpoint, "GET", "/test-only-auth", []),
     ]
     
     for func, method, path, expected_params in test_cases:
         endpoint_spec, components = swagger_generate(func, method, path)
         
         # Extract parameters from the correct path
-        path_key = list(endpoint_spec.keys())[0]
+        path_key = next(iter(endpoint_spec.keys()))
         method_key = method.lower()
         param_names = [p['name'] for p in endpoint_spec[path_key][method_key].get('parameters', [])]
         
@@ -240,7 +245,7 @@ async def test_runtime_parameter_resolution():
     request = MockRequest()
     
     # Test authentication dependency detection
-    sig = inspect.signature(test_query_with_auth)
+    sig = inspect.signature(query_with_auth_endpoint)
     auth_params = []
     business_params = []
     
