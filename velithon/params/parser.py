@@ -21,6 +21,35 @@ from velithon.exceptions import (
 from velithon.params.params import Body, File, Form, Path, Query
 from velithon.requests import Request
 
+def _is_auth_dependency(annotation: Any) -> bool:
+    """Check if a parameter annotation represents an authentication dependency.
+    
+    Args:
+        annotation: The parameter annotation to check
+        
+    Returns:
+        True if this is an authentication dependency, False otherwise
+    """
+    if get_origin(annotation) is Annotated:
+        _, *metadata = get_args(annotation)
+        
+        # Check for Provide dependency injection
+        for meta in metadata:
+            if isinstance(meta, Provide):
+                return True
+            elif callable(meta):
+                func_name = getattr(meta, '__name__', '').lower()
+                module_name = getattr(meta, '__module__', '')
+                
+                # Check for common authentication function patterns
+                if (any(keyword in func_name for keyword in 
+                       ['auth', 'user', 'token', 'jwt', 'login', 'current']) or
+                    'security' in module_name or 'auth' in module_name):
+                    return True
+    
+    return False
+
+
 # Performance optimization: Pre-compiled type converters
 _TYPE_CONVERTERS = {
     int: int,
@@ -281,11 +310,33 @@ class ParameterResolver:
 
         if get_origin(annotation) is Annotated:
             base_type, *metadata = get_args(annotation)
+            
+            # Check if this is an authentication dependency using our centralized function
+            if _is_auth_dependency(annotation):
+                # Find the Provide dependency or callable in the metadata
+                provider = None
+                for meta in metadata:
+                    if isinstance(meta, Provide):
+                        provider = meta
+                        break
+                    elif callable(meta):
+                        provider = meta
+                        break
+                
+                if provider:
+                    return base_type, 'provide', provider, is_required
+                else:
+                    # Fallback to dummy provider if no provider found
+                    dummy_provider = Provide()
+                    return base_type, 'provide', dummy_provider, is_required
+            
+            # Define parameter types tuple outside the generator expression
+            param_types = (Query, Path, Body, Form, File, Provide)
             param_metadata = next(
                 (
                     m
                     for m in metadata
-                    if isinstance(m, (Query, Path, Body, Form, File, Provide))
+                    if isinstance(m, param_types)
                 ),
                 None,
             )
@@ -330,7 +381,7 @@ class ParameterResolver:
         elif isinstance(annotation, type) and issubclass(annotation, BaseModel):
             param_type = (
                 'json_body'
-                if self.request.scope.method.upper() != 'GET'
+                if self.request.method.upper() != 'GET'
                 else 'query_params'
             )
         elif (
@@ -340,7 +391,7 @@ class ParameterResolver:
         ):
             param_type = (
                 'json_body'
-                if self.request.scope.method.upper() != 'GET'
+                if self.request.method.upper() != 'GET'
                 else 'query_params'
             )
         elif param.name in self.request.path_params:
@@ -358,7 +409,19 @@ class ParameterResolver:
             name = param.name
 
             if param_type == 'provide':
-                kwargs[name] = default  # Provide dependency injection
+                # If the default is a callable (authentication function), call it
+                if callable(default):
+                    # Check if the function expects the request
+                    import inspect as func_inspect
+                    func_sig = func_inspect.signature(default)
+                    if len(func_sig.parameters) > 0:
+                        # Pass the request to the authentication function
+                        kwargs[name] = await default(self.request)
+                    else:
+                        # Call without arguments
+                        kwargs[name] = await default()
+                else:
+                    kwargs[name] = default  # Provide dependency injection
                 continue
 
             type_key = self._get_type_key(annotation)

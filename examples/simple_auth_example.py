@@ -5,6 +5,7 @@ and create a basic protected endpoint.
 """
 
 from typing import Annotated
+from pydantic import BaseModel
 
 from velithon import Velithon
 from velithon.requests import Request
@@ -119,7 +120,11 @@ async def login(request: Request):
 async def protected_endpoint(
     current_user: Annotated[User, get_current_user]
 ):
-    """Protected endpoint - requires JWT authentication."""
+    """Protected endpoint - requires JWT authentication.
+    
+    The current_user parameter is automatically resolved from the JWT token
+    and won't appear as an API parameter in Swagger documentation.
+    """
     return JSONResponse({
         "message": f"Hello, {current_user.full_name}!",
         "username": current_user.username,
@@ -127,12 +132,22 @@ async def protected_endpoint(
         "info": "This is a protected endpoint",
     })
 
+class QueryParams(BaseModel):
+    """Example query parameters model."""
+    
+    search: str = None
+    limit: int = 10
 
 @app.get("/user/profile")
 async def user_profile(
-    current_user: Annotated[User, get_current_user]
+    current_user: Annotated[User, get_current_user],
+    query_params: QueryParams
 ):
-    """Get user profile information."""
+    """Get user profile information.
+    
+    The current_user parameter is automatically resolved from the JWT token
+    and won't appear as an API parameter in Swagger documentation.
+    """
     return JSONResponse({
         "username": current_user.username,
         "email": current_user.email,

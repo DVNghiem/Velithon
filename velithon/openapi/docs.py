@@ -256,6 +256,42 @@ def process_model_params(
     # Handle Annotated types
     if get_origin(annotation) is Annotated:
         base_type, *metadata = get_args(annotation)
+        
+        # Check if this is an authentication dependency
+        # Look for Provide dependency injection or callable metadata
+        has_auth_dependency = False
+        for meta in metadata:
+            # Check for Provide dependency injection
+            if isinstance(meta, Provide):
+                has_auth_dependency = True
+                break
+            elif callable(meta):
+                func_name = getattr(meta, '__name__', '').lower()
+                module_name = getattr(meta, '__module__', '')
+                
+                # Check for common authentication function patterns
+                if (any(keyword in func_name for keyword in 
+                       ['auth', 'user', 'token', 'jwt', 'login', 'current']) or
+                    'security' in module_name or 'auth' in module_name):
+                    has_auth_dependency = True
+                    break
+            
+            # Check if metadata is a security scheme object
+            elif hasattr(meta, '__class__'):
+                class_name = meta.__class__.__name__
+                module_name = getattr(meta.__class__, '__module__', '')
+                
+                if ('velithon.security' in module_name or 
+                    'security' in class_name.lower() or
+                    any(keyword in class_name.lower() for keyword in 
+                        ['bearer', 'oauth2', 'apikey', 'basic'])):
+                    has_auth_dependency = True
+                    break
+        
+        # If this is an authentication dependency, skip it from OpenAPI parameters
+        if has_auth_dependency:
+            return path
+            
         param_metadata = next(
             (
                 m
@@ -265,6 +301,27 @@ def process_model_params(
             None,
         )
         if param_metadata:
+            param_type = type(param_metadata)
+            
+            # If the base_type is a Pydantic model and param_type is Query or Form, 
+            # flatten fields
+            if (
+                (param_type is Query or param_type is Form)
+                and isinstance(base_type, type)
+                and issubclass(base_type, BaseModel)
+            ):
+                for field_name, field in base_type.model_fields.items():
+                    field_schema = SchemaProcessor._process_field(field_name, field, schemas)
+                    docs.setdefault('parameters', []).append(
+                        {
+                            'name': field_name,
+                            'in': 'query' if param_type is Query else 'form',
+                            'required': field.is_required(),
+                            'schema': field_schema,
+                        }
+                    )
+                return path
+            
             schema = SchemaProcessor._process_field(name, base_type, schemas)
             if param_metadata.description:
                 schema['description'] = param_metadata.description
@@ -291,9 +348,10 @@ def process_model_params(
                     }
                 )
             elif param_type is Header:
+                header_name = param_metadata.alias if hasattr(param_metadata, 'alias') and param_metadata.alias else name
                 docs.setdefault('parameters', []).append(
                     {
-                        'name': name,
+                        'name': header_name,
                         'in': 'header',
                         'required': param_metadata.default is PydanticUndefined,
                         'schema': schema,
