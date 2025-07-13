@@ -8,7 +8,7 @@ from datetime import datetime
 from email.utils import format_datetime
 
 from velithon.background import BackgroundTask
-from velithon.datastructures import Headers
+from velithon.datastructures import Headers, Protocol, Scope
 
 
 class Response:
