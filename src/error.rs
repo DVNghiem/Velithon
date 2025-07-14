@@ -28,6 +28,12 @@ pub enum VSPInternalError {
     #[error("Worker error: {0}")]
     Worker(String),
     
+    #[error("Service not found: {0}")]
+    ServiceNotFound(String),
+    
+    #[error("Configuration error: {0}")]
+    Configuration(String),
+    
     #[error("Protocol error: {0}")]
     Protocol(String),
     

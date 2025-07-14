@@ -37,12 +37,23 @@ ahash = "0.8"
 handlebars = "6.2"
 serde_yaml = "0.9"
 rayon = "1.8"
+quinn = "0.11"
+rustls = { version = "0.23", features = ["ring"] }
+rcgen = "0.13"
+prost = "0.13"
+prost-types = "0.13"
+zstd = "0.13"
+futures = "0.3"
+tracing = "0.1"
+webpki-roots = "0.26"
+blake3 = "1.5"
 
 [target.'cfg(not(any(target_env = "musl", target_os = "freebsd", target_os = "openbsd", target_os = "windows")))'.dependencies]
 tikv-jemallocator = { version = "0.6.0", default-features = false, features = ["disable_initial_exec_tls"] }
 
 [build-dependencies]
 pyo3-build-config = "=0.25"
+prost-build = "0.13"
 
 [features]
 mimalloc = ["dep:mimalloc"]

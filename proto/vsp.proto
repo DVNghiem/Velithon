@@ -1,0 +1,129 @@
+// VSP Protocol Messages
+syntax = "proto3";
+
+package vsp.v1;
+
+// Message types
+enum MessageType {
+    REQUEST = 0;
+    RESPONSE = 1;
+    HEALTH_CHECK = 2;
+    HEALTH_RESPONSE = 3;
+    SERVICE_DISCOVERY = 4;
+    SERVICE_ANNOUNCEMENT = 5;
+    HEARTBEAT = 6;
+}
+
+// Compression algorithms
+enum CompressionType {
+    NONE = 0;
+    ZSTD = 1;
+    GZIP = 2;
+}
+
+// Transport protocols
+enum TransportType {
+    TCP = 0;
+    QUIC = 1;
+    AUTO = 2;  // Automatically choose based on network conditions
+}
+
+// Service health status
+enum HealthStatus {
+    HEALTHY = 0;
+    UNHEALTHY = 1;
+    UNKNOWN = 2;
+    DEGRADED = 3;
+}
+
+// Base message envelope
+message Envelope {
+    string message_id = 1;
+    MessageType message_type = 2;
+    CompressionType compression = 3;
+    uint64 timestamp = 4;
+    uint32 version = 5;
+    bytes payload = 6;  // Compressed payload
+    map<string, string> metadata = 7;
+}
+
+// Service information
+message ServiceInfo {
+    string name = 1;
+    string host = 2;
+    uint32 port = 3;
+    double weight = 4;
+    HealthStatus health_status = 5;
+    uint64 last_health_check = 6;
+    map<string, string> tags = 7;
+    uint32 load = 8;  // Current load percentage
+}
+
+// Request message
+message Request {
+    string service_name = 1;
+    string method = 2;
+    bytes data = 3;
+    map<string, string> headers = 4;
+    uint32 timeout_ms = 5;
+    uint32 retry_count = 6;
+}
+
+// Response message
+message Response {
+    uint32 status_code = 1;
+    bytes data = 2;
+    map<string, string> headers = 3;
+    string error_message = 4;
+    uint64 processing_time_us = 5;
+}
+
+// Health check message
+message HealthCheck {
+    string service_name = 1;
+    map<string, string> checks = 2;
+}
+
+// Health check response
+message HealthResponse {
+    HealthStatus status = 1;
+    map<string, string> details = 2;
+    uint64 uptime_seconds = 3;
+    double cpu_usage = 4;
+    double memory_usage = 5;
+}
+
+// Service discovery request
+message ServiceDiscoveryRequest {
+    string service_name = 1;
+    repeated string tags = 2;
+    uint32 max_results = 3;
+}
+
+// Service discovery response
+message ServiceDiscoveryResponse {
+    repeated ServiceInfo services = 1;
+    uint64 cache_ttl_seconds = 2;
+}
+
+// Service announcement
+message ServiceAnnouncement {
+    ServiceInfo service = 1;
+    bool is_registration = 2;  // true for register, false for deregister
+}
+
+// Heartbeat message
+message Heartbeat {
+    string service_name = 1;
+    uint64 timestamp = 2;
+    map<string, double> metrics = 3;
+}
+
+// Network condition metrics
+message NetworkMetrics {
+    double latency_ms = 1;
+    double bandwidth_mbps = 2;
+    double packet_loss_rate = 3;
+    double jitter_ms = 4;
+    bool is_stable = 5;
+}

@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 from .mesh import ServiceMesh
 from .message import VSPError, VSPMessage
+from .transport import QuicTransport, AdaptiveTransport
 
 if TYPE_CHECKING:
     from .manager import VSPManager
@@ -17,20 +18,51 @@ logger = logging.getLogger(__name__)
 
 
 class VSPClient:
+    """Enhanced VSP Client with QUIC transport support and automatic failover."""
+    
     def __init__(
         self,
         service_mesh: ServiceMesh,
-        transport_factory: Callable[..., Transport],
-        max_transports: int = 5,
+        transport_factory: Callable[..., Transport] | None = None,
+        max_transports: int = 3,  # Reduced since QUIC is more efficient
+        use_quic: bool = True,
+        compression_enabled: bool = True,
     ):
+        """
+        Initialize VSP Client with enhanced transport options.
+        
+        Args:
+            service_mesh: Service mesh for discovery
+            transport_factory: Factory for creating transports (defaults to QUIC)
+            max_transports: Maximum number of concurrent transports per service
+            use_quic: Whether to use QUIC transport by default
+            compression_enabled: Enable compression for QUIC transports
+        """
         self.service_mesh = service_mesh
-        self.transport_factory = transport_factory
+        self.use_quic = use_quic
+        self.compression_enabled = compression_enabled
+        
+        # Use QUIC by default, fallback to provided factory or adaptive transport
+        if transport_factory is None:
+            if use_quic:
+                self.transport_factory = lambda manager: QuicTransport(manager, compression_enabled)
+            else:
+                self.transport_factory = lambda manager: AdaptiveTransport(manager, prefer_quic=True)
+        else:
+            self.transport_factory = transport_factory
+            
         self.max_transports = max_transports
         self.transports: dict[str, list[Transport]] = defaultdict(list)
         self.response_queues: dict[str, asyncio.Queue] = defaultdict(asyncio.Queue)
         self.manager: VSPManager | None = None
         self.connection_events: dict[str, asyncio.Event] = {}
         self.health_check_tasks: dict[str, asyncio.Task] = {}
+        self.stats = {
+            'total_requests': 0,
+            'successful_requests': 0,
+            'failed_requests': 0,
+            'avg_response_time': 0.0,
+        }
 
     async def get_service(self, service_name: str) -> dict[str, Any]:
         service = await self.service_mesh.query(service_name)

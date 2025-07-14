@@ -77,6 +77,12 @@ class VSPManager:
         # Connection pool integration (create a simple one for now)
         self.connection_pool = None
 
+    def register_endpoint(self, endpoint: str, func: Callable[..., dict[str, Any]]) -> None:
+        """Manually register a service endpoint."""
+        # Handle bound methods by just storing the function
+        self.endpoints[endpoint] = func
+        logger.debug(f'Registered endpoint: {endpoint}')
+
     def vsp_service(self, endpoint: str) -> Callable:
         """Register a service endpoint with caching optimization"""
 
