@@ -1,4 +1,4 @@
-"""High-performance JSON response implementation using Rust-based parallel serialization."""
+"""High-performance JSON response with Rust-based parallel serialization."""
 
 from __future__ import annotations
 
@@ -11,6 +11,7 @@ from velithon._velithon import (
     ParallelJSONSerializer,
 )
 from velithon.background import BackgroundTask
+from velithon.memory import get_global_memory_handler
 
 from .base import Response
 
@@ -68,6 +69,15 @@ class OptimizedJSONResponse(Response):
         # Use provided content or fallback to stored content
         content_to_render = content if content is not None else self._content
 
+        # Try cache first
+        memory_handler = get_global_memory_handler()
+        cache_key = f"json_response_{hash(str(content_to_render))}"
+        cached_result = memory_handler.get_cached_response(cache_key)
+        if cached_result is not None:
+            self._render_time = time.perf_counter() - start_time
+            self._cache_hit = True
+            return cached_result
+
         try:
             # Use the Rust-based serializer
             if self._use_parallel_auto:
@@ -82,8 +92,13 @@ class OptimizedJSONResponse(Response):
                     content_to_render, use_parallel=should_parallel
                 )
 
+            result_bytes = bytes(result)
+            
+            # Cache the result for future use
+            memory_handler.cache_response(cache_key, result_bytes)
+            
             self._render_time = time.perf_counter() - start_time
-            return bytes(result)
+            return result_bytes
 
         except Exception as e:
             # Fallback to standard JSON serialization
@@ -93,6 +108,10 @@ class OptimizedJSONResponse(Response):
                 fallback_result = json.dumps(
                     content_to_render, separators=(',', ':')
                 ).encode('utf-8')
+                
+                # Cache fallback result too
+                memory_handler.cache_response(cache_key, fallback_result)
+                
                 self._render_time = time.perf_counter() - start_time
                 return fallback_result
             except Exception as fallback_error:

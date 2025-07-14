@@ -25,6 +25,7 @@ mod templates;
 mod vsp;
 mod error;
 mod json_serializer;
+mod memory_optimization;
 
 /// Velithon Rust Extensions
 /// High-performance Rust implementations for critical Velithon components
@@ -59,6 +60,9 @@ fn _velithon(m: &Bound<'_, PyModule>) -> PyResult<()> {
     
     // Register JSON serialization functions and classes
     json_serializer::register_json_serializer(m.py(), m)?;
+    
+    // Register memory optimization functions and classes
+    memory_optimization::register_memory_optimization(m.py(), m)?;
     
     Ok(())
 }

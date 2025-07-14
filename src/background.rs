@@ -1,9 +1,63 @@
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList, PyTuple};
 use pyo3_async_runtimes::tokio::future_into_py;
-use std::collections::VecDeque;
+use std::collections::{VecDeque, HashMap};
 use std::sync::{Arc, Mutex};
-use tokio::sync::Semaphore;
+use tokio::sync::{Semaphore, mpsc};
+
+/// Memory-efficient task queue with bounds
+struct BoundedTaskQueue {
+    sender: mpsc::Sender<BackgroundTask>,
+    receiver: Arc<Mutex<mpsc::Receiver<BackgroundTask>>>,
+    capacity: usize,
+    current_size: Arc<Mutex<usize>>,
+}
+
+impl BoundedTaskQueue {
+    fn new(capacity: usize) -> Self {
+        let (sender, receiver) = mpsc::channel(capacity);
+        Self {
+            sender,
+            receiver: Arc::new(Mutex::new(receiver)),
+            capacity,
+            current_size: Arc::new(Mutex::new(0)),
+        }
+    }
+
+    async fn push(&self, task: BackgroundTask) -> Result<(), BackgroundTask> {
+        match self.sender.try_send(task) {
+            Ok(_) => {
+                let mut size = self.current_size.lock().unwrap();
+                *size += 1;
+                Ok(())
+            },
+            Err(mpsc::error::TrySendError::Full(task)) => Err(task),
+            Err(mpsc::error::TrySendError::Closed(task)) => Err(task),
+        }
+    }
+
+    async fn pop(&self) -> Option<BackgroundTask> {
+        let receiver = self.receiver.clone();
+        let mut recv = receiver.lock().unwrap();
+        
+        match recv.try_recv() {
+            Ok(task) => {
+                let mut size = self.current_size.lock().unwrap();
+                *size = size.saturating_sub(1);
+                Some(task)
+            },
+            Err(_) => None,
+        }
+    }
+
+    fn len(&self) -> usize {
+        *self.current_size.lock().unwrap()
+    }
+
+    fn capacity(&self) -> usize {
+        self.capacity
+    }
+}
 
 /// A high-performance background task implementation in Rust
 #[pyclass]
@@ -125,21 +179,32 @@ impl BackgroundTask {
     }
 }
 
-/// High-performance background tasks manager
+/// High-performance background tasks manager with memory bounds
 #[pyclass]
 pub struct BackgroundTasks {
     tasks: Arc<Mutex<VecDeque<BackgroundTask>>>,
     max_concurrent: usize,
+    max_queue_size: usize,
+    memory_pressure_threshold: usize,
 }
 
 #[pymethods]
 impl BackgroundTasks {
     #[new]
-    #[pyo3(signature = (tasks = None, max_concurrent = None))]
-    fn new(tasks: Option<&Bound<'_, PyList>>, max_concurrent: Option<usize>) -> PyResult<Self> {
+    #[pyo3(signature = (tasks = None, max_concurrent = None, max_queue_size = None, memory_pressure_threshold = None))]
+    fn new(
+        tasks: Option<&Bound<'_, PyList>>, 
+        max_concurrent: Option<usize>,
+        max_queue_size: Option<usize>,
+        memory_pressure_threshold: Option<usize>,
+    ) -> PyResult<Self> {
+        let max_queue = max_queue_size.unwrap_or(10000);
         let task_queue = if let Some(tasks_list) = tasks {
-            let mut queue = VecDeque::with_capacity(tasks_list.len());
-            for task in tasks_list.iter() {
+            let mut queue = VecDeque::with_capacity(std::cmp::min(tasks_list.len(), max_queue));
+            for (i, task) in tasks_list.iter().enumerate() {
+                if i >= max_queue {
+                    break; // Respect memory bounds
+                }
                 let bg_task: BackgroundTask = task.extract()?;
                 queue.push_back(bg_task);
             }
@@ -151,10 +216,12 @@ impl BackgroundTasks {
         Ok(Self {
             tasks: Arc::new(Mutex::new(task_queue)),
             max_concurrent: max_concurrent.unwrap_or(10),
+            max_queue_size: max_queue,
+            memory_pressure_threshold: memory_pressure_threshold.unwrap_or(max_queue / 2),
         })
     }
 
-    /// Add a task to the background tasks queue
+    /// Add a task to the background tasks queue with memory pressure checks
     #[pyo3(signature = (func, args = None, kwargs = None))]
     fn add_task(
         &self,
@@ -163,6 +230,24 @@ impl BackgroundTasks {
         args: Option<&Bound<'_, PyTuple>>,
         kwargs: Option<&Bound<'_, PyDict>>,
     ) -> PyResult<()> {
+        // Check memory pressure first
+        let current_size = {
+            let task_queue = self.tasks.lock().unwrap();
+            task_queue.len()
+        };
+
+        if current_size >= self.max_queue_size {
+            return Err(PyErr::new::<pyo3::exceptions::PyMemoryError, _>(
+                format!("Task queue full ({}), cannot add more tasks", self.max_queue_size)
+            ));
+        }
+
+        if current_size >= self.memory_pressure_threshold {
+            // Force garbage collection when under memory pressure
+            let gc = py.import("gc")?;
+            gc.call_method0("collect")?;
+        }
+
         let task = BackgroundTask::new(py, func, args, kwargs)?;
         
         // Use standard mutex for simple synchronous access
@@ -312,6 +397,37 @@ impl BackgroundTasks {
             task_queue.clear();
             Python::with_gil(|py| Ok(py.None()))
         })
+    }
+
+    /// Get queue and memory statistics
+    fn get_queue_stats(&self) -> HashMap<String, usize> {
+        let task_queue = self.tasks.lock().unwrap();
+        let mut stats = HashMap::new();
+        
+        stats.insert("current_tasks".to_string(), task_queue.len());
+        stats.insert("max_queue_size".to_string(), self.max_queue_size);
+        stats.insert("memory_pressure_threshold".to_string(), self.memory_pressure_threshold);
+        stats.insert("max_concurrent".to_string(), self.max_concurrent);
+        
+        let utilization_percent = if self.max_queue_size > 0 {
+            (task_queue.len() * 100) / self.max_queue_size
+        } else {
+            0
+        };
+        stats.insert("utilization_percent".to_string(), utilization_percent);
+        
+        let memory_pressure = task_queue.len() >= self.memory_pressure_threshold;
+        stats.insert("memory_pressure".to_string(), if memory_pressure { 1 } else { 0 });
+        
+        stats
+    }
+
+    /// Clear all pending tasks (useful for memory cleanup)
+    fn clear_tasks(&self) -> usize {
+        let mut task_queue = self.tasks.lock().unwrap();
+        let count = task_queue.len();
+        task_queue.clear();
+        count
     }
 }
 

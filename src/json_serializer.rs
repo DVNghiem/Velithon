@@ -6,6 +6,38 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use parking_lot::RwLock;
 
+/// Memory-efficient buffer pool for JSON serialization
+struct BufferPool {
+    buffers: RwLock<Vec<Vec<u8>>>,
+    max_buffers: usize,
+    target_capacity: usize,
+}
+
+impl BufferPool {
+    fn new(max_buffers: usize, target_capacity: usize) -> Self {
+        Self {
+            buffers: RwLock::new(Vec::new()),
+            max_buffers,
+            target_capacity,
+        }
+    }
+
+    fn get_buffer(&self) -> Vec<u8> {
+        let mut buffers = self.buffers.write();
+        buffers.pop().unwrap_or_else(|| Vec::with_capacity(self.target_capacity))
+    }
+
+    fn return_buffer(&self, mut buffer: Vec<u8>) {
+        buffer.clear();
+        if buffer.capacity() < self.target_capacity * 2 {
+            let mut buffers = self.buffers.write();
+            if buffers.len() < self.max_buffers {
+                buffers.push(buffer);
+            }
+        }
+    }
+}
+
 /// High-performance parallel JSON serializer using Rayon for concurrent processing
 #[pyclass]
 pub struct ParallelJSONSerializer {
@@ -17,6 +49,8 @@ pub struct ParallelJSONSerializer {
     cache: Arc<RwLock<HashMap<u64, String>>>,
     /// Cache size limit
     cache_size_limit: usize,
+    /// Buffer pool for memory efficiency
+    buffer_pool: Arc<BufferPool>,
 }
 
 #[pymethods]
@@ -29,6 +63,7 @@ impl ParallelJSONSerializer {
             max_depth,
             cache: Arc::new(RwLock::new(HashMap::new())),
             cache_size_limit,
+            buffer_pool: Arc::new(BufferPool::new(20, 8192)), // Pool of 20 buffers, 8KB each
         }
     }
 
