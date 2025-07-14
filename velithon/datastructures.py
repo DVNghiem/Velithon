@@ -90,6 +90,7 @@ class Protocol:
     __slots__ = (
         '_headers',
         '_protocol',
+        '_response_data',
         '_status_code',
     )
 
@@ -97,6 +98,11 @@ class Protocol:
         self._protocol = protocol
         self._status_code = 200
         self._headers = []
+        self._response_data = []
+
+    @property
+    def response_data(self) -> list[bytes]:
+        return self._response_data
 
     async def __call__(self, *args, **kwds) -> bytes:
         return await self._protocol(*args, **kwds)
@@ -115,11 +121,13 @@ class Protocol:
         self._status_code = status
         self._headers.extend(headers)
         self._protocol.response_empty(status, self._headers)
+        self._response_data.append(b"")
 
     def response_str(self, status: int, headers: tuple[str, str], body: str) -> None:
         self._status_code = status
         self._headers.extend(headers)
         self._protocol.response_str(status, self._headers, body)
+        self._response_data.append(body.encode("utf-8"))
 
     def response_bytes(
         self, status: int, headers: tuple[str, str], body: bytes
@@ -127,6 +135,7 @@ class Protocol:
         self._status_code = status
         self._headers.extend(headers)
         self._protocol.response_bytes(status, self._headers, body)
+        self._response_data.append(body)
 
     def response_file(
         self, status: int, headers: tuple[str, str], file: typing.Any
@@ -134,6 +143,7 @@ class Protocol:
         self._status_code = status
         self._headers.extend(headers)
         self._protocol.response_file(status, self._headers, file)
+        self._response_data.append(file)
 
     def response_stream(self, status: int, headers: tuple[str, str]) -> typing.Any:
         self._status_code = status
