@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import typing
 from urllib.parse import SplitResult, parse_qsl, urlencode, urlsplit
+from weakref import WeakValueDictionary
 
 from granian.rsgi import HTTPProtocol
 from granian.rsgi import Scope as RSGIScope
@@ -16,6 +17,81 @@ from velithon.base_datastructures import (
 )
 
 request_id_generator = RequestIDGenerator()
+
+
+class ResponseDataCapture:
+    """Efficient response data capture with memory pooling.
+    
+    This class provides an optimized way to capture response data when needed
+    by middleware, without impacting performance when not in use.
+    
+    Usage in middleware:
+    ```python
+    # Only enable capture when needed
+    if need_to_process_response:
+        protocol.enable_response_capture()
+    
+    # After response is sent, access the data
+    response_data = protocol.response_data
+    if response_data:
+        # Process the captured response data
+        for chunk in response_data:
+            process_chunk(chunk)
+    ```
+    
+    Performance benefits:
+    - Zero memory allocation when capture is disabled (default)
+    - Memory pool reduces GC pressure for enabled capture
+    - Automatic cleanup prevents memory leaks
+    """
+
+    # Simple memory pool for byte buffers
+    _buffer_pool: list[list[bytes]] = []
+    _pool_max_size = 50
+
+    def __init__(self, enabled: bool = False):
+        self.enabled = enabled
+        self._data: list[bytes] | None = self._get_buffer() if enabled else None
+
+    def enable(self) -> None:
+        """Enable response data capture."""
+        if not self.enabled:
+            self.enabled = True
+            self._data = self._get_buffer()
+
+    def disable(self) -> None:
+        """Disable response data capture and return buffer to pool."""
+        if self.enabled and self._data is not None:
+            self._return_buffer(self._data)
+            self._data = None
+            self.enabled = False
+
+    def append(self, data: bytes | typing.Any) -> None:
+        """Append data to the capture buffer if enabled."""
+        if self.enabled and self._data is not None:
+            self._data.append(data)
+
+    def get_data(self) -> list[bytes] | None:
+        """Get the captured data."""
+        return self._data if self.enabled else None
+
+    @classmethod
+    def _get_buffer(cls) -> list[bytes]:
+        """Get a buffer from the pool or create a new one."""
+        if cls._buffer_pool:
+            return cls._buffer_pool.pop()
+        return []
+
+    @classmethod
+    def _return_buffer(cls, buffer: list[bytes]) -> None:
+        """Return a buffer to the pool after clearing it."""
+        if len(cls._buffer_pool) < cls._pool_max_size:
+            buffer.clear()
+            cls._buffer_pool.append(buffer)
+
+    def __del__(self):
+        """Cleanup when object is destroyed."""
+        self.disable()
 
 
 class Scope:
@@ -90,19 +166,28 @@ class Protocol:
     __slots__ = (
         '_headers',
         '_protocol',
-        '_response_data',
+        '_response_capture',
         '_status_code',
     )
 
-    def __init__(self, protocol: HTTPProtocol) -> None:
+    def __init__(self, protocol: HTTPProtocol, capture_response_data: bool = False) -> None:
         self._protocol = protocol
         self._status_code = 200
         self._headers = []
-        self._response_data = []
+        self._response_capture = ResponseDataCapture(capture_response_data)
 
     @property
-    def response_data(self) -> list[bytes]:
-        return self._response_data
+    def response_data(self) -> list[bytes] | None:
+        """Get captured response data. Returns None if capture is disabled."""
+        return self._response_capture.get_data()
+
+    def enable_response_capture(self) -> None:
+        """Enable response data capture. Should be called before any response methods."""
+        self._response_capture.enable()
+
+    def disable_response_capture(self) -> None:
+        """Disable response data capture and clear any captured data."""
+        self._response_capture.disable()
 
     async def __call__(self, *args, **kwds) -> bytes:
         return await self._protocol(*args, **kwds)
@@ -121,13 +206,13 @@ class Protocol:
         self._status_code = status
         self._headers.extend(headers)
         self._protocol.response_empty(status, self._headers)
-        self._response_data.append(b"")
+        self._response_capture.append(b"")
 
     def response_str(self, status: int, headers: tuple[str, str], body: str) -> None:
         self._status_code = status
         self._headers.extend(headers)
         self._protocol.response_str(status, self._headers, body)
-        self._response_data.append(body.encode("utf-8"))
+        self._response_capture.append(body.encode("utf-8"))
 
     def response_bytes(
         self, status: int, headers: tuple[str, str], body: bytes
@@ -135,7 +220,7 @@ class Protocol:
         self._status_code = status
         self._headers.extend(headers)
         self._protocol.response_bytes(status, self._headers, body)
-        self._response_data.append(body)
+        self._response_capture.append(body)
 
     def response_file(
         self, status: int, headers: tuple[str, str], file: typing.Any
@@ -143,7 +228,7 @@ class Protocol:
         self._status_code = status
         self._headers.extend(headers)
         self._protocol.response_file(status, self._headers, file)
-        self._response_data.append(file)
+        self._response_capture.append(file)
 
     def response_stream(self, status: int, headers: tuple[str, str]) -> typing.Any:
         self._status_code = status
