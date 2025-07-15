@@ -10,7 +10,7 @@ from __future__ import annotations
 import dataclasses
 from typing import Any
 
-from velithon.responses import JsonResponse
+from velithon.responses import JSONResponse
 
 # Try to import pydantic
 try:
@@ -158,24 +158,8 @@ def serialize_to_dict(obj: Any) -> dict[str, Any] | list[Any] | Any:
     return obj
 
 
-def should_use_optimized_json(obj: Any) -> bool:
-    """Determine if optimized JSON should be used (legacy - always True).
 
-    This function is kept for backward compatibility but always returns True
-    since the unified JsonResponse handles all optimizations automatically.
-
-    Args:
-        obj: The object to check
-
-    Returns:
-        Always True (deprecated logic)
-
-    """
-    # Legacy function - the unified JsonResponse handles optimization automatically
-    return True
-
-
-def create_json_response(obj: Any, status_code: int = 200) -> JsonResponse:
+def create_json_response(obj: Any, status_code: int = 200) -> JSONResponse:
     """Create a JSON response for the given object.
 
     Args:
@@ -183,14 +167,14 @@ def create_json_response(obj: Any, status_code: int = 200) -> JsonResponse:
         status_code: HTTP status code
 
     Returns:
-        JsonResponse with serialized content
+        JSONResponse with serialized content
 
     """
     # Convert object to serializable format
     serialized_obj = serialize_to_dict(obj)
 
-    # Always use the unified JsonResponse - it handles optimization automatically
-    return JsonResponse(serialized_obj, status_code=status_code)
+    # Always use the unified JSONResponse - it handles optimization automatically
+    return JSONResponse(serialized_obj, status_code=status_code)
 
 
 def is_response_like(obj: Any) -> bool:
@@ -216,7 +200,7 @@ def is_response_like(obj: Any) -> bool:
     return False
 
 
-def auto_serialize_response(obj: Any, status_code: int = 200) -> JsonResponse:
+def auto_serialize_response(obj: Any, status_code: int = 200) -> JSONResponse:
     """Automatically serialize an object to an appropriate JSON response.
 
     This is the main entry point for automatic serialization. It handles:
@@ -231,7 +215,7 @@ def auto_serialize_response(obj: Any, status_code: int = 200) -> JsonResponse:
         status_code: HTTP status code
 
     Returns:
-        JSONResponse or OptimizedJSONResponse
+        JSONResponse or JSONResponse
 
     Raises:
         TypeError: If the object cannot be serialized

@@ -1,6 +1,6 @@
-"""Simple example demonstrating the unified JsonResponse.
+"""Simple example demonstrating the unified JSONResponse.
 
-This example shows how the new JsonResponse handles all JSON serialization
+This example shows how the new JSONResponse handles all JSON serialization
 needs with optimal performance and simplicity.
 """
 
@@ -8,7 +8,7 @@ import time
 from dataclasses import dataclass
 
 from velithon import Velithon
-from velithon.responses import JsonResponse
+from velithon.responses import JSONResponse
 
 # Create app instance
 app = Velithon()
@@ -27,8 +27,8 @@ class User:
 @app.get("/")
 async def root():
     """Return simple JSON response."""
-    return JsonResponse({
-        "message": "Welcome to Velithon with unified JsonResponse!",
+    return JSONResponse({
+        "message": "Welcome to Velithon with unified JSONResponse!",
         "timestamp": time.time(),
         "framework": "Velithon"
     })
@@ -42,7 +42,7 @@ async def get_user(user_id: int):
         name=f"User {user_id}",
         email=f"user{user_id}@example.com"
     )
-    return JsonResponse(user.__dict__)
+    return JSONResponse(user.__dict__)
 
 
 @app.get("/users")
@@ -53,7 +53,7 @@ async def list_users():
         for i in range(100)
     ]
 
-    return JsonResponse({
+    return JSONResponse({
         "users": [user.__dict__ for user in users],
         "total": len(users),
         "page": 1,
@@ -90,7 +90,7 @@ async def large_dataset():
         }
     }
 
-    return JsonResponse(data)
+    return JSONResponse(data)
 
 
 @app.post("/users")
@@ -105,7 +105,7 @@ async def create_user(request):
         email=user_data.get("email", "unknown@example.com")
     )
 
-    return JsonResponse(
+    return JSONResponse(
         {
             "message": "User created successfully",
             "user": new_user.__dict__
@@ -117,7 +117,7 @@ async def create_user(request):
 @app.get("/error-example")
 async def error_example():
     """Return example error response."""
-    return JsonResponse(
+    return JSONResponse(
         {
             "error": "Something went wrong",
             "code": "EXAMPLE_ERROR",
@@ -131,7 +131,7 @@ async def error_example():
 
 
 if __name__ == "__main__":
-    print("🚀 Velithon JsonResponse Example")
+    print("🚀 Velithon JSONResponse Example")
     print("===============================")
     print("Run this with: uvicorn json_response_example:app --reload")
     print()
@@ -143,4 +143,4 @@ if __name__ == "__main__":
     print("  POST /users             - Create user")
     print("  GET  /error-example     - Error response")
     print()
-    print("All responses use the unified JsonResponse for optimal performance!")
+    print("All responses use the unified JSONResponse for optimal performance!")

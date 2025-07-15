@@ -18,8 +18,7 @@ from .gateway import Gateway, GatewayRoute, gateway_route, forward_to
 from .requests import Request
 from .responses import (
     Response,
-    JsonResponse,
-    JSONResponse,  # Backward compatibility alias
+    JSONResponse,
     HTMLResponse,
     PlainTextResponse,
     RedirectResponse,
@@ -78,8 +77,7 @@ __all__ = [
     'HTMLResponse',
     'HTTPException',
     'InternalServerException',
-    'JSONResponse',  # Backward compatibility alias
-    'JsonResponse',  # Main JSON response
+    'JSONResponse',
     'Middleware',
     'NotFoundException',
     'PlainTextResponse',

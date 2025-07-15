@@ -26,14 +26,13 @@ except ImportError:
     UserModel = None
     ProductModel = None
 
-from velithon.responses import JSONResponse, OptimizedJSONResponse
+from velithon.responses import JSONResponse
 from velithon.serialization import (
     auto_serialize_response,
     create_json_response,
     is_json_serializable,
     is_response_like,
     serialize_to_dict,
-    should_use_optimized_json,
 )
 
 
@@ -188,47 +187,6 @@ class TestObjectSerialization:
         obj = SimpleObject()
         result = serialize_to_dict(obj)
         assert result == {"name": "test", "value": 42}
-
-
-class TestOptimizedJsonDetection:
-    """Test detection of when to use optimized JSON."""
-
-    def test_small_objects_use_regular_json(self):
-        """Test that small objects use regular JSON."""
-        assert not should_use_optimized_json({"small": "object"})
-        assert not should_use_optimized_json([1, 2, 3])
-        assert not should_use_optimized_json("simple string")
-
-    def test_large_collections_use_optimized_json(self):
-        """Test that large collections use optimized JSON."""
-        large_list = list(range(200))
-        large_dict = {f"key_{i}": i for i in range(100)}
-
-        assert should_use_optimized_json(large_list)
-        assert should_use_optimized_json(large_dict)
-
-    @pytest.mark.skipif(not HAS_PYDANTIC, reason="Pydantic not available")
-    def test_pydantic_models_use_optimized_json(self):
-        """Test that Pydantic models use optimized JSON."""
-        user = UserModel(id=1, name="John", email="john@example.com")
-        assert should_use_optimized_json(user)
-
-    def test_dataclasses_use_optimized_json(self):
-        """Test that dataclasses use optimized JSON."""
-        user = UserDataclass(1, "John", "john@example.com")
-        assert should_use_optimized_json(user)
-
-    def test_complex_objects_use_optimized_json(self):
-        """Test that complex objects use optimized JSON."""
-        class ComplexObject:
-            def __init__(self):
-                for i in range(15):  # More than 10 attributes
-                    setattr(self, f"attr_{i}", f"value_{i}")
-
-        obj = ComplexObject()
-        assert should_use_optimized_json(obj)
-
-
 class TestResponseCreation:
     """Test automatic response creation."""
 
@@ -241,11 +199,11 @@ class TestResponseCreation:
         assert response.status_code == 200
 
     def test_complex_object_creates_optimized_response(self):
-        """Test that complex objects create OptimizedJSONResponse."""
+        """Test that complex objects create JSONResponse."""
         data = {f"key_{i}": f"value_{i}" for i in range(100)}
         response = create_json_response(data)
 
-        assert isinstance(response, OptimizedJSONResponse)
+        assert isinstance(response, JSONResponse)
         assert response.status_code == 200
 
     def test_custom_status_code(self):
@@ -261,7 +219,7 @@ class TestResponseCreation:
         user = UserModel(id=1, name="John", email="john@example.com")
         response = create_json_response(user)
 
-        assert isinstance(response, OptimizedJSONResponse)
+        assert isinstance(response, JSONResponse)
         assert response.status_code == 200
 
 
@@ -309,11 +267,11 @@ class TestAutoSerializeResponse:
         assert response.status_code == 200
 
     def test_large_dict_uses_optimized_response(self):
-        """Test that large dictionaries use OptimizedJSONResponse."""
+        """Test that large dictionaries use JSONResponse."""
         data = {f"item_{i}": f"value_{i}" for i in range(100)}
         response = auto_serialize_response(data)
 
-        assert isinstance(response, OptimizedJSONResponse)
+        assert isinstance(response, JSONResponse)
 
     @pytest.mark.skipif(not HAS_PYDANTIC, reason="Pydantic not available")
     def test_pydantic_model_serialization(self):
@@ -321,7 +279,7 @@ class TestAutoSerializeResponse:
         user = UserModel(id=1, name="John", email="john@example.com")
         response = auto_serialize_response(user)
 
-        assert isinstance(response, OptimizedJSONResponse)
+        assert isinstance(response, JSONResponse)
         # Check that the response body contains the serialized data
         import orjson
         body_data = orjson.loads(response.body)
@@ -335,7 +293,7 @@ class TestAutoSerializeResponse:
         user = UserDataclass(1, "John", "john@example.com")
         response = auto_serialize_response(user)
 
-        assert isinstance(response, OptimizedJSONResponse)
+        assert isinstance(response, JSONResponse)
         # Check that the response body contains the serialized data
         import orjson
         body_data = orjson.loads(response.body)

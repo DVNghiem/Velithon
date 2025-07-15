@@ -1,4 +1,4 @@
-"""JSON Response implementation."""
+"""Unified JSON Response implementation - the single, best-performing JSON response."""
 
 from __future__ import annotations
 
@@ -14,7 +14,14 @@ _response_cache = get_response_cache()
 
 
 class JSONResponse(Response):
-    """JSON response with optimized serialization."""
+    """High-performance JSON response optimized for all use cases.
+
+    This is the unified JSON response that combines the best of all approaches:
+    - Uses orjson for maximum performance with native types
+    - Intelligent caching for complex objects
+    - Fast path for simple data
+    - Graceful fallback for edge cases
+    """
 
     media_type = 'application/json'
 
@@ -26,21 +33,22 @@ class JSONResponse(Response):
         media_type: str | None = None,
         background: BackgroundTask | None = None,
     ) -> None:
-        # Pre-render the content when the response is created to avoid rendering twice
+        """Initialize JSON response with content."""
         self._content = content
         self._rendered = False
         super().__init__(content, status_code, headers, media_type, background)
 
     def render(self, content: typing.Any) -> bytes:
-        """Render content to JSON bytes with optimization."""
+        """Render content to JSON bytes with optimal performance."""
         # Fast path: if we already rendered this content during __init__, use that
         if self._rendered and content is self._content:
             return self.body
 
-        # Try direct orjson encoding for maximum performance
-        if HAS_ORJSON and isinstance(content, (dict, list)):
+        # Use orjson for maximum performance when available
+        if HAS_ORJSON and isinstance(
+            content, dict | list | str | int | float | bool | type(None)
+        ):
             try:
-                # Use orjson directly to avoid overhead
                 import orjson
 
                 result = orjson.dumps(content, option=orjson.OPT_SERIALIZE_NUMPY)
@@ -50,18 +58,18 @@ class JSONResponse(Response):
                 # Fall back to standard encoder if orjson fails
                 pass
 
-        # Only use caching for complex objects where serialization is expensive
-        if isinstance(content, (dict, list)) and len(str(content)) > 100:
-            # Create cache key for response caching - use id() for faster hashing
+        # For complex objects or when orjson is not available, use optimized encoder
+        # Only use caching for objects that are expensive to serialize
+        content_str = str(content)
+        if len(content_str) > 1000:  # Only cache larger objects
             cache_key = f'json:{id(content)}'
             cached_response = _response_cache.get(cache_key)
             if cached_response is not None:
                 return cached_response
 
-            # Use optimized encoder
             result = _optimized_json_encoder.encode(content)
             _response_cache.put(cache_key, result)
             return result
 
-        # For simple objects, skip caching overhead
+        # For simple objects, encode directly without caching overhead
         return _optimized_json_encoder.encode(content)

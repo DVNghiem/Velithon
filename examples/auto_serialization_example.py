@@ -61,7 +61,7 @@ app = Velithon()
 
 @app.get("/users/{user_id}")
 async def get_user(user_id: int):
-    """Return a Pydantic model - automatically uses OptimizedJSONResponse."""
+    """Return a Pydantic model - automatically uses JSONResponse."""
     return User(
         id=user_id,
         name=f"User {user_id}",
@@ -72,7 +72,7 @@ async def get_user(user_id: int):
 
 @app.get("/products/{product_id}")
 async def get_product(product_id: int):
-    """Return a dataclass - automatically uses OptimizedJSONResponse."""
+    """Return a dataclass - automatically uses JSONResponse."""
     return Product(
         id=product_id,
         name=f"Product {product_id}",
@@ -94,7 +94,7 @@ async def get_simple_data():
 
 @app.get("/large-collection")
 async def get_large_collection():
-    """Return a large collection - automatically uses OptimizedJSONResponse."""
+    """Return a large collection - automatically uses JSONResponse."""
     return {
         "users": [
             {"id": i, "name": f"User {i}", "email": f"user{i}@example.com"}
