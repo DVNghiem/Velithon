@@ -33,9 +33,9 @@ class VSPManager:
         max_transports: int = 10,
         batch_size: int = 10,
     ):
-        assert isinstance(worker_type, WorkerType), (
-            'worker_type must be an instance of WorkerType'
-        )
+        assert isinstance(
+            worker_type, WorkerType
+        ), 'worker_type must be an instance of WorkerType'
 
         self.name = name
         self.service_mesh = service_mesh or ServiceMesh(discovery_type='static')

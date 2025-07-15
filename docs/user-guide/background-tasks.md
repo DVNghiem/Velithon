@@ -15,7 +15,7 @@ Background tasks allow you to execute functions after returning a response to th
 ```python
 from velithon import Velithon
 from velithon.background import BackgroundTasks
-from velithon.responses import OptimizedJSONResponse
+from velithon.responses import JSONResponse
 import logging
 
 app = Velithon()
@@ -54,7 +54,7 @@ async def create_user(user_data: dict):
     
     # Execute tasks in background and return response immediately
     await background_tasks()
-    return OptimizedJSONResponse({
+    return JSONResponse({
         "id": user["id"],
         "message": "User created successfully"
     })
@@ -78,7 +78,7 @@ async def create_order(order_data: dict):
     # Execute background tasks
     await background_tasks()
     
-    return OptimizedJSONResponse({
+    return JSONResponse({
         "order_id": order["id"],
         "status": "processing"
     })
@@ -140,7 +140,7 @@ async def request_password_reset(email: str):
         token=token
     )
     
-    return OptimizedJSONResponse({
+    return JSONResponse({
         "message": "Password reset email sent"
     })
 
@@ -260,7 +260,7 @@ async def upload_image(file_path: str, user_id: int):
         "args": [file_path, user_id]
     })
     
-    return OptimizedJSONResponse({
+    return JSONResponse({
         "message": "Image uploaded and queued for processing"
     })
 
@@ -273,7 +273,7 @@ async def send_newsletter(email_list: list, subject: str, body: str):
         "args": [email_list, subject, body]
     })
     
-    return OptimizedJSONResponse({
+    return JSONResponse({
         "message": f"Newsletter queued for {len(email_list)} recipients"
     })
 ```
@@ -285,7 +285,7 @@ async def send_newsletter(email_list: list, subject: str, body: str):
 ```python
 from celery import Celery
 from velithon import Velithon
-from velithon.responses import OptimizedJSONResponse
+from velithon.responses import JSONResponse
 
 # Configure Celery
 celery_app = Celery(
@@ -331,7 +331,7 @@ async def handle_payment(payment_data: dict):
     # Queue payment processing
     task = process_payment.delay(payment_data)
     
-    return OptimizedJSONResponse({
+    return JSONResponse({
         "task_id": task.id,
         "status": "queued"
     })
@@ -341,7 +341,7 @@ async def request_report(report_type: str, user_id: int):
     # Queue report generation
     task = generate_report.delay(report_type, user_id)
     
-    return OptimizedJSONResponse({
+    return JSONResponse({
         "task_id": task.id,
         "message": "Report generation started"
     })
@@ -351,7 +351,7 @@ async def get_task_status(task_id: str):
     # Check Celery task status
     task = celery_app.AsyncResult(task_id)
     
-    return OptimizedJSONResponse({
+    return JSONResponse({
         "task_id": task_id,
         "status": task.status,
         "result": task.result if task.successful() else None,
@@ -365,7 +365,7 @@ async def get_task_status(task_id: str):
 import redis
 from rq import Queue, Job
 from velithon import Velithon
-from velithon.responses import OptimizedJSONResponse
+from velithon.responses import JSONResponse
 
 # Setup Redis connection
 redis_conn = redis.Redis(host='localhost', port=6379, db=0)
@@ -417,7 +417,7 @@ async def send_urgent_alert(user_id: int, message: str):
         job_timeout='30s'
     )
     
-    return OptimizedJSONResponse({
+    return JSONResponse({
         "job_id": job.id,
         "queue": "high_priority"
     })
@@ -431,7 +431,7 @@ async def process_data_batch(data_batch: list):
         job_timeout='5m'
     )
     
-    return OptimizedJSONResponse({
+    return JSONResponse({
         "job_id": job.id,
         "queue": "normal",
         "estimated_time": "5 minutes"
@@ -445,7 +445,7 @@ async def schedule_cleanup():
         job_timeout='1h'
     )
     
-    return OptimizedJSONResponse({
+    return JSONResponse({
         "job_id": job.id,
         "queue": "low_priority"
     })
@@ -455,7 +455,7 @@ async def get_job_status(job_id: str):
     try:
         job = Job.fetch(job_id, connection=redis_conn)
         
-        return OptimizedJSONResponse({
+        return JSONResponse({
             "job_id": job_id,
             "status": job.get_status(),
             "result": job.result,
@@ -464,7 +464,7 @@ async def get_job_status(job_id: str):
             "ended_at": job.ended_at.isoformat() if job.ended_at else None
         })
     except Exception as e:
-        return OptimizedJSONResponse({
+        return JSONResponse({
             "error": "Job not found"
         }, status_code=404)
 ```
@@ -505,7 +505,7 @@ async def submit_data(data: dict):
     # Execute background tasks
     await background_tasks()
     
-    return OptimizedJSONResponse({
+    return JSONResponse({
         "message": "Data submitted for processing"
     })
 
@@ -584,7 +584,7 @@ async def send_email_monitored(to: str, subject: str, body: str):
 @app.get("/task-metrics")
 async def get_task_metrics():
     """Get task execution metrics"""
-    return OptimizedJSONResponse({
+    return JSONResponse({
         "total_tasks": monitor.total_tasks,
         "completed_tasks": monitor.completed_tasks,
         "failed_tasks": monitor.failed_tasks,
@@ -604,7 +604,7 @@ async def background_task_health():
     if stats["failure_rate"] > 0.5:  # More than 50% failures
         health_status = "unhealthy"
     
-    return OptimizedJSONResponse({
+    return JSONResponse({
         "status": health_status,
         "recent_tasks": stats["total_tasks"],
         "failure_rate": stats["failure_rate"],

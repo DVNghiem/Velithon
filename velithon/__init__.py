@@ -26,8 +26,6 @@ from .responses import (
     StreamingResponse,
     SSEResponse,
     ProxyResponse,
-    OptimizedJSONResponse,
-    BatchJSONResponse,
 )
 
 # Routing
@@ -72,7 +70,6 @@ __all__ = [
     'HTTP_422_UNPROCESSABLE_ENTITY',
     'HTTP_500_INTERNAL_SERVER_ERROR',
     'BadRequestException',
-    'BatchJSONResponse',
     'FileResponse',
     'ForbiddenException',
     'Gateway',
@@ -83,7 +80,6 @@ __all__ = [
     'JSONResponse',
     'Middleware',
     'NotFoundException',
-    'OptimizedJSONResponse',
     'PlainTextResponse',
     'ProxyResponse',
     'RedirectResponse',

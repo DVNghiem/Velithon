@@ -24,7 +24,7 @@ chat_messages: List[Dict] = []
 user_count = 0
 
 
-@app.get("/")
+@app.get('/')
 async def index():
     """Serve the main HTML page with SSE examples."""
     html_content = """
@@ -288,163 +288,156 @@ async def index():
     return HTMLResponse(html_content)
 
 
-@app.get("/sse/counter")
+@app.get('/sse/counter')
 async def counter_stream():
     """Stream basic counter events."""
+
     async def generate():
         counter = 0
         while counter < 20:
-            yield f"Count: {counter}"
+            yield f'Count: {counter}'
             counter += 1
             await asyncio.sleep(1)
-    
+
     return SSEResponse(generate())
 
 
-@app.get("/sse/data")
+@app.get('/sse/data')
 async def data_stream():
     """Simulate real-time sensor data."""
+
     async def generate():
         import random
+
         base_temp = 20.0
         base_humidity = 50.0
-        
+
         for _ in range(30):
             # Simulate sensor readings with some variation
             temperature = round(base_temp + random.uniform(-2, 2), 1)
             humidity = round(base_humidity + random.uniform(-5, 5), 1)
-            
+
             yield {
-                "temperature": temperature,
-                "humidity": humidity,
-                "timestamp": datetime.now().isoformat()
+                'temperature': temperature,
+                'humidity': humidity,
+                'timestamp': datetime.now().isoformat(),
             }
             await asyncio.sleep(2)
-    
+
     return SSEResponse(generate(), ping_interval=15)
 
 
-@app.get("/sse/chat")
+@app.get('/sse/chat')
 async def chat_stream():
     """Stream chat messages."""
+
     async def generate():
         global user_count
         user_count += 1
-        user_id = f"User{user_count}"
-        
+        user_id = f'User{user_count}'
+
         # Send join notification
-        yield {
-            "data": user_id,
-            "event": "join",
-            "id": f"join-{user_id}"
-        }
-        
+        yield {'data': user_id, 'event': 'join', 'id': f'join-{user_id}'}
+
         # Send existing messages
         for i, msg in enumerate(chat_messages[-10:]):  # Last 10 messages
-            yield {
-                "data": msg,
-                "event": "message",
-                "id": f"msg-{i}"
-            }
-        
+            yield {'data': msg, 'event': 'message', 'id': f'msg-{i}'}
+
         # Keep connection alive and send new messages
         last_message_count = len(chat_messages)
         try:
             while True:
                 await asyncio.sleep(1)
-                
+
                 # Send new messages
                 if len(chat_messages) > last_message_count:
                     for msg in chat_messages[last_message_count:]:
                         yield {
-                            "data": msg,
-                            "event": "message",
-                            "id": f"msg-{len(chat_messages)}"
+                            'data': msg,
+                            'event': 'message',
+                            'id': f'msg-{len(chat_messages)}',
                         }
                     last_message_count = len(chat_messages)
-                
+
         except Exception:
             # Send leave notification
-            yield {
-                "data": user_id,
-                "event": "leave",
-                "id": f"leave-{user_id}"
-            }
-    
+            yield {'data': user_id, 'event': 'leave', 'id': f'leave-{user_id}'}
+
     return SSEResponse(generate(), ping_interval=30)
 
 
-@app.get("/sse/structured")
+@app.get('/sse/structured')
 async def structured_events():
     """Stream structured events with different event types."""
+
     async def generate():
         # Welcome event
         yield {
-            "data": "Welcome to the structured event stream",
-            "event": "welcome",
-            "id": "welcome-1"
+            'data': 'Welcome to the structured event stream',
+            'event': 'welcome',
+            'id': 'welcome-1',
         }
-        
+
         await asyncio.sleep(1)
-        
+
         # Status events
         for i in range(5):
             yield {
-                "data": {"status": f"Processing step {i+1}", "progress": (i+1) * 20},
-                "event": "status",
-                "id": f"status-{i+1}",
-                "retry": 3000
+                'data': {'status': f'Processing step {i+1}', 'progress': (i + 1) * 20},
+                'event': 'status',
+                'id': f'status-{i+1}',
+                'retry': 3000,
             }
             await asyncio.sleep(2)
-        
+
         # Data events
         for i in range(3):
             yield {
-                "data": {
-                    "batch": i+1,
-                    "items": [f"item-{j}" for j in range(1, 4)],
-                    "timestamp": time.time()
+                'data': {
+                    'batch': i + 1,
+                    'items': [f'item-{j}' for j in range(1, 4)],
+                    'timestamp': time.time(),
                 },
-                "event": "data",
-                "id": f"data-{i+1}"
+                'event': 'data',
+                'id': f'data-{i+1}',
             }
             await asyncio.sleep(3)
-        
+
         # Final status
         yield {
-            "data": {"status": "Complete", "progress": 100},
-            "event": "status",
-            "id": "status-final"
+            'data': {'status': 'Complete', 'progress': 100},
+            'event': 'status',
+            'id': 'status-final',
         }
-    
+
     return SSEResponse(generate())
 
 
-@app.post("/api/send-message")
+@app.post('/api/send-message')
 async def send_message(request):
     """Handle API endpoint to send a chat message."""
     data = await request.json()
     message = {
-        "user": data.get("user", "Anonymous"),
-        "message": data.get("message", ""),
-        "timestamp": datetime.now().isoformat()
+        'user': data.get('user', 'Anonymous'),
+        'message': data.get('message', ''),
+        'timestamp': datetime.now().isoformat(),
     }
     chat_messages.append(message)
-    
+
     # Keep only last 50 messages
     if len(chat_messages) > 50:
         chat_messages.pop(0)
-    
-    return {"status": "sent", "message": message}
+
+    return {'status': 'sent', 'message': message}
 
 
-if __name__ == "__main__":
-    print("Starting SSE example server...")
-    print("Visit http://localhost:8000 to see the examples")
+if __name__ == '__main__':
+    print('Starting SSE example server...')
+    print('Visit http://localhost:8000 to see the examples')
     app._serve(
-        app="examples.sse_example:app",
-        host="0.0.0.0",
+        app='examples.sse_example:app',
+        host='0.0.0.0',
         port=8000,
         workers=1,
-        log_level="INFO"
+        log_level='INFO',
     )

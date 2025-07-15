@@ -60,7 +60,6 @@ class TemplateEngine:
         <p>{{upper name}} - {{len items}} items</p>
         <p>Today: {{format_date today}}</p>
         ```
-
     """
 
     def __init__(

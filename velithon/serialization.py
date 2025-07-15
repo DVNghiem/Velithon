@@ -8,23 +8,24 @@ and other JSON-serializable types.
 from __future__ import annotations
 
 import dataclasses
-import typing
 from typing import Any
 
-from velithon.responses import JSONResponse, OptimizedJSONResponse
+from velithon.responses import JSONResponse
 
 # Try to import pydantic
 try:
     from pydantic import BaseModel
+
     HAS_PYDANTIC = True
 except ImportError:
     BaseModel = None
     HAS_PYDANTIC = False
 
-# Try to import msgpack
+# Try to import msgpack (check availability only)
 try:
-    import msgpack
-    HAS_MSGPACK = True
+    import importlib.util
+
+    HAS_MSGPACK = importlib.util.find_spec('msgpack') is not None
 except ImportError:
     HAS_MSGPACK = False
 
@@ -49,8 +50,7 @@ def is_json_serializable(obj: Any) -> bool:
 
     if isinstance(obj, dict):
         return all(
-            isinstance(k, str) and is_json_serializable(v)
-            for k, v in obj.items()
+            isinstance(k, str) and is_json_serializable(v) for k, v in obj.items()
         )
 
     # Exclude functions and methods
@@ -77,9 +77,7 @@ def is_json_serializable(obj: Any) -> bool:
         return True
 
     # Objects with __dict__ (basic serialization) but exclude functions/classes
-    if (hasattr(obj, '__dict__') and
-        not callable(obj) and
-        not isinstance(obj, type)):
+    if hasattr(obj, '__dict__') and not callable(obj) and not isinstance(obj, type):
         return True
 
     return False
@@ -159,73 +157,22 @@ def serialize_to_dict(obj: Any) -> dict[str, Any] | list[Any] | Any:
     return obj
 
 
-def should_use_optimized_json(obj: Any) -> bool:
-    """Determine if we should use OptimizedJSONResponse based on object complexity.
-
-    Args:
-        obj: The object to check
-
-    Returns:
-        True if OptimizedJSONResponse should be used, False for regular JSONResponse
-
-    """
-    def _estimate_complexity(obj: Any, depth: int = 0) -> int:
-        """Estimate complexity of an object by counting elements."""
-        if depth > 5:  # Prevent infinite recursion
-            return 1
-
-        if isinstance(obj, list | tuple):
-            return len(obj) + sum(_estimate_complexity(item, depth + 1)
-                                 for item in obj[:10])  # Sample first 10
-        elif isinstance(obj, dict):
-            return len(obj) + sum(_estimate_complexity(v, depth + 1)
-                                 for v in list(obj.values())[:10])  # Sample first 10
-        else:
-            return 1
-
-    complexity = _estimate_complexity(obj)
-
-    # Use optimized JSON for complex objects or large collections
-    if isinstance(obj, list | tuple) and len(obj) > 100:
-        return True
-
-    if isinstance(obj, dict) and (len(obj) > 50 or complexity > 200):
-        return True
-
-    # Use optimized JSON for Pydantic models (they can be complex)
-    if HAS_PYDANTIC and isinstance(obj, BaseModel):
-        return True
-
-    # Use optimized JSON for dataclasses
-    if dataclasses.is_dataclass(obj):
-        return True
-
-    # Use optimized JSON for custom objects
-    if hasattr(obj, '__dict__') and len(obj.__dict__) > 10:
-        return True
-
-    return False
-
-
 def create_json_response(obj: Any, status_code: int = 200) -> JSONResponse:
-    """Create an appropriate JSON response for the given object.
+    """Create a JSON response for the given object.
 
     Args:
         obj: The object to serialize
         status_code: HTTP status code
 
     Returns:
-        JSONResponse or OptimizedJSONResponse based on object complexity
+        JSONResponse with serialized content
 
     """
     # Convert object to serializable format
     serialized_obj = serialize_to_dict(obj)
 
-    # Choose the appropriate response type
-    if should_use_optimized_json(obj):
-        return OptimizedJSONResponse(serialized_obj, status_code=status_code)
-    else:
-        return JSONResponse(serialized_obj, status_code=status_code)
+    # Always use the unified JSONResponse - it handles optimization automatically
+    return JSONResponse(serialized_obj, status_code=status_code)
 
 
 def is_response_like(obj: Any) -> bool:
@@ -266,7 +213,7 @@ def auto_serialize_response(obj: Any, status_code: int = 200) -> JSONResponse:
         status_code: HTTP status code
 
     Returns:
-        JSONResponse or OptimizedJSONResponse
+        JSONResponse or JSONResponse
 
     Raises:
         TypeError: If the object cannot be serialized
@@ -278,6 +225,6 @@ def auto_serialize_response(obj: Any, status_code: int = 200) -> JSONResponse:
 
     # Check if object is serializable
     if not is_json_serializable(obj):
-        raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+        raise TypeError(f'Object of type {type(obj)} is not JSON serializable')
 
     return create_json_response(obj, status_code)

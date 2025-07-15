@@ -77,22 +77,17 @@ Velithon includes a Rust-based JSON serialization system that provides significa
 ### Quick Example
 
 ```python
-from velithon.responses import OptimizedJSONResponse, BatchJSONResponse
+from velithon.responses import JSONResponse
 
 @app.get("/large-dataset")
 async def get_large_dataset():
     data = generate_large_dataset()
-    return OptimizedJSONResponse(
-        data,
-        parallel_threshold=100,
-        use_parallel_auto=True,
-        enable_caching=True
-    )
+    return JSONResponse(data)
 
 @app.get("/batch-data")
 async def get_batch_data():
     objects = [generate_object(i) for i in range(1000)]
-    return BatchJSONResponse(objects, parallel_threshold=50)
+    return JSONResponse(objects)
 ```
 
 **Learn More**: [JSON Optimization Guide](json-optimization.md)

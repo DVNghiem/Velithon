@@ -1,22 +1,22 @@
-# JSON Optimization
+# JSON Responses
 
-Velithon provides high-performance JSON serialization through Rust-based optimizations, including parallel processing for large datasets and batch operations for improved throughput.
+Velithon provides high-performance JSON serialization that automatically optimizes for the best performance based on your data.
 
 ## Overview
 
-JSON optimization in Velithon includes:
-- **OptimizedJSONResponse**: Rust-based parallel JSON serialization
-- **BatchJSONResponse**: Efficient batch processing for collections
-- **Automatic Optimization**: Smart selection between standard and optimized serialization
-- **Memory-Efficient Processing**: Streaming capabilities for large datasets
+JSON handling in Velithon is now simplified:
+- **JSONResponse**: Single, optimized JSON response class for all use cases
+- **Automatic Optimization**: Built-in optimization that adapts to your data size and complexity
+- **No Configuration Needed**: Works efficiently out of the box
+- **Memory-Efficient Processing**: Optimized for both small and large datasets
 
-## Optimized JSON Responses
+## Unified JSON Responses
 
-### Basic Optimized Responses
+### All Data Sizes Handled Efficiently
 
 ```python
 from velithon import Velithon
-from velithon.responses import OptimizedJSONResponse, JSONResponse
+from velithon.responses import JSONResponse
 import datetime
 import decimal
 
@@ -24,7 +24,7 @@ app = Velithon()
 
 @app.get("/users")
 async def get_users():
-    """Large dataset using optimized JSON serialization"""
+    """Large dataset automatically optimized"""
     users = []
     for i in range(10000):  # Large dataset
         users.append({
@@ -34,8 +34,8 @@ async def get_users():
             "balance": decimal.Decimal("100.50")
         })
     
-    # Automatically uses parallel processing for large datasets
-    return OptimizedJSONResponse(users)
+    # Automatically optimized for large datasets
+    return JSONResponse(users)
 
 @app.get("/small-data")
 async def get_small_data():
@@ -43,11 +43,11 @@ async def get_small_data():
     data = {"message": "Hello", "count": 42}
     
     # Uses fast path for small objects
-    return OptimizedJSONResponse(data)
+    return JSONResponse(data)
 
-@app.get("/standard-json")
-async def get_standard_json():
-    """Standard JSON response for comparison"""
+@app.get("/medium-data")
+async def get_medium_data():
+    """Medium dataset automatically handled"""
     data = {"message": "Hello", "count": 42}
     return JSONResponse(data)
 ```
@@ -55,27 +55,30 @@ async def get_standard_json():
 ### Configuration Options
 
 ```python
-from velithon.responses import OptimizedJSONResponse
+from velithon.responses import JSONResponse
 
 @app.get("/configured-response")
 async def get_configured_response():
     large_dataset = generate_large_data()
     
-    return OptimizedJSONResponse(
+    return JSONResponse(
         large_dataset,
         parallel_threshold=5000,    # Use parallel processing for 5000+ items
         use_parallel_auto=True,     # Automatically decide when to use parallel
         enable_caching=True,        # Cache frequently serialized objects
         max_cache_size=500          # Maximum cached objects
-    )
+    data = {"products": list(range(1000))}
+    
+    # All JSON responses are now automatically optimized
+    return JSONResponse(data)
 ```
 
-## Batch JSON Responses
+## Batch Processing Made Simple
 
-### Batch Processing
+### Efficient Collection Handling
 
 ```python
-from velithon.responses import BatchJSONResponse, batch_json_response
+from velithon.responses import JSONResponse
 
 @app.get("/users/batch")
 async def get_users_batch():
@@ -91,12 +94,12 @@ async def get_users_batch():
             "created_at": datetime.datetime.now()
         })
     
-    # BatchJSONResponse optimizes processing of large collections
-    return BatchJSONResponse(users)
+    # JSONResponse automatically optimizes large collections
+    return JSONResponse(users)
 
 @app.get("/analytics/data")
 async def get_analytics_data():
-    """Batch process analytics data"""
+    """Process analytics data efficiently"""
     
     analytics_data = []
     for i in range(20000):
@@ -106,8 +109,8 @@ async def get_analytics_data():
             "category": f"Category {i % 10}"
         })
     
-    # Use the convenience function
-    return batch_json_response(analytics_data)
+    # No special configuration needed
+    return JSONResponse(analytics_data)
 
 @app.get("/products/export")
 async def export_products():
@@ -122,8 +125,8 @@ async def export_products():
                 "in_stock": i % 3 != 0
             }
     
-    # BatchJSONResponse handles generators efficiently
-    return BatchJSONResponse(generate_products())
+    # JSONResponse handles generators efficiently
+    return JSONResponse(generate_products())
 ```
 
 ## Streaming JSON with StreamingResponse
@@ -220,7 +223,7 @@ async def export_large_dataset():
 ### Choosing the Right Response Type
 
 ```python
-from velithon.responses import JSONResponse, OptimizedJSONResponse, BatchJSONResponse, StreamingResponse
+from velithon.responses import JSONResponse, JSONResponse, JSONResponse, StreamingResponse
 
 @app.get("/small-data")
 async def get_small_data():
@@ -230,15 +233,15 @@ async def get_small_data():
 
 @app.get("/medium-data")
 async def get_medium_data():
-    """Use OptimizedJSONResponse for medium to large data"""
+    """Use JSONResponse for medium to large data"""
     data = [{"id": i, "name": f"Item {i}"} for i in range(5000)]
-    return OptimizedJSONResponse(data)  # Parallel processing
+    return JSONResponse(data)  # Parallel processing
 
 @app.get("/large-collection")
 async def get_large_collection():
-    """Use BatchJSONResponse for very large collections"""
+    """Use JSONResponse for very large collections"""
     data = [{"id": i, "value": i * 2} for i in range(100000)]
-    return BatchJSONResponse(data)  # Optimized for large batches
+    return JSONResponse(data)  # Optimized for large batches
 
 @app.get("/huge-dataset")
 async def get_huge_dataset():
@@ -283,7 +286,7 @@ async def get_efficient_pagination(page: int = 1, size: int = 100):
         }
     }
     
-    return OptimizedJSONResponse(response_data)
+    return JSONResponse(response_data)
 
 @app.get("/generator-based")
 async def get_generator_based():
@@ -295,8 +298,8 @@ async def get_generator_based():
             # Simulate database fetch
             yield {"id": i, "data": f"Item {i}"}
     
-    # BatchJSONResponse handles generators efficiently
-    return BatchJSONResponse(item_generator())
+    # JSONResponse handles generators efficiently
+    return JSONResponse(item_generator())
 ```
 
 ## Middleware Integration
@@ -326,7 +329,7 @@ async def get_compressed_json():
         })
     
     # Response will be automatically compressed if larger than minimum_size
-    return OptimizedJSONResponse(large_data)
+    return JSONResponse(large_data)
 ```
 
 ### Custom Middleware for JSON Processing
@@ -391,7 +394,7 @@ async def get_product_catalog(
             size=size,
             include_reviews=include_reviews
         )
-        return OptimizedJSONResponse({
+        return JSONResponse({
             "products": products,
             "page": page,
             "size": size
@@ -417,7 +420,7 @@ async def get_product_catalog(
                 
                 offset += batch_size
         
-        return BatchJSONResponse(product_generator())
+        return JSONResponse(product_generator())
 
 @app.get("/analytics/dashboard")
 async def get_analytics_dashboard():
@@ -436,7 +439,7 @@ async def get_analytics_dashboard():
     }
     
     # Use optimized response for complex dashboard data
-    return OptimizedJSONResponse(dashboard_data)
+    return JSONResponse(dashboard_data)
 ```
 
 ## Performance Guidelines
@@ -448,12 +451,12 @@ async def get_analytics_dashboard():
    - Static or cached data
    - Simple key-value pairs
 
-2. **OptimizedJSONResponse**:
+2. **JSONResponse**:
    - Medium to large datasets (100-10,000 items)
    - Complex nested objects
    - When you need automatic optimization
 
-3. **BatchJSONResponse**:
+3. **JSONResponse**:
    - Very large collections (10,000+ items)
    - Generator-based data
    - Memory-constrained environments
@@ -498,7 +501,7 @@ async def get_user(user_id: int, request: Request):
     is_admin = check_admin_permission(request)
     
     # Pass serialization context
-    return OptimizedJSONResponse(
+    return JSONResponse(
         user,
         serialization_context={"is_admin": is_admin}
     )
@@ -534,7 +537,7 @@ async def get_products(request: Request):
     products = fetch_all_products()
     user_permissions = get_user_permissions(request)
     
-    return OptimizedJSONResponse(
+    return JSONResponse(
         products,
         serialization_context=user_permissions
     )
@@ -545,15 +548,15 @@ async def get_products(request: Request):
 ### 1. Choose the Right Response Type
 
 ```python
-# Small, simple data - use OptimizedJSONResponse
+# Small, simple data - use JSONResponse
 @app.get("/user/profile")
 async def get_profile():
-    return OptimizedJSONResponse({"name": "John", "email": "john@example.com"})
+    return JSONResponse({"name": "John", "email": "john@example.com"})
 
-# Large datasets - use BatchJSONResponse
+# Large datasets - use JSONResponse
 @app.get("/users/all")
 async def get_all_users():
-    return BatchJSONResponse(get_users_generator())
+    return JSONResponse(get_users_generator())
 
 # Real-time data - use StreamingJSONResponse
 @app.get("/events")
@@ -585,7 +588,7 @@ async def json_performance_health():
     # Check response times
     avg_response_time = get_average_response_time()
     
-    return OptimizedJSONResponse({
+    return JSONResponse({
         "memory_usage_percent": memory_percent,
         "gc_collections": sum(stat['collections'] for stat in gc_stats),
         "average_response_time": avg_response_time,
@@ -613,24 +616,24 @@ async def get_large_data_safely():
             return StreamingJSONResponse(data_generator(data))
         elif estimated_size > 10 * 1024 * 1024:  # 10MB
             # Use batch processing for large responses
-            return BatchJSONResponse(data)
+            return JSONResponse(data)
         else:
             # Use optimized response for normal size
-            return OptimizedJSONResponse(data)
+            return JSONResponse(data)
 ## Summary
 
 Velithon's JSON optimization features provide significant performance improvements for API responses:
 
-- **OptimizedJSONResponse**: Rust-based parallel processing for large datasets with configurable thresholds
-- **BatchJSONResponse**: Efficient handling of very large collections and generators
+- **JSONResponse**: Rust-based parallel processing for large datasets with configurable thresholds
+- **JSONResponse**: Efficient handling of very large collections and generators
 - **StreamingResponse**: Memory-efficient streaming for extremely large datasets using standard streaming
 - **Middleware Integration**: Works seamlessly with compression and other middleware
 
 Choose the appropriate response type based on your data size and performance requirements:
 
 - Small data (< 100 items): `JSONResponse`
-- Medium data (100-10,000 items): `OptimizedJSONResponse` 
-- Large collections (10,000+ items): `BatchJSONResponse`
+- Medium data (100-10,000 items): `JSONResponse` 
+- Large collections (10,000+ items): `JSONResponse`
 - Huge datasets (100,000+ items): `StreamingResponse` with JSON
 
 ## Next Steps

@@ -14,7 +14,7 @@ Velithon automatically generates OpenAPI 3.0 documentation based on your route d
 
 ```python
 from velithon import Velithon
-from velithon.responses import OptimizedJSONResponse
+from velithon.responses import JSONResponse
 from pydantic import BaseModel
 from typing import List, Optional
 
@@ -125,7 +125,7 @@ async def get_user(
 ### Response Documentation
 
 ```python
-from velithon.responses import OptimizedJSONResponse
+from velithon.responses import JSONResponse
 from pydantic import BaseModel
 
 class ErrorResponse(BaseModel):
@@ -155,9 +155,9 @@ async def create_user(user: UserCreate) -> User:
     try:
         new_user = create_new_user(user)
         # In Velithon, status codes are set in the response, not the decorator
-        return OptimizedJSONResponse(new_user.dict(), status_code=201)
+        return JSONResponse(new_user.dict(), status_code=201)
     except ValidationError as e:
-        return OptimizedJSONResponse(
+        return JSONResponse(
             ErrorResponse(
                 error="validation_error",
                 message="Invalid input data",
@@ -166,7 +166,7 @@ async def create_user(user: UserCreate) -> User:
             status_code=422
         )
     except UserExistsError as e:
-        return OptimizedJSONResponse(
+        return JSONResponse(
             ErrorResponse(
                 error="user_exists",
                 message=str(e)
@@ -311,7 +311,7 @@ async def export_openapi_json():
     """Export OpenAPI schema as JSON"""
     # Note: Access to OpenAPI schema in Velithon is handled internally
     # You can access the generated documentation at /docs or create custom endpoints
-    return OptimizedJSONResponse({"message": "Use /docs for Swagger UI documentation"})
+    return JSONResponse({"message": "Use /docs for Swagger UI documentation"})
 
 # File export functionality would need to be implemented using
 # Velithon's internal documentation generation system
@@ -448,7 +448,7 @@ async def test_documentation_endpoints():
 from typing import List, Optional
 from pydantic import BaseModel, Field, EmailStr
 from velithon import Velithon
-from velithon.responses import OptimizedJSONResponse
+from velithon.responses import JSONResponse
 
 class UserBase(BaseModel):
     """Base user model with common fields"""

@@ -49,9 +49,9 @@ class TestFastJSONEncoderCacheKeys:
         key1 = self.encoder._create_dict_cache_key(test_dict)
         key2 = self.encoder._create_dict_cache_key(test_dict)
 
-        assert key1 == key2, (
-            'Identical dictionaries should produce identical cache keys'
-        )
+        assert (
+            key1 == key2
+        ), 'Identical dictionaries should produce identical cache keys'
 
     def test_cache_key_order_independence(self):
         """Test that key order doesn't affect cache key generation."""
@@ -63,9 +63,9 @@ class TestFastJSONEncoderCacheKeys:
         key2 = self.encoder._create_dict_cache_key(dict2)
         key3 = self.encoder._create_dict_cache_key(dict3)
 
-        assert key1 == key2 == key3, (
-            'Dictionary key order should not affect cache key generation'
-        )
+        assert (
+            key1 == key2 == key3
+        ), 'Dictionary key order should not affect cache key generation'
 
     def test_cache_key_format_validation(self):
         """Test that cache keys follow expected format."""
@@ -96,12 +96,12 @@ class TestFastJSONEncoderCacheKeys:
         for test_dict in edge_cases:
             try:
                 cache_key = self.encoder._create_dict_cache_key(test_dict)
-                assert isinstance(cache_key, str), (
-                    f'Cache key should be string for {test_dict}'
-                )
-                assert len(cache_key) >= 0, (
-                    f'Cache key should not be negative length for {test_dict}'
-                )
+                assert isinstance(
+                    cache_key, str
+                ), f'Cache key should be string for {test_dict}'
+                assert (
+                    len(cache_key) >= 0
+                ), f'Cache key should not be negative length for {test_dict}'
             except Exception as e:
                 pytest.fail(f'Cache key generation failed for {test_dict}: {e}')
 

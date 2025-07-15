@@ -11,7 +11,7 @@ This example demonstrates how to build a real-time chat application using Velith
 ```python
 from velithon import Velithon
 from velithon.websocket import WebSocket, WebSocketDisconnect
-from velithon.responses import HTMLResponse, OptimizedJSONResponse
+from velithon.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
 from typing import Dict, Set, List
 import json
@@ -338,20 +338,20 @@ async def chat_page():
 async def get_active_rooms():
     """Get list of active chat rooms"""
     rooms = chat_manager.get_active_rooms()
-    return OptimizedJSONResponse({"rooms": rooms})
+    return JSONResponse({"rooms": rooms})
 
 @app.get("/api/rooms/{room}/users", tags=["chat"])
 async def get_room_users(room: str):
     """Get list of users in a specific room"""
     users = chat_manager.get_room_users(room)
-    return OptimizedJSONResponse({"room": room, "users": users})
+    return JSONResponse({"room": room, "users": users})
 
 @app.get("/api/rooms/{room}/messages", tags=["chat"])
 async def get_room_messages(room: str, limit: int = 50):
     """Get recent messages from a room"""
     messages = chat_manager.history.get(room, [])
     recent_messages = messages[-limit:] if messages else []
-    return OptimizedJSONResponse({
+    return JSONResponse({
         "room": room,
         "messages": [msg.dict() for msg in recent_messages]
     })

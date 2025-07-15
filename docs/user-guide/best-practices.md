@@ -116,37 +116,28 @@ settings = Settings()
 For large datasets, use Velithon's optimized JSON serialization:
 
 ```python
-from velithon.responses import OptimizedJSONResponse, BatchJSONResponse, json_response, batch_json_response
+from velithon.responses import JSONResponse
 
 @app.get("/api/large-dataset")
 async def get_large_dataset():
     data = generate_large_dataset()
-    return OptimizedJSONResponse(
-        data,
-        parallel_threshold=100,  # Adjust based on your data
-        use_parallel_auto=True,
-        enable_caching=True
-    )
+    return JSONResponse(data)
 
 @app.get("/api/batch-data")
 async def get_batch_data():
     objects = [generate_object(i) for i in range(1000)]
-    return BatchJSONResponse(
-        objects,
-        parallel_threshold=50,
-        combine_as_array=True
-    )
+    return JSONResponse(objects)
 
-# Or use convenience functions
+# Simple and optimized - no special configuration needed
 @app.get("/api/simple-optimized")
 async def get_simple_data():
     data = {"message": "Hello", "items": list(range(1000))}
-    return json_response(data, parallel_threshold=100)
+    return JSONResponse(data)
 
 @app.get("/api/batch-simple")
 async def get_batch_simple():
     objects = [{"id": i, "value": f"item_{i}"} for i in range(500)]
-    return batch_json_response(objects, parallel_threshold=50)
+    return JSONResponse(objects)
 ```
 
 ### 2. Connection Pooling

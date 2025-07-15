@@ -78,13 +78,16 @@ async def dispatch(handler: typing.Any, request: Request) -> Response:
         # Try automatic serialization first
         try:
             from velithon.serialization import auto_serialize_response
+
             response = auto_serialize_response(response, status_code=200)
         except (ImportError, TypeError):
             # Fallback to original logic for backward compatibility
-            if (isinstance(_response_type, type) and
-                issubclass(_response_type, BaseModel)):
-                response = (_response_type.model_validate(response)
-                           .model_dump(mode='json'))
+            if isinstance(_response_type, type) and issubclass(
+                _response_type, BaseModel
+            ):
+                response = _response_type.model_validate(response).model_dump(
+                    mode='json'
+                )
             response = JSONResponse(
                 content={'message': response},
                 status_code=200,

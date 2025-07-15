@@ -98,7 +98,7 @@ tests/
 import pytest
 import httpx
 from velithon import Velithon
-from velithon.responses import OptimizedJSONResponse
+from velithon.responses import JSONResponse
 
 def test_basic_route():
     """Test a basic GET route"""

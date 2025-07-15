@@ -23,22 +23,22 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         except AuthenticationError as e:
             response = JSONResponse(
                 content={
-                    "error": "Authentication Failed",
-                    "detail": str(e),
-                    "type": "authentication_error"
+                    'error': 'Authentication Failed',
+                    'detail': str(e),
+                    'type': 'authentication_error',
                 },
                 status_code=401,
-                headers={"WWW-Authenticate": "Bearer"}
+                headers={'WWW-Authenticate': 'Bearer'},
             )
             await response(scope, protocol)
         except AuthorizationError as e:
             response = JSONResponse(
                 content={
-                    "error": "Authorization Failed",
-                    "detail": str(e),
-                    "type": "authorization_error"
+                    'error': 'Authorization Failed',
+                    'detail': str(e),
+                    'type': 'authorization_error',
                 },
-                status_code=403
+                status_code=403,
             )
             await response(scope, protocol)
 
@@ -52,17 +52,17 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         *,
         add_security_headers: bool = True,
         cors_enabled: bool = False,
-        **kwargs: Any
+        **kwargs: Any,
     ):
         """Initialize security middleware with configuration options."""
         super().__init__(app)
         self.add_security_headers = add_security_headers
         self.cors_enabled = cors_enabled
         self.security_headers = {
-            "X-Content-Type-Options": "nosniff",
-            "X-Frame-Options": "DENY",
-            "X-XSS-Protection": "1; mode=block",
-            "Referrer-Policy": "strict-origin-when-cross-origin"
+            'X-Content-Type-Options': 'nosniff',
+            'X-Frame-Options': 'DENY',
+            'X-XSS-Protection': '1; mode=block',
+            'Referrer-Policy': 'strict-origin-when-cross-origin',
         }
 
     async def process_http_request(self, scope: Scope, protocol: Protocol) -> None:
@@ -99,19 +99,19 @@ class SecurityProtocol:
     async def send(self, message: dict) -> None:
         """Intercept send method to add security headers to response.start."""
         if (
-            message.get("type") == "http.response.start"
+            message.get('type') == 'http.response.start'
             and self.middleware.add_security_headers
         ):
             # Add security headers to the response
-            headers = list(message.get("headers", []))
-            
+            headers = list(message.get('headers', []))
+
             # Add security headers
             for name, value in self.middleware.security_headers.items():
                 headers.append([name.lower().encode(), value.encode()])
-            
+
             # Update the message with new headers
-            message = {**message, "headers": headers}
-        
+            message = {**message, 'headers': headers}
+
         # Send the message through the original protocol
         await self.protocol.send(message)
 
@@ -157,8 +157,7 @@ class SecurityProtocol:
         return await self.protocol.response_start(status, headers)
 
     def _add_security_headers(
-        self,
-        headers: tuple[str, str] | list[tuple[str, str]]
+        self, headers: tuple[str, str] | list[tuple[str, str]]
     ) -> tuple[str, str] | list[tuple[str, str]]:
         """Add security headers to response headers."""
         if not self.middleware.add_security_headers:
@@ -172,8 +171,7 @@ class SecurityProtocol:
 
         # Add security headers
         security_headers = [
-            (name, value)
-            for name, value in self.middleware.security_headers.items()
+            (name, value) for name, value in self.middleware.security_headers.items()
         ]
         headers_list.extend(security_headers)
 

@@ -9,7 +9,7 @@ class SecurityError(HTTPException):
 
     def __init__(
         self,
-        message: str = "Security error",
+        message: str = 'Security error',
         status_code: int = HTTP_401_UNAUTHORIZED,
         headers: dict[str, str] | None = None,
     ):
@@ -21,12 +21,8 @@ class SecurityError(HTTPException):
             headers: Optional HTTP headers
 
         """
-        error = VelithonError(message=message, code="SECURITY_ERROR")
-        super().__init__(
-            status_code=status_code,
-            error=error,
-            headers=headers
-        )
+        error = VelithonError(message=message, code='SECURITY_ERROR')
+        super().__init__(status_code=status_code, error=error, headers=headers)
 
 
 class AuthenticationError(SecurityError):
@@ -34,7 +30,7 @@ class AuthenticationError(SecurityError):
 
     def __init__(
         self,
-        message: str = "Authentication failed",
+        message: str = 'Authentication failed',
         headers: dict[str, str] | None = None,
     ):
         """Initialize authentication error.
@@ -45,32 +41,27 @@ class AuthenticationError(SecurityError):
 
         """
         super().__init__(
-            message=message,
-            status_code=HTTP_401_UNAUTHORIZED,
-            headers=headers
+            message=message, status_code=HTTP_401_UNAUTHORIZED, headers=headers
         )
 
 
 class AuthorizationError(SecurityError):
     """Authorization failed exception."""
 
-    def __init__(self, message: str = "Insufficient permissions"):
+    def __init__(self, message: str = 'Insufficient permissions'):
         """Initialize authorization error.
 
         Args:
             message: Error message
 
         """
-        super().__init__(
-            message=message,
-            status_code=HTTP_403_FORBIDDEN
-        )
+        super().__init__(message=message, status_code=HTTP_403_FORBIDDEN)
 
 
 class TokenExpiredError(AuthenticationError):
     """Token has expired exception."""
 
-    def __init__(self, message: str = "Token has expired"):
+    def __init__(self, message: str = 'Token has expired'):
         """Initialize token expired error.
 
         Args:
@@ -83,7 +74,7 @@ class TokenExpiredError(AuthenticationError):
 class InvalidTokenError(AuthenticationError):
     """Invalid token exception."""
 
-    def __init__(self, message: str = "Invalid token"):
+    def __init__(self, message: str = 'Invalid token'):
         """Initialize invalid token error.
 
         Args:
@@ -96,14 +87,11 @@ class InvalidTokenError(AuthenticationError):
 class MissingTokenError(AuthenticationError):
     """Missing token exception."""
 
-    def __init__(self, message: str = "Missing authentication token"):
+    def __init__(self, message: str = 'Missing authentication token'):
         """Initialize missing token error.
 
         Args:
             message: Error message
 
         """
-        super().__init__(
-            message=message,
-            headers={"WWW-Authenticate": "Bearer"}
-        )
+        super().__init__(message=message, headers={'WWW-Authenticate': 'Bearer'})
