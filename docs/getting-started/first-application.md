@@ -505,7 +505,7 @@ if __name__ == "__main__":
 Create a requirements file:
 
 ```txt title="requirements.txt"
-velithon>=0.4.2
+velithon>=0.4.3
 ```
 
 Install dependencies and run:
