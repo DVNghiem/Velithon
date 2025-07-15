@@ -28,291 +28,341 @@ user_connections: Dict[str, str] = {}  # user_id -> connection_id
 
 class ChatEndpoint(WebSocketEndpoint):
     """WebSocket endpoint for chat functionality."""
-    
+
     async def on_connect(self, websocket: WebSocket):
         """Handle new WebSocket connections."""
         try:
             await websocket.accept()
-            print(f"New connection from {websocket.client}")
-            
+            print(f'New connection from {websocket.client}')
+
             # Generate connection ID
-            connection_id = f"conn_{id(websocket)}"
+            connection_id = f'conn_{id(websocket)}'
             connections[connection_id] = websocket
-            
+
             # Add heartbeat monitoring
             await heartbeat_manager.add_connection(
                 websocket=websocket,
                 connection_id=connection_id,
                 auto_start=True,
             )
-            
+
             # Send welcome message
-            await websocket.send_json({
-                "type": "welcome",
-                "message": "Connected to chat server",
-                "connection_id": connection_id,
-            })
-            
+            await websocket.send_json(
+                {
+                    'type': 'welcome',
+                    'message': 'Connected to chat server',
+                    'connection_id': connection_id,
+                }
+            )
+
         except Exception as e:
-            print(f"Error in on_connect: {e}")
+            print(f'Error in on_connect: {e}')
             await websocket.close()
-    
+
     async def on_receive(self, websocket: WebSocket, data: str):
         """Handle incoming messages."""
         try:
             message = json.loads(data)
-            message_type = message.get("type")
-            connection_id = f"conn_{id(websocket)}"
-            
+            message_type = message.get('type')
+            connection_id = f'conn_{id(websocket)}'
+
             # Handle heartbeat pong
-            if message_type == "pong":
+            if message_type == 'pong':
                 await heartbeat_manager.handle_pong(
                     connection_id=connection_id,
-                    data=message.get("data"),
+                    data=message.get('data'),
                 )
                 return
-            
+
             # Handle user authentication
-            elif message_type == "auth":
+            elif message_type == 'auth':
                 await self._handle_auth(websocket, connection_id, message)
-            
+
             # Handle room operations
-            elif message_type == "join_room":
+            elif message_type == 'join_room':
                 await self._handle_join_room(websocket, connection_id, message)
-            
-            elif message_type == "leave_room":
+
+            elif message_type == 'leave_room':
                 await self._handle_leave_room(websocket, connection_id, message)
-            
-            elif message_type == "send_message":
+
+            elif message_type == 'send_message':
                 await self._handle_send_message(websocket, connection_id, message)
-            
-            elif message_type == "list_rooms":
+
+            elif message_type == 'list_rooms':
                 await self._handle_list_rooms(websocket)
-            
-            elif message_type == "room_info":
+
+            elif message_type == 'room_info':
                 await self._handle_room_info(websocket, message)
-            
+
             else:
-                await websocket.send_json({
-                    "type": "error",
-                    "message": f"Unknown message type: {message_type}",
-                })
-        
+                await websocket.send_json(
+                    {
+                        'type': 'error',
+                        'message': f'Unknown message type: {message_type}',
+                    }
+                )
+
         except json.JSONDecodeError:
-            await websocket.send_json({
-                "type": "error",
-                "message": "Invalid JSON format",
-            })
+            await websocket.send_json(
+                {
+                    'type': 'error',
+                    'message': 'Invalid JSON format',
+                }
+            )
         except Exception as e:
-            print(f"Error handling message: {e}")
-            await websocket.send_json({
-                "type": "error",
-                "message": "Internal server error",
-            })
-    
+            print(f'Error handling message: {e}')
+            await websocket.send_json(
+                {
+                    'type': 'error',
+                    'message': 'Internal server error',
+                }
+            )
+
     async def on_disconnect(self, websocket: WebSocket):
         """Handle WebSocket disconnections."""
-        connection_id = f"conn_{id(websocket)}"
-        print(f"Connection {connection_id} disconnected")
-        
+        connection_id = f'conn_{id(websocket)}'
+        print(f'Connection {connection_id} disconnected')
+
         # Remove from heartbeat monitoring
         await heartbeat_manager.remove_connection(connection_id)
-        
+
         # Find user ID
         user_id = None
         for uid, cid in user_connections.items():
             if cid == connection_id:
                 user_id = uid
                 break
-        
+
         # Remove from all rooms
         if user_id:
             await room_manager.leave_all_rooms(user_id)
             del user_connections[user_id]
-        
+
         # Clean up connection
         connections.pop(connection_id, None)
-    
-    async def _handle_auth(self, websocket: WebSocket, connection_id: str, message: Dict):
+
+    async def _handle_auth(
+        self, websocket: WebSocket, connection_id: str, message: Dict
+    ):
         """Handle user authentication."""
-        user_id = message.get("user_id")
+        user_id = message.get('user_id')
         if not user_id:
-            await websocket.send_json({
-                "type": "auth_error",
-                "message": "user_id is required",
-            })
+            await websocket.send_json(
+                {
+                    'type': 'auth_error',
+                    'message': 'user_id is required',
+                }
+            )
             return
-        
+
         # Store user connection mapping
         user_connections[user_id] = connection_id
-        
-        await websocket.send_json({
-            "type": "auth_success",
-            "user_id": user_id,
-            "message": "Authentication successful",
-        })
-    
-    async def _handle_join_room(self, websocket: WebSocket, connection_id: str, message: Dict):
+
+        await websocket.send_json(
+            {
+                'type': 'auth_success',
+                'user_id': user_id,
+                'message': 'Authentication successful',
+            }
+        )
+
+    async def _handle_join_room(
+        self, websocket: WebSocket, connection_id: str, message: Dict
+    ):
         """Handle joining a room."""
-        room_id = message.get("room_id")
+        room_id = message.get('room_id')
         user_id = self._get_user_id(connection_id)
-        
+
         if not room_id or not user_id:
-            await websocket.send_json({
-                "type": "join_error",
-                "message": "room_id and authenticated user required",
-            })
+            await websocket.send_json(
+                {
+                    'type': 'join_error',
+                    'message': 'room_id and authenticated user required',
+                }
+            )
             return
-        
+
         # Get or create room
         room = room_manager.get_room(room_id)
         if not room:
             room = await room_manager.create_room(
                 room_id=room_id,
-                name=message.get("room_name", room_id),
-                max_users=message.get("max_users", 50),
+                name=message.get('room_name', room_id),
+                max_users=message.get('max_users', 50),
             )
-        
+
         # Join room
         success = await room_manager.join_room(
             room_id=room_id,
             user_id=user_id,
             websocket=websocket,
             connection_id=connection_id,
-            metadata=message.get("metadata", {}),
+            metadata=message.get('metadata', {}),
         )
-        
+
         if success:
-            await websocket.send_json({
-                "type": "join_success",
-                "room_id": room_id,
-                "user_count": room.user_count,
-                "message": f"Joined room {room_id}",
-            })
+            await websocket.send_json(
+                {
+                    'type': 'join_success',
+                    'room_id': room_id,
+                    'user_count': room.user_count,
+                    'message': f'Joined room {room_id}',
+                }
+            )
         else:
-            await websocket.send_json({
-                "type": "join_error",
-                "message": "Failed to join room",
-            })
-    
-    async def _handle_leave_room(self, websocket: WebSocket, connection_id: str, message: Dict):
+            await websocket.send_json(
+                {
+                    'type': 'join_error',
+                    'message': 'Failed to join room',
+                }
+            )
+
+    async def _handle_leave_room(
+        self, websocket: WebSocket, connection_id: str, message: Dict
+    ):
         """Handle leaving a room."""
-        room_id = message.get("room_id")
+        room_id = message.get('room_id')
         user_id = self._get_user_id(connection_id)
-        
+
         if not room_id or not user_id:
-            await websocket.send_json({
-                "type": "leave_error",
-                "message": "room_id and authenticated user required",
-            })
+            await websocket.send_json(
+                {
+                    'type': 'leave_error',
+                    'message': 'room_id and authenticated user required',
+                }
+            )
             return
-        
+
         success = await room_manager.leave_room(room_id, user_id)
-        
+
         if success:
-            await websocket.send_json({
-                "type": "leave_success",
-                "room_id": room_id,
-                "message": f"Left room {room_id}",
-            })
+            await websocket.send_json(
+                {
+                    'type': 'leave_success',
+                    'room_id': room_id,
+                    'message': f'Left room {room_id}',
+                }
+            )
         else:
-            await websocket.send_json({
-                "type": "leave_error",
-                "message": "Failed to leave room",
-            })
-    
-    async def _handle_send_message(self, websocket: WebSocket, connection_id: str, message: Dict):
+            await websocket.send_json(
+                {
+                    'type': 'leave_error',
+                    'message': 'Failed to leave room',
+                }
+            )
+
+    async def _handle_send_message(
+        self, websocket: WebSocket, connection_id: str, message: Dict
+    ):
         """Handle sending a message to a room."""
-        room_id = message.get("room_id")
-        content = message.get("content")
+        room_id = message.get('room_id')
+        content = message.get('content')
         user_id = self._get_user_id(connection_id)
-        
+
         if not room_id or not content or not user_id:
-            await websocket.send_json({
-                "type": "message_error",
-                "message": "room_id, content, and authenticated user required",
-            })
+            await websocket.send_json(
+                {
+                    'type': 'message_error',
+                    'message': 'room_id, content, and authenticated user required',
+                }
+            )
             return
-        
+
         room = room_manager.get_room(room_id)
         if not room:
-            await websocket.send_json({
-                "type": "message_error",
-                "message": "Room not found",
-            })
+            await websocket.send_json(
+                {
+                    'type': 'message_error',
+                    'message': 'Room not found',
+                }
+            )
             return
-        
+
         success = await room.send_message(
             sender_id=user_id,
             content=content,
-            message_type=message.get("message_type", "text"),
-            metadata=message.get("metadata", {}),
+            message_type=message.get('message_type', 'text'),
+            metadata=message.get('metadata', {}),
         )
-        
+
         if success:
-            await websocket.send_json({
-                "type": "message_sent",
-                "room_id": room_id,
-                "message": "Message sent successfully",
-            })
+            await websocket.send_json(
+                {
+                    'type': 'message_sent',
+                    'room_id': room_id,
+                    'message': 'Message sent successfully',
+                }
+            )
         else:
-            await websocket.send_json({
-                "type": "message_error",
-                "message": "Failed to send message",
-            })
-    
+            await websocket.send_json(
+                {
+                    'type': 'message_error',
+                    'message': 'Failed to send message',
+                }
+            )
+
     async def _handle_list_rooms(self, websocket: WebSocket):
         """Handle listing available rooms."""
         rooms = room_manager.list_rooms()
-        
+
         room_list = []
         for room in rooms:
-            room_list.append({
-                "room_id": room.room_id,
-                "name": room.name,
-                "user_count": room.user_count,
-                "max_users": room.max_users,
-                "state": room.state.value,
-            })
-        
-        await websocket.send_json({
-            "type": "room_list",
-            "rooms": room_list,
-        })
-    
+            room_list.append(
+                {
+                    'room_id': room.room_id,
+                    'name': room.name,
+                    'user_count': room.user_count,
+                    'max_users': room.max_users,
+                    'state': room.state.value,
+                }
+            )
+
+        await websocket.send_json(
+            {
+                'type': 'room_list',
+                'rooms': room_list,
+            }
+        )
+
     async def _handle_room_info(self, websocket: WebSocket, message: Dict):
         """Handle getting room information."""
-        room_id = message.get("room_id")
+        room_id = message.get('room_id')
         if not room_id:
-            await websocket.send_json({
-                "type": "room_info_error",
-                "message": "room_id is required",
-            })
+            await websocket.send_json(
+                {
+                    'type': 'room_info_error',
+                    'message': 'room_id is required',
+                }
+            )
             return
-        
+
         room = room_manager.get_room(room_id)
         if not room:
-            await websocket.send_json({
-                "type": "room_info_error",
-                "message": "Room not found",
-            })
+            await websocket.send_json(
+                {
+                    'type': 'room_info_error',
+                    'message': 'Room not found',
+                }
+            )
             return
-        
+
         users = [user.to_dict() for user in room.list_users()]
         history = room.get_message_history(limit=20)
-        
-        await websocket.send_json({
-            "type": "room_info",
-            "room_id": room_id,
-            "name": room.name,
-            "user_count": room.user_count,
-            "max_users": room.max_users,
-            "state": room.state.value,
-            "users": users,
-            "recent_messages": history,
-            "stats": room.stats,
-        })
-    
+
+        await websocket.send_json(
+            {
+                'type': 'room_info',
+                'room_id': room_id,
+                'name': room.name,
+                'user_count': room.user_count,
+                'max_users': room.max_users,
+                'state': room.state.value,
+                'users': users,
+                'recent_messages': history,
+                'stats': room.stats,
+            }
+        )
+
     def _get_user_id(self, connection_id: str) -> str:
         """Get user ID for a connection."""
         for user_id, conn_id in user_connections.items():
@@ -325,86 +375,86 @@ class ChatEndpoint(WebSocketEndpoint):
 app = Velithon()
 
 # Add WebSocket route
-app.add_websocket_route("/ws/chat", ChatEndpoint)
+app.add_websocket_route('/ws/chat', ChatEndpoint)
 
 
 # Health check endpoint
-@app.get("/health")
+@app.get('/health')
 async def health_check():
     """Health check endpoint."""
     manager_stats = room_manager.stats
     heartbeat_stats = heartbeat_manager.stats
-    
+
     return {
-        "status": "healthy",
-        "connections": len(connections),
-        "room_manager": manager_stats,
-        "heartbeat_manager": heartbeat_stats,
+        'status': 'healthy',
+        'connections': len(connections),
+        'room_manager': manager_stats,
+        'heartbeat_manager': heartbeat_stats,
     }
 
 
 # Room management endpoints
-@app.get("/api/rooms")
+@app.get('/api/rooms')
 async def list_rooms():
     """List all rooms via HTTP API."""
     rooms = room_manager.list_rooms()
-    
+
     return {
-        "rooms": [
+        'rooms': [
             {
-                "room_id": room.room_id,
-                "name": room.name,
-                "user_count": room.user_count,
-                "max_users": room.max_users,
-                "state": room.state.value,
-                "created_at": room.created_at.isoformat(),
+                'room_id': room.room_id,
+                'name': room.name,
+                'user_count': room.user_count,
+                'max_users': room.max_users,
+                'state': room.state.value,
+                'created_at': room.created_at.isoformat(),
             }
             for room in rooms
         ]
     }
 
 
-@app.post("/api/rooms")
+@app.post('/api/rooms')
 async def create_room_api(request):
     """Create a room via HTTP API."""
     data = await request.json()
-    
-    room_id = data.get("room_id")
-    name = data.get("name", room_id)
-    max_users = data.get("max_users", 50)
-    
+
+    room_id = data.get('room_id')
+    name = data.get('name', room_id)
+    max_users = data.get('max_users', 50)
+
     if not room_id:
-        return {"error": "room_id is required"}, 400
-    
+        return {'error': 'room_id is required'}, 400
+
     try:
         room = await room_manager.create_room(
             room_id=room_id,
             name=name,
             max_users=max_users,
         )
-        
+
         return {
-            "room_id": room.room_id,
-            "name": room.name,
-            "max_users": room.max_users,
-            "created_at": room.created_at.isoformat(),
+            'room_id': room.room_id,
+            'name': room.name,
+            'max_users': room.max_users,
+            'created_at': room.created_at.isoformat(),
         }
-    
+
     except ValueError as e:
-        return {"error": str(e)}, 400
+        return {'error': str(e)}, 400
 
 
-@app.delete("/api/rooms/{room_id}")
+@app.delete('/api/rooms/{room_id}')
 async def delete_room_api(request):
     """Delete a room via HTTP API."""
-    room_id = request.path_params["room_id"]
-    
+    room_id = request.path_params['room_id']
+
     success = await room_manager.delete_room(room_id)
-    
+
     if success:
-        return {"message": f"Room {room_id} deleted"}
+        return {'message': f'Room {room_id} deleted'}
     else:
-        return {"error": "Room not found"}, 404
+        return {'error': 'Room not found'}, 404
 
 
 # Startup and shutdown events
@@ -413,7 +463,7 @@ async def startup():
     """Start background services."""
     await room_manager.start()
     await heartbeat_manager.start()
-    print("Chat server started")
+    print('Chat server started')
 
 
 @app.on_shutdown()
@@ -421,11 +471,11 @@ async def shutdown():
     """Stop background services."""
     await room_manager.stop()
     await heartbeat_manager.stop()
-    print("Chat server stopped")
+    print('Chat server stopped')
 
 
 # Example HTML client
-@app.get("/")
+@app.get('/')
 async def chat_client():
     """Serve a simple chat client."""
     return """
@@ -601,14 +651,14 @@ async def chat_client():
     """
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     # For testing purposes
     import granian
-    
+
     server = granian.Granian(
-        target="examples.websocket_components_example:app",
-        address="127.0.0.1",
+        target='examples.websocket_components_example:app',
+        address='127.0.0.1',
         port=8000,
-        interface="rsgi"
+        interface='rsgi',
     )
     server.serve()

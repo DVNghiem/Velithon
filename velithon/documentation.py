@@ -112,7 +112,7 @@ class DocumentationConfig:
         self.include_schemas = include_schemas
         self.group_by_tags = group_by_tags
         # Default to excluding /docs
-        self.exclude_routes = set(exclude_routes or ['/docs']) 
+        self.exclude_routes = set(exclude_routes or ['/docs'])
         self.include_only_routes = (
             set(include_only_routes or []) if include_only_routes else None
         )

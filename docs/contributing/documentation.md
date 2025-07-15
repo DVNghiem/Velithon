@@ -93,7 +93,7 @@ Always provide complete, runnable examples:
 ```python
 # Complete example that works out of the box
 from velithon import Velithon
-from velithon.responses import OptimizedJSONResponse
+from velithon.responses import JSONResponse
 from pydantic import BaseModel
 
 app = Velithon()
@@ -105,7 +105,7 @@ class User(BaseModel):
 @app.post("/users")
 async def create_user(user: User):
     # Process the user
-    return OptimizedJSONResponse(
+    return JSONResponse(
         {"message": "User created", "user": user.dict()},
         status_code=201
     )

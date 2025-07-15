@@ -32,19 +32,21 @@ def join_url_paths(*parts) -> str:
     return joined
 
 
-def pydantic_to_swagger(model: type[BaseModel] | dict, schemas: dict[str, Any] | None = None) -> dict[str, Any]:
+def pydantic_to_swagger(
+    model: type[BaseModel] | dict, schemas: dict[str, Any] | None = None
+) -> dict[str, Any]:
     """Convert a Pydantic model to a Swagger/OpenAPI schema definition.
-    
+
     Args:
         model: The Pydantic model class or dict to convert
         schemas: Dictionary to accumulate all nested schemas
-    
+
     Returns:
         The schema definition for the model
     """
     if schemas is None:
         schemas = {}
-    
+
     if isinstance(model, dict):
         schema = {}
         for name, field_type in model.items():
@@ -57,7 +59,7 @@ def pydantic_to_swagger(model: type[BaseModel] | dict, schemas: dict[str, Any] |
         schema['properties'][name] = field_schema
         if field.is_required():
             schema['required'].append(name)
-    
+
     return schema
 
 
@@ -133,22 +135,26 @@ class SchemaProcessor:
         if isinstance(field, FieldInfo):
             annotation = field.annotation
             schema = cls._process_annotation(annotation, schemas)
-            
+
             # Add field description
             if field.description:
                 schema['description'] = field.description
-            
+
             # Add default value
             if field.default is not None and field.default is not PydanticUndefined:
                 schema['default'] = field.default
-            
+
             # Handle Pydantic v2 metadata constraints
             if hasattr(field, 'metadata') and field.metadata:
                 for constraint in field.metadata:
                     constraint_type = type(constraint).__name__
-                    if constraint_type == 'MinLen' and hasattr(constraint, 'min_length'):
+                    if constraint_type == 'MinLen' and hasattr(
+                        constraint, 'min_length'
+                    ):
                         schema['minLength'] = constraint.min_length
-                    elif constraint_type == 'MaxLen' and hasattr(constraint, 'max_length'):
+                    elif constraint_type == 'MaxLen' and hasattr(
+                        constraint, 'max_length'
+                    ):
                         schema['maxLength'] = constraint.max_length
                     elif constraint_type == 'Ge' and hasattr(constraint, 'ge'):
                         schema['minimum'] = constraint.ge
@@ -158,9 +164,11 @@ class SchemaProcessor:
                         schema['exclusiveMinimum'] = constraint.gt
                     elif constraint_type == 'Lt' and hasattr(constraint, 'lt'):
                         schema['exclusiveMaximum'] = constraint.lt
-                    elif constraint_type == 'Pattern' and hasattr(constraint, 'pattern'):
+                    elif constraint_type == 'Pattern' and hasattr(
+                        constraint, 'pattern'
+                    ):
                         schema['pattern'] = constraint.pattern
-            
+
             # Legacy constraint handling (in case some attributes are directly on field)
             if hasattr(field, 'ge') and field.ge is not None:
                 schema['minimum'] = field.ge
@@ -176,7 +184,7 @@ class SchemaProcessor:
                 schema['maxLength'] = field.max_length
             if hasattr(field, 'pattern') and field.pattern is not None:
                 schema['pattern'] = field.pattern
-            
+
             return schema
         return cls._process_annotation(field, schemas)
 
@@ -185,7 +193,7 @@ class SchemaProcessor:
         cls, annotation: Any, schemas: dict[str, Any]
     ) -> dict[str, Any]:
         origin = get_origin(annotation)
-        
+
         if origin is Annotated:
             base_type, *metadata = get_args(annotation)
             schema = cls._process_annotation(base_type, schemas)
@@ -256,7 +264,7 @@ def process_model_params(
     # Handle Annotated types
     if get_origin(annotation) is Annotated:
         base_type, *metadata = get_args(annotation)
-        
+
         # Check if this is an authentication dependency
         # Look for Provide dependency injection or callable metadata
         has_auth_dependency = False
@@ -268,30 +276,46 @@ def process_model_params(
             elif callable(meta):
                 func_name = getattr(meta, '__name__', '').lower()
                 module_name = getattr(meta, '__module__', '')
-                
+
                 # Check for common authentication function patterns
-                if (any(keyword in func_name for keyword in 
-                       ['auth', 'user', 'token', 'jwt', 'login', 'current']) or
-                    'security' in module_name or 'auth' in module_name):
+                if (
+                    any(
+                        keyword in func_name
+                        for keyword in [
+                            'auth',
+                            'user',
+                            'token',
+                            'jwt',
+                            'login',
+                            'current',
+                        ]
+                    )
+                    or 'security' in module_name
+                    or 'auth' in module_name
+                ):
                     has_auth_dependency = True
                     break
-            
+
             # Check if metadata is a security scheme object
             elif hasattr(meta, '__class__'):
                 class_name = meta.__class__.__name__
                 module_name = getattr(meta.__class__, '__module__', '')
-                
-                if ('velithon.security' in module_name or 
-                    'security' in class_name.lower() or
-                    any(keyword in class_name.lower() for keyword in 
-                        ['bearer', 'oauth2', 'apikey', 'basic'])):
+
+                if (
+                    'velithon.security' in module_name
+                    or 'security' in class_name.lower()
+                    or any(
+                        keyword in class_name.lower()
+                        for keyword in ['bearer', 'oauth2', 'apikey', 'basic']
+                    )
+                ):
                     has_auth_dependency = True
                     break
-        
+
         # If this is an authentication dependency, skip it from OpenAPI parameters
         if has_auth_dependency:
             return path
-            
+
         param_metadata = next(
             (
                 m
@@ -302,8 +326,8 @@ def process_model_params(
         )
         if param_metadata:
             param_type = type(param_metadata)
-            
-            # If the base_type is a Pydantic model and param_type is Query or Form, 
+
+            # If the base_type is a Pydantic model and param_type is Query or Form,
             # flatten fields
             if (
                 (param_type is Query or param_type is Form)
@@ -311,7 +335,9 @@ def process_model_params(
                 and issubclass(base_type, BaseModel)
             ):
                 for field_name, field in base_type.model_fields.items():
-                    field_schema = SchemaProcessor._process_field(field_name, field, schemas)
+                    field_schema = SchemaProcessor._process_field(
+                        field_name, field, schemas
+                    )
                     docs.setdefault('parameters', []).append(
                         {
                             'name': field_name,
@@ -321,7 +347,7 @@ def process_model_params(
                         }
                     )
                 return path
-            
+
             schema = SchemaProcessor._process_field(name, base_type, schemas)
             if param_metadata.description:
                 schema['description'] = param_metadata.description
@@ -348,7 +374,11 @@ def process_model_params(
                     }
                 )
             elif param_type is Header:
-                header_name = param_metadata.alias if hasattr(param_metadata, 'alias') and param_metadata.alias else name
+                header_name = (
+                    param_metadata.alias
+                    if hasattr(param_metadata, 'alias') and param_metadata.alias
+                    else name
+                )
                 docs.setdefault('parameters', []).append(
                     {
                         'name': header_name,
@@ -544,86 +574,83 @@ def detect_security_requirements(func: callable) -> list[dict[str, list[str]]]:
     """Detect security requirements from function dependencies."""
     security_requirements = []
     signature = inspect.signature(func)
-    
+
     for param in signature.parameters.values():
         annotation = param.annotation
-        
+
         # Check for Annotated types that might contain security dependencies
         if get_origin(annotation) is Annotated:
             args = get_args(annotation)
             for metadata in args[1:]:  # Skip the base type
-                
                 # Check if this is a security dependency
                 if hasattr(metadata, '__class__'):
                     class_name = metadata.__class__.__name__
                     module_name = getattr(metadata.__class__, '__module__', '')
-                    
+
                     # Check for OAuth2, Bearer, or other security schemes
-                    if 'velithon.security' in module_name or 'security' in class_name.lower():
-                        if 'oauth2' in class_name.lower() or 'bearer' in class_name.lower():
-                            security_requirements.append({"bearerAuth": []})
+                    if (
+                        'velithon.security' in module_name
+                        or 'security' in class_name.lower()
+                    ):
+                        if (
+                            'oauth2' in class_name.lower()
+                            or 'bearer' in class_name.lower()
+                        ):
+                            security_requirements.append({'bearerAuth': []})
                         elif 'apikey' in class_name.lower():
-                            security_requirements.append({"apiKeyAuth": []})
+                            security_requirements.append({'apiKeyAuth': []})
                         elif 'basic' in class_name.lower():
-                            security_requirements.append({"basicAuth": []})
-                
+                            security_requirements.append({'basicAuth': []})
+
                 # Check if metadata is a callable (function dependency)
                 if callable(metadata):
                     func_name = getattr(metadata, '__name__', '').lower()
-                    
+
                     # Check function name patterns for authentication
-                    if any(keyword in func_name for keyword in ['auth', 'user', 'token', 'jwt']):
+                    if any(
+                        keyword in func_name
+                        for keyword in ['auth', 'user', 'token', 'jwt']
+                    ):
                         # Try to determine auth type from function name
                         if 'jwt' in func_name or 'bearer' in func_name:
-                            security_requirements.append({"bearerAuth": []})
+                            security_requirements.append({'bearerAuth': []})
                         elif 'basic' in func_name:
-                            security_requirements.append({"basicAuth": []})
+                            security_requirements.append({'basicAuth': []})
                         elif 'api_key' in func_name or 'apikey' in func_name:
-                            security_requirements.append({"apiKeyAuth": []})
+                            security_requirements.append({'apiKeyAuth': []})
                         elif 'oauth2' in func_name:
-                            security_requirements.append({"oauth2": []})
+                            security_requirements.append({'oauth2': []})
                         else:
                             # Default to bearer auth for generic auth functions
-                            security_requirements.append({"bearerAuth": []})
-                    
+                            security_requirements.append({'bearerAuth': []})
+
                     # Check for permission dependencies
                     elif 'permission' in func_name or 'require' in func_name:
                         # Permission requirements typically need authentication first
-                        security_requirements.append({"bearerAuth": []})
-    
+                        security_requirements.append({'bearerAuth': []})
+
     return security_requirements
 
 
 def get_security_schemes() -> dict[str, Any]:
     """Get OpenAPI security scheme definitions."""
     return {
-        "bearerAuth": {
-            "type": "http",
-            "scheme": "bearer",
-            "bearerFormat": "JWT"
-        },
-        "apiKeyAuth": {
-            "type": "apiKey",
-            "in": "header",
-            "name": "X-API-Key"
-        },
-        "basicAuth": {
-            "type": "http",
-            "scheme": "basic"
-        },
-        "oauth2": {
-            "type": "oauth2",
-            "flows": {
-                "password": {
-                    "tokenUrl": "/token",
-                    "scopes": {
-                        "read": "Read access",
-                        "write": "Write access",
-                        "admin": "Admin access"
-                    }
+        'bearerAuth': {'type': 'http', 'scheme': 'bearer', 'bearerFormat': 'JWT'},
+        'apiKeyAuth': {'type': 'apiKey', 'in': 'header', 'name': 'X-API-Key'},
+        'basicAuth': {'type': 'http', 'scheme': 'basic'},
+        'oauth2': {
+            'type': 'oauth2',
+            'flows': {
+                'password': {
+                    'tokenUrl': '/token',
+                    'scopes': {
+                        'read': 'Read access',
+                        'write': 'Write access',
+                        'admin': 'Admin access',
+                    },
                 }
-            }
-        }
+            },
+        },
     }
 
 
@@ -631,16 +658,16 @@ def swagger_generate(
     func: callable,
     request_method: str,
     endpoint_path: str = '/',
-    response_model: type | None = None
+    response_model: type | None = None,
 ) -> tuple[dict, dict[str, Any]]:
     """Generate OpenAPI documentation for a function endpoint.
-    
+
     Args:
         func: The endpoint function
         request_method: HTTP method (GET, POST, etc.)
         endpoint_path: URL path for the endpoint
         response_model: Optional Pydantic model for response schema
-    
+
     Returns:
         Tuple of (path_docs, schemas) where path_docs contains the OpenAPI path
         documentation and schemas contains all referenced model schemas.

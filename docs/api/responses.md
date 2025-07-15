@@ -70,12 +70,12 @@ async def create_user(request: Request):
     )
 ```
 
-### OptimizedJSONResponse
+### JSONResponse
 
 ```python
-from velithon.responses import OptimizedJSONResponse
+from velithon.responses import JSONResponse
 
-OptimizedJSONResponse(
+JSONResponse(
     content: Any,
     status_code: int = 200,
     headers: dict[str, str] | None = None
@@ -90,7 +90,7 @@ High-performance JSON response using Rust-based `orjson` for faster serializatio
 async def get_large_dataset():
     # For large datasets, use optimized JSON
     large_data = {"items": list(range(10000))}
-    return OptimizedJSONResponse(large_data)
+    return JSONResponse(large_data)
 
 @app.get("/performance-critical")
 async def performance_endpoint():
@@ -100,7 +100,7 @@ async def performance_endpoint():
         "data": complex_computation(),
         "metadata": {"version": "1.0"}
     }
-    return OptimizedJSONResponse(data)
+    return JSONResponse(data)
 ```
 
 ## HTML Responses
@@ -749,14 +749,14 @@ if __name__ == "__main__":
 
 ## Automatic Response Serialization
 
-Velithon automatically detects and serializes common Python objects to JSON responses, eliminating the need to manually wrap objects in `JSONResponse` or `OptimizedJSONResponse`.
+Velithon automatically detects and serializes common Python objects to JSON responses, eliminating the need to manually wrap objects in `JSONResponse` or `JSONResponse`.
 
 ### Supported Objects
 
 The framework automatically serializes:
-- **Pydantic models** - Uses `OptimizedJSONResponse` for better performance
-- **Dataclasses** - Uses `OptimizedJSONResponse` for structured data
-- **Dictionaries and lists** - Uses `OptimizedJSONResponse` for large collections (>50 items), `JSONResponse` for smaller ones
+- **Pydantic models** - Uses `JSONResponse` for better performance
+- **Dataclasses** - Uses `JSONResponse` for structured data
+- **Dictionaries and lists** - Uses `JSONResponse` for large collections (>50 items), `JSONResponse` for smaller ones
 - **Basic types** - `str`, `int`, `float`, `bool`, `None`
 - **Custom objects** - With `__json__()`, `model_dump()`, `dict()`, or `__dict__` methods
 
@@ -781,12 +781,12 @@ class User(BaseModel):
 
 @app.get("/user/{user_id}")
 async def get_user(user_id: int):
-    # Returns Pydantic model - automatically uses OptimizedJSONResponse
+    # Returns Pydantic model - automatically uses JSONResponse
     return User(id=user_id, name="John Doe", email="john@example.com")
 
 @app.get("/user-data/{user_id}")
 async def get_user_data(user_id: int):
-    # Returns dataclass - automatically uses OptimizedJSONResponse
+    # Returns dataclass - automatically uses JSONResponse
     return UserData(id=user_id, name="Jane Doe", created_at=datetime.utcnow())
 
 @app.get("/simple-data")
@@ -796,7 +796,7 @@ async def get_simple_data():
 
 @app.get("/large-data")
 async def get_large_data():
-    # Returns large dict - automatically uses OptimizedJSONResponse
+    # Returns large dict - automatically uses JSONResponse
     return {"items": [{"id": i, "name": f"Item {i}"} for i in range(100)]}
 
 @app.get("/mixed-data")
@@ -849,5 +849,5 @@ async def mixed_return():
 
 The framework automatically chooses the optimal response type:
 - **Simple objects** (dicts <50 items, basic types) → `JSONResponse`
-- **Complex objects** (Pydantic models, dataclasses, large collections) → `OptimizedJSONResponse`
+- **Complex objects** (Pydantic models, dataclasses, large collections) → `JSONResponse`
 - **Response objects** → Returned unchanged

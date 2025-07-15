@@ -10,7 +10,7 @@ This example demonstrates how to implement a full authentication system with use
 
 ```python
 from velithon import Velithon
-from velithon.responses import OptimizedJSONResponse
+from velithon.responses import JSONResponse
 from velithon.exceptions import HTTPException
 from velithon.security import HTTPBearer, JWTHandler
 from velithon.di import inject, Provide, ServiceContainer
@@ -171,7 +171,7 @@ async def register(
 ):
     """Register a new user"""
     user = auth_service.create_user(user_data)
-    return OptimizedJSONResponse(user.dict(), status_code=201)
+    return JSONResponse(user.dict(), status_code=201)
 
 @app.post("/login", response_model=Token, tags=["auth"])
 @inject
@@ -189,7 +189,7 @@ async def login(
         )
     
     token = auth_service.create_access_token(user)
-    return OptimizedJSONResponse(token.dict())
+    return JSONResponse(token.dict())
 
 @app.get("/me", response_model=User, tags=["auth"])
 @inject
@@ -199,7 +199,7 @@ async def get_current_user(
 ):
     """Get current user information"""
     user = auth_service.get_current_user(token)
-    return OptimizedJSONResponse(user.dict())
+    return JSONResponse(user.dict())
 
 # Protected endpoints
 @app.get("/protected", tags=["protected"])
@@ -210,7 +210,7 @@ async def protected_endpoint(
 ):
     """A protected endpoint that requires authentication"""
     user = auth_service.get_current_user(token)
-    return OptimizedJSONResponse({
+    return JSONResponse({
         "message": f"Hello {user.username}, this is a protected endpoint!",
         "user_id": user.id
     })
@@ -228,7 +228,7 @@ async def admin_endpoint(
     if user.username != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     
-    return OptimizedJSONResponse({
+    return JSONResponse({
         "message": "Welcome to the admin panel",
         "users_count": len(users_db)
     })
@@ -247,7 +247,7 @@ async def list_users(
         raise HTTPException(status_code=403, detail="Admin access required")
     
     users = [record["user"].dict() for record in users_db.values()]
-    return OptimizedJSONResponse(users)
+    return JSONResponse(users)
 
 @app.put("/me", response_model=User, tags=["users"])
 @inject
@@ -271,7 +271,7 @@ async def update_profile(
             record["user"] = user
             break
     
-    return OptimizedJSONResponse(user.dict())
+    return JSONResponse(user.dict())
 
 # Register services with the app
 app.container = container

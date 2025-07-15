@@ -15,6 +15,7 @@ from velithon.responses import JSONResponse
 # Try to import pydantic
 try:
     from pydantic import BaseModel
+
     HAS_PYDANTIC = True
 except ImportError:
     BaseModel = None
@@ -23,7 +24,8 @@ except ImportError:
 # Try to import msgpack (check availability only)
 try:
     import importlib.util
-    HAS_MSGPACK = importlib.util.find_spec("msgpack") is not None
+
+    HAS_MSGPACK = importlib.util.find_spec('msgpack') is not None
 except ImportError:
     HAS_MSGPACK = False
 
@@ -48,8 +50,7 @@ def is_json_serializable(obj: Any) -> bool:
 
     if isinstance(obj, dict):
         return all(
-            isinstance(k, str) and is_json_serializable(v)
-            for k, v in obj.items()
+            isinstance(k, str) and is_json_serializable(v) for k, v in obj.items()
         )
 
     # Exclude functions and methods
@@ -76,9 +77,7 @@ def is_json_serializable(obj: Any) -> bool:
         return True
 
     # Objects with __dict__ (basic serialization) but exclude functions/classes
-    if (hasattr(obj, '__dict__') and
-        not callable(obj) and
-        not isinstance(obj, type)):
+    if hasattr(obj, '__dict__') and not callable(obj) and not isinstance(obj, type):
         return True
 
     return False
@@ -158,7 +157,6 @@ def serialize_to_dict(obj: Any) -> dict[str, Any] | list[Any] | Any:
     return obj
 
 
-
 def create_json_response(obj: Any, status_code: int = 200) -> JSONResponse:
     """Create a JSON response for the given object.
 
@@ -227,6 +225,6 @@ def auto_serialize_response(obj: Any, status_code: int = 200) -> JSONResponse:
 
     # Check if object is serializable
     if not is_json_serializable(obj):
-        raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+        raise TypeError(f'Object of type {type(obj)} is not JSON serializable')
 
     return create_json_response(obj, status_code)

@@ -121,13 +121,13 @@ class Protocol:
         self._status_code = status
         self._headers.extend(headers)
         self._protocol.response_empty(status, self._headers)
-        self._response_data.append(b"")
+        self._response_data.append(b'')
 
     def response_str(self, status: int, headers: tuple[str, str], body: str) -> None:
         self._status_code = status
         self._headers.extend(headers)
         self._protocol.response_str(status, self._headers, body)
-        self._response_data.append(body.encode("utf-8"))
+        self._response_data.append(body.encode('utf-8'))
 
     def response_bytes(
         self, status: int, headers: tuple[str, str], body: bytes

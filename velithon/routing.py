@@ -227,9 +227,11 @@ class Route(BaseRoute):
             if self.methods:
                 for method in self.methods:
                     if method in http_methods:
-                    
                         path, schema = swagger_generate(
-                            self.endpoint, method.lower(), self.path, self.response_model
+                            self.endpoint,
+                            method.lower(),
+                            self.path,
+                            self.response_model,
                         )
 
                         if self.description:
@@ -249,8 +251,10 @@ class Route(BaseRoute):
             for name, func in self.endpoint.__dict__.items():
                 if name.upper() not in http_methods:
                     continue
-               
-                path, schema = swagger_generate(func, name.lower(), self.path, self.response_model)
+
+                path, schema = swagger_generate(
+                    func, name.lower(), self.path, self.response_model
+                )
 
                 if self.description:
                     path[self.path][name.lower()]['description'] = self.description

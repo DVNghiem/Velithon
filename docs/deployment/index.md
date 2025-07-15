@@ -517,7 +517,7 @@ SENTRY_DSN=https://your-sentry-dsn
 
 ```python
 from velithon import Velithon
-from velithon.responses import OptimizedJSONResponse
+from velithon.responses import JSONResponse
 import asyncio
 import psutil
 from datetime import datetime
@@ -527,7 +527,7 @@ app = Velithon()
 @app.get("/health")
 async def health_check():
     """Basic health check endpoint"""
-    return OptimizedJSONResponse({
+    return JSONResponse({
         "status": "healthy",
         "timestamp": datetime.utcnow().isoformat(),
         "version": "1.0.0"
@@ -543,12 +543,12 @@ async def readiness_check():
         # Check Redis connection
         await check_redis()
         
-        return OptimizedJSONResponse({
+        return JSONResponse({
             "status": "ready",
             "timestamp": datetime.utcnow().isoformat()
         })
     except Exception as e:
-        return OptimizedJSONResponse({
+        return JSONResponse({
             "status": "not ready",
             "error": str(e),
             "timestamp": datetime.utcnow().isoformat()
@@ -557,7 +557,7 @@ async def readiness_check():
 @app.get("/metrics")
 async def metrics():
     """System metrics endpoint"""
-    return OptimizedJSONResponse({
+    return JSONResponse({
         "cpu_percent": psutil.cpu_percent(),
         "memory_percent": psutil.virtual_memory().percent,
         "disk_percent": psutil.disk_usage('/').percent,

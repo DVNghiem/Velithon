@@ -87,7 +87,7 @@ Different ways to return responses:
 
 ```python
 from velithon import Velithon
-from velithon.responses import OptimizedJSONResponse, HTMLResponse
+from velithon.responses import JSONResponse, HTMLResponse
 from pydantic import BaseModel
 
 app = Velithon()
@@ -98,7 +98,7 @@ class ApiResponse(BaseModel):
 
 @app.get("/json")
 async def json_response():
-    return OptimizedJSONResponse({"message": "JSON response"})
+    return JSONResponse({"message": "JSON response"})
 
 @app.get("/html")
 async def html_response():

@@ -1,6 +1,7 @@
 # Example deployment files for Velithon applications
 
 """Health check endpoints for production deployment."""
+
 import time
 from velithon import Velithon
 from velithon.responses import JSONResponse
@@ -8,53 +9,51 @@ from velithon.responses import JSONResponse
 
 def setup_health_routes(app: Velithon):
     """Set up health check routes."""
-    
-    @app.get("/health")
+
+    @app.get('/health')
     async def health_check():
         """Provide basic health check endpoint."""
-        return JSONResponse({
-            "status": "healthy",
-            "timestamp": time.time(),
-            "version": "1.0.0"
-        })
-    
-    @app.get("/ready")
+        return JSONResponse(
+            {'status': 'healthy', 'timestamp': time.time(), 'version': '1.0.0'}
+        )
+
+    @app.get('/ready')
     async def readiness_check():
         """Check readiness with dependencies."""
         checks = {}
-        overall_status = "ready"
-        
+        overall_status = 'ready'
+
         try:
             # Check database connection
             if hasattr(app.state, 'db'):
                 await app.state.db.health_check()
-                checks["database"] = "healthy"
-            
+                checks['database'] = 'healthy'
+
             # Check Redis connection
             if hasattr(app.state, 'cache'):
                 await app.state.cache.health_check()
-                checks["cache"] = "healthy"
-                
+                checks['cache'] = 'healthy'
+
         except Exception as e:
-            overall_status = "not ready"
-            checks["error"] = str(e)
-        
-        status_code = 200 if overall_status == "ready" else 503
-        
-        return JSONResponse({
-            "status": overall_status,
-            "checks": checks,
-            "timestamp": time.time()
-        }, status_code=status_code)
-    
-    @app.get("/metrics")
+            overall_status = 'not ready'
+            checks['error'] = str(e)
+
+        status_code = 200 if overall_status == 'ready' else 503
+
+        return JSONResponse(
+            {'status': overall_status, 'checks': checks, 'timestamp': time.time()},
+            status_code=status_code,
+        )
+
+    @app.get('/metrics')
     async def metrics_endpoint():
         """Provide Prometheus metrics endpoint."""
         try:
             from prometheus_client import generate_latest  # noqa: F401
+
             return generate_latest()
         except ImportError:
-            return JSONResponse({"error": "Metrics not available"}, status_code=404)
+            return JSONResponse({'error': 'Metrics not available'}, status_code=404)
 
 
 # Example systemd service file content
@@ -372,6 +371,8 @@ networks:
     driver: bridge
 """
 
-if __name__ == "__main__":
-    print("This file contains deployment configuration examples for Velithon applications.")
-    print("Copy the relevant sections to your deployment configuration files.")
+if __name__ == '__main__':
+    print(
+        'This file contains deployment configuration examples for Velithon applications.'
+    )
+    print('Copy the relevant sections to your deployment configuration files.')

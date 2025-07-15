@@ -10,7 +10,7 @@ This example demonstrates building a RESTful API for managing a collection of it
 
 ```python
 from velithon import Velithon
-from velithon.responses import OptimizedJSONResponse
+from velithon.responses import JSONResponse
 from velithon.exceptions import HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
@@ -66,7 +66,7 @@ def create_item_in_db(item_data: ItemCreate) -> Item:
 async def create_item(item: ItemCreate):
     """Create a new item"""
     created_item = create_item_in_db(item)
-    return OptimizedJSONResponse(created_item.dict(), status_code=201)
+    return JSONResponse(created_item.dict(), status_code=201)
 
 @app.get("/items", response_model=List[Item], tags=["items"])
 async def list_items(
@@ -84,7 +84,7 @@ async def list_items(
     # Apply pagination
     items = items[skip : skip + limit]
     
-    return OptimizedJSONResponse([item.dict() for item in items])
+    return JSONResponse([item.dict() for item in items])
 
 @app.get("/items/{item_id}", response_model=Item, tags=["items"])
 async def get_item(item_id: int):
@@ -93,7 +93,7 @@ async def get_item(item_id: int):
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
     
-    return OptimizedJSONResponse(item.dict())
+    return JSONResponse(item.dict())
 
 @app.put("/items/{item_id}", response_model=Item, tags=["items"])
 async def update_item(item_id: int, item_update: ItemUpdate):
@@ -110,7 +110,7 @@ async def update_item(item_id: int, item_update: ItemUpdate):
     item.updated_at = datetime.datetime.now()
     items_db[item_id] = item
     
-    return OptimizedJSONResponse(item.dict())
+    return JSONResponse(item.dict())
 
 @app.delete("/items/{item_id}", tags=["items"])
 async def delete_item(item_id: int):
@@ -119,14 +119,14 @@ async def delete_item(item_id: int):
         raise HTTPException(status_code=404, detail="Item not found")
     
     del items_db[item_id]
-    return OptimizedJSONResponse({"message": "Item deleted successfully"})
+    return JSONResponse({"message": "Item deleted successfully"})
 
 # Additional endpoints
 @app.get("/items/category/{category}", response_model=List[Item], tags=["items"])
 async def get_items_by_category(category: str):
     """Get all items in a specific category"""
     items = [item for item in items_db.values() if item.category == category]
-    return OptimizedJSONResponse([item.dict() for item in items])
+    return JSONResponse([item.dict() for item in items])
 
 @app.get("/stats", tags=["stats"])
 async def get_stats():
@@ -138,7 +138,7 @@ async def get_stats():
         categories[item.category] = categories.get(item.category, 0) + 1
         total_value += item.price
     
-    return OptimizedJSONResponse({
+    return JSONResponse({
         "total_items": len(items_db),
         "categories": categories,
         "total_value": total_value,

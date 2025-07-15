@@ -33,7 +33,7 @@ graph TD
 ```python
 # user_service.py
 from velithon import Velithon
-from velithon.responses import OptimizedJSONResponse
+from velithon.responses import JSONResponse
 from velithon.exceptions import HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
@@ -77,18 +77,18 @@ async def create_user(user: UserCreate):
     users_db[next_user_id] = new_user
     next_user_id += 1
     
-    return OptimizedJSONResponse(new_user.dict(), status_code=201)
+    return JSONResponse(new_user.dict(), status_code=201)
 
 @app.get("/users", response_model=List[User], tags=["users"])
 async def list_users():
-    return OptimizedJSONResponse([user.dict() for user in users_db.values()])
+    return JSONResponse([user.dict() for user in users_db.values()])
 
 @app.get("/users/{user_id}", response_model=User, tags=["users"])
 async def get_user(user_id: int):
     user = users_db.get(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    return OptimizedJSONResponse(user.dict())
+    return JSONResponse(user.dict())
 
 @app.get("/health")
 async def health_check():
@@ -103,7 +103,7 @@ if __name__ == "__main__":
 ```python
 # product_service.py
 from velithon import Velithon
-from velithon.responses import OptimizedJSONResponse
+from velithon.responses import JSONResponse
 from velithon.exceptions import HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
@@ -156,21 +156,21 @@ async def create_product(product: ProductCreate):
     products_db[next_product_id] = new_product
     next_product_id += 1
     
-    return OptimizedJSONResponse(new_product.dict(), status_code=201)
+    return JSONResponse(new_product.dict(), status_code=201)
 
 @app.get("/products", response_model=List[Product], tags=["products"])
 async def list_products(category: Optional[str] = None):
     products = list(products_db.values())
     if category:
         products = [p for p in products if p.category.lower() == category.lower()]
-    return OptimizedJSONResponse([product.dict() for product in products])
+    return JSONResponse([product.dict() for product in products])
 
 @app.get("/products/{product_id}", response_model=Product, tags=["products"])
 async def get_product(product_id: int):
     product = products_db.get(product_id)
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
-    return OptimizedJSONResponse(product.dict())
+    return JSONResponse(product.dict())
 
 @app.put("/products/{product_id}/stock", tags=["products"])
 async def update_stock(product_id: int, stock_change: int):
@@ -183,7 +183,7 @@ async def update_stock(product_id: int, stock_change: int):
         raise HTTPException(status_code=400, detail="Insufficient stock")
     
     product.stock = new_stock
-    return OptimizedJSONResponse({"product_id": product_id, "new_stock": new_stock})
+    return JSONResponse({"product_id": product_id, "new_stock": new_stock})
 
 @app.get("/health")
 async def health_check():
@@ -198,7 +198,7 @@ if __name__ == "__main__":
 ```python
 # order_service.py
 from velithon import Velithon
-from velithon.responses import OptimizedJSONResponse
+from velithon.responses import JSONResponse
 from velithon.exceptions import HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
@@ -325,21 +325,21 @@ async def create_order(order_data: OrderCreate):
     # Update order status
     order.status = "confirmed"
     
-    return OptimizedJSONResponse(order.dict(), status_code=201)
+    return JSONResponse(order.dict(), status_code=201)
 
 @app.get("/orders", response_model=List[Order], tags=["orders"])
 async def list_orders(user_id: Optional[int] = None):
     orders = list(orders_db.values())
     if user_id:
         orders = [order for order in orders if order.user_id == user_id]
-    return OptimizedJSONResponse([order.dict() for order in orders])
+    return JSONResponse([order.dict() for order in orders])
 
 @app.get("/orders/{order_id}", response_model=Order, tags=["orders"])
 async def get_order(order_id: int):
     order = orders_db.get(order_id)
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
-    return OptimizedJSONResponse(order.dict())
+    return JSONResponse(order.dict())
 
 @app.get("/health")
 async def health_check():
@@ -354,7 +354,7 @@ if __name__ == "__main__":
 ```python
 # api_gateway.py
 from velithon import Velithon
-from velithon.responses import OptimizedJSONResponse
+from velithon.responses import JSONResponse
 from velithon.exceptions import HTTPException
 import httpx
 import asyncio
@@ -431,7 +431,7 @@ async def proxy_users(request):
             headers={k: v for k, v in request.headers.items() if k.lower() != "host"}
         )
         
-        return OptimizedJSONResponse(
+        return JSONResponse(
             response.json() if response.content else {},
             status_code=response.status_code
         )
@@ -450,7 +450,7 @@ async def proxy_products(request):
             headers={k: v for k, v in request.headers.items() if k.lower() != "host"}
         )
         
-        return OptimizedJSONResponse(
+        return JSONResponse(
             response.json() if response.content else {},
             status_code=response.status_code
         )
@@ -469,7 +469,7 @@ async def proxy_orders(request):
             headers={k: v for k, v in request.headers.items() if k.lower() != "host"}
         )
         
-        return OptimizedJSONResponse(
+        return JSONResponse(
             response.json() if response.content else {},
             status_code=response.status_code
         )
@@ -486,7 +486,7 @@ async def gateway_health():
     
     overall_healthy = len(registry.healthy_services) == len(registry.services)
     
-    return OptimizedJSONResponse({
+    return JSONResponse({
         "gateway": "healthy",
         "services": service_status,
         "overall_healthy": overall_healthy
@@ -505,7 +505,7 @@ async def list_services():
             "healthy": name in registry.healthy_services
         })
     
-    return OptimizedJSONResponse({"services": services_info})
+    return JSONResponse({"services": services_info})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000)

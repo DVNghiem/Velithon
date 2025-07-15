@@ -184,17 +184,17 @@ async def get_all_users():
 Built-in performance optimizations:
 
 ```python
-from velithon.responses import OptimizedJSONResponse, BatchJSONResponse
+from velithon.responses import JSONResponse, JSONResponse
 
 # Ultra-fast JSON serialization
 @app.get("/data")
 async def get_data():
-    return OptimizedJSONResponse(large_dataset)
+    return JSONResponse(large_dataset)
 
 # Batch processing
 @app.get("/batch")
 async def get_batch_data():
-    return BatchJSONResponse([item1, item2, item3])
+    return JSONResponse([item1, item2, item3])
 ```
 
 ### 4. Middleware Ecosystem

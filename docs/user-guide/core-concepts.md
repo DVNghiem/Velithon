@@ -118,7 +118,6 @@ from velithon.responses import (
     FileResponse,
     StreamingResponse,
     RedirectResponse,
-    OptimizedJSONResponse,  # Rust-optimized JSON
     SSEResponse  # Server-Sent Events
 )
 

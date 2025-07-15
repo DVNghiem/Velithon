@@ -14,7 +14,7 @@ Authentication in Velithon is handled through middleware and dependency injectio
 from velithon import Velithon
 from velithon.middleware import Middleware
 from velithon.middleware.auth import JWTAuthenticationMiddleware
-from velithon.responses import OptimizedJSONResponse
+from velithon.responses import JSONResponse
 from velithon.exceptions import UnauthorizedException
 import jwt
 from datetime import datetime, timedelta
@@ -48,14 +48,14 @@ async def login(credentials: dict):
         raise UnauthorizedException("Invalid credentials")
     
     access_token = create_access_token(data={"sub": username})
-    return OptimizedJSONResponse({
+    return JSONResponse({
         "access_token": access_token,
         "token_type": "bearer"
     })
 
 @app.get("/protected")
 async def protected_endpoint(user: Annotated[dict, get_current_user]):
-    return OptimizedJSONResponse({"message": f"Hello, {user['username']}!"})
+    return JSONResponse({"message": f"Hello, {user['username']}!"})
 ```
 
 ### JWT Dependency
@@ -113,7 +113,7 @@ app = Velithon(middleware=[
 async def get_data(request: Request):
     api_key = request.headers.get("X-API-Key")
     # API key is automatically validated by middleware
-    return OptimizedJSONResponse({"data": "sensitive information"})
+    return JSONResponse({"data": "sensitive information"})
 ```
 
 ### Custom API Key Validation
@@ -135,7 +135,7 @@ class CustomAPIKeyMiddleware:
             
             if not await validate_api_key(api_key):
                 # Return 401 Unauthorized
-                response = OptimizedJSONResponse(
+                response = JSONResponse(
                     {"error": "Invalid API key"}, 
                     status_code=401
                 )
@@ -170,14 +170,14 @@ async def login(request: Request, credentials: dict):
         request.session["username"] = username
         request.session["authenticated"] = True
         
-        return OptimizedJSONResponse({"message": "Logged in successfully"})
+        return JSONResponse({"message": "Logged in successfully"})
     
     raise UnauthorizedException("Invalid credentials")
 
 @app.post("/logout")
 async def logout(request: Request):
     request.session.clear()
-    return OptimizedJSONResponse({"message": "Logged out successfully"})
+    return JSONResponse({"message": "Logged out successfully"})
 
 @app.get("/profile")
 async def get_profile(request: Request):
@@ -185,7 +185,7 @@ async def get_profile(request: Request):
         raise UnauthorizedException("Not authenticated")
     
     username = request.session.get("username")
-    return OptimizedJSONResponse({"username": username})
+    return JSONResponse({"username": username})
 ```
 
 ## OAuth2 Authentication
@@ -274,7 +274,7 @@ def require_role(required_role: str):
 @app.get("/admin/users")
 @require_role("admin")
 async def get_all_users(request: Request):
-    return OptimizedJSONResponse({"users": get_users()})
+    return JSONResponse({"users": get_users()})
 ```
 
 ### Permission-Based Authorization
@@ -312,7 +312,7 @@ def require_permission(permission: Permission):
 @require_permission(Permission.DELETE_USERS)
 async def delete_user(request: Request, user_id: int):
     delete_user_by_id(user_id)
-    return OptimizedJSONResponse({"message": "User deleted"})
+    return JSONResponse({"message": "User deleted"})
 ```
 
 ## Multi-Factor Authentication
@@ -350,7 +350,7 @@ async def setup_2fa(user: Annotated[dict, get_current_user]):
     qr_image.save(buffer, format="PNG")
     qr_code_data = base64.b64encode(buffer.getvalue()).decode()
     
-    return OptimizedJSONResponse({
+    return JSONResponse({
         "secret": secret,
         "qr_code": f"data:image/png;base64,{qr_code_data}"
     })
@@ -372,7 +372,7 @@ async def verify_2fa(
     # Mark user as fully authenticated
     # Update session or JWT with 2FA verification
     
-    return OptimizedJSONResponse({"message": "2FA verified successfully"})
+    return JSONResponse({"message": "2FA verified successfully"})
 ```
 
 ## Authentication Middleware Chain
@@ -411,7 +411,7 @@ async def get_data(request: Request):
     if not user:
         raise UnauthorizedException("Authentication required")
     
-    return OptimizedJSONResponse({
+    return JSONResponse({
         "data": "protected data",
         "auth_method": auth_method,
         "user": user
@@ -474,7 +474,7 @@ async def register(user_data: dict):
         "password": hashed_password
     })
     
-    return OptimizedJSONResponse({"message": "User registered successfully"})
+    return JSONResponse({"message": "User registered successfully"})
 ```
 
 ## Testing Authentication

@@ -12,17 +12,17 @@ Learn Velithon through practical examples ranging from simple APIs to complex mi
 
 ```python
 from velithon import Velithon
-from velithon.responses import OptimizedJSONResponse
+from velithon.responses import JSONResponse
 
 app = Velithon()
 
 @app.get("/")
 async def hello():
-    return OptimizedJSONResponse({"message": "Hello, World!"})
+    return JSONResponse({"message": "Hello, World!"})
 
 @app.get("/hello/{name}")
 async def hello_name(name: str):
-    return OptimizedJSONResponse({"message": f"Hello, {name}!"})
+    return JSONResponse({"message": f"Hello, {name}!"})
 
 if __name__ == "__main__":
     app.run()
@@ -32,7 +32,7 @@ if __name__ == "__main__":
 
 ```python
 from velithon import Velithon
-from velithon.responses import OptimizedJSONResponse
+from velithon.responses import JSONResponse
 from pydantic import BaseModel
 from typing import List, Optional
 
@@ -51,14 +51,14 @@ next_id = 1
 
 @app.get("/items", response_model=List[Item])
 async def get_items():
-    return OptimizedJSONResponse([item.dict() for item in items])
+    return JSONResponse([item.dict() for item in items])
 
 @app.get("/items/{item_id}", response_model=Item)
 async def get_item(item_id: int):
     for item in items:
         if item.id == item_id:
-            return OptimizedJSONResponse(item.dict())
-    return OptimizedJSONResponse({"error": "Item not found"}, status_code=404)
+            return JSONResponse(item.dict())
+    return JSONResponse({"error": "Item not found"}, status_code=404)
 
 @app.post("/items", response_model=Item, status_code=201)
 async def create_item(item: Item):
@@ -66,7 +66,7 @@ async def create_item(item: Item):
     item.id = next_id
     next_id += 1
     items.append(item)
-    return OptimizedJSONResponse(item.dict())
+    return JSONResponse(item.dict())
 
 @app.put("/items/{item_id}", response_model=Item)
 async def update_item(item_id: int, updated_item: Item):
@@ -74,14 +74,14 @@ async def update_item(item_id: int, updated_item: Item):
         if item.id == item_id:
             updated_item.id = item_id
             items[i] = updated_item
-            return OptimizedJSONResponse(updated_item.dict())
-    return OptimizedJSONResponse({"error": "Item not found"}, status_code=404)
+            return JSONResponse(updated_item.dict())
+    return JSONResponse({"error": "Item not found"}, status_code=404)
 
 @app.delete("/items/{item_id}")
 async def delete_item(item_id: int):
     global items
     items = [item for item in items if item.id != item_id]
-    return OptimizedJSONResponse({"message": "Item deleted"})
+    return JSONResponse({"message": "Item deleted"})
 ```
 
 ## Authentication Example
@@ -95,7 +95,7 @@ from velithon import Velithon
 from velithon.middleware import Middleware
 from velithon.middleware.auth import JWTAuthenticationMiddleware
 from velithon.di import inject, Provide, ServiceContainer, SingletonProvider
-from velithon.responses import OptimizedJSONResponse
+from velithon.responses import JSONResponse
 from velithon.exceptions import UnauthorizedException
 from velithon.requests import Request
 from pydantic import BaseModel
@@ -204,7 +204,7 @@ app.register_container(container)
 @inject
 async def register(user: UserCreate, auth_service: AuthService = Provide[container.auth_service]):
     if user.username in users_db:
-        return OptimizedJSONResponse(
+        return JSONResponse(
             {"error": "Username already exists"}, 
             status_code=400
         )
@@ -220,7 +220,7 @@ async def register(user: UserCreate, auth_service: AuthService = Provide[contain
         "is_active": True
     }
     
-    return OptimizedJSONResponse({
+    return JSONResponse({
         "id": user_id,
         "username": user.username,
         "email": user.email,
@@ -235,7 +235,7 @@ async def login(user_credentials: UserLogin, auth_service: AuthService = Provide
         raise UnauthorizedException("Invalid credentials")
     
     access_token = auth_service.create_access_token(data={"sub": user["username"]})
-    return OptimizedJSONResponse({
+    return JSONResponse({
         "access_token": access_token,
         "token_type": "bearer"
     })
@@ -244,13 +244,13 @@ async def login(user_credentials: UserLogin, auth_service: AuthService = Provide
 @inject
 async def get_profile(request: Request, auth_service: AuthService = Provide[container.auth_service]):
     current_user = auth_service.get_current_user(request)
-    return OptimizedJSONResponse(current_user.dict())
+    return JSONResponse(current_user.dict())
 
 @app.get("/protected")
 @inject
 async def protected_route(request: Request, auth_service: AuthService = Provide[container.auth_service]):
     current_user = auth_service.get_current_user(request)
-    return OptimizedJSONResponse({
+    return JSONResponse({
         "message": f"Hello {current_user.username}, this is a protected route!"
     })
 ```
@@ -261,7 +261,7 @@ async def protected_route(request: Request, auth_service: AuthService = Provide[
 
 ```python
 from velithon import Velithon
-from velithon.responses import OptimizedJSONResponse
+from velithon.responses import JSONResponse
 from pydantic import BaseModel
 import asyncpg
 from typing import List, Optional
@@ -316,15 +316,15 @@ async def shutdown():
 async def get_users():
     async with db_pool.acquire() as conn:
         rows = await conn.fetch("SELECT * FROM users")
-        return OptimizedJSONResponse([dict(row) for row in rows])
+        return JSONResponse([dict(row) for row in rows])
 
 @app.get("/users/{user_id}", response_model=User)
 async def get_user(user_id: int):
     async with db_pool.acquire() as conn:
         row = await conn.fetchrow("SELECT * FROM users WHERE id = $1", user_id)
         if row:
-            return OptimizedJSONResponse(dict(row))
-        return OptimizedJSONResponse({"error": "User not found"}, status_code=404)
+            return JSONResponse(dict(row))
+        return JSONResponse({"error": "User not found"}, status_code=404)
 
 @app.post("/users", response_model=User, status_code=201)
 async def create_user(user: UserCreate):
@@ -334,9 +334,9 @@ async def create_user(user: UserCreate):
                 "INSERT INTO users (name, email, age) VALUES ($1, $2, $3) RETURNING *",
                 user.name, user.email, user.age
             )
-            return OptimizedJSONResponse(dict(row))
+            return JSONResponse(dict(row))
         except asyncpg.UniqueViolationError:
-            return OptimizedJSONResponse(
+            return JSONResponse(
                 {"error": "Email already exists"}, 
                 status_code=400
             )
@@ -349,16 +349,16 @@ async def update_user(user_id: int, user: UserCreate):
             user.name, user.email, user.age, user_id
         )
         if row:
-            return OptimizedJSONResponse(dict(row))
-        return OptimizedJSONResponse({"error": "User not found"}, status_code=404)
+            return JSONResponse(dict(row))
+        return JSONResponse({"error": "User not found"}, status_code=404)
 
 @app.delete("/users/{user_id}")
 async def delete_user(user_id: int):
     async with db_pool.acquire() as conn:
         result = await conn.execute("DELETE FROM users WHERE id = $1", user_id)
         if result == "DELETE 1":
-            return OptimizedJSONResponse({"message": "User deleted"})
-        return OptimizedJSONResponse({"error": "User not found"}, status_code=404)
+            return JSONResponse({"message": "User deleted"})
+        return JSONResponse({"error": "User not found"}, status_code=404)
 ```
 
 ## WebSocket Chat Example
@@ -368,7 +368,7 @@ async def delete_user(user_id: int):
 ```python
 from velithon import Velithon
 from velithon.websocket import WebSocket
-from velithon.responses import HTMLResponse, OptimizedJSONResponse
+from velithon.responses import HTMLResponse, JSONResponse
 from typing import Dict, Set
 import json
 from datetime import datetime
@@ -524,7 +524,7 @@ async def get_active_rooms():
     room_info = {}
     for room in rooms:
         room_info[room] = len(manager.active_connections[room])
-    return OptimizedJSONResponse(room_info)
+    return JSONResponse(room_info)
 ```
 
 ## File Upload Example
@@ -533,7 +533,7 @@ async def get_active_rooms():
 
 ```python
 from velithon import Velithon
-from velithon.responses import OptimizedJSONResponse, FileResponse
+from velithon.responses import JSONResponse, FileResponse
 from velithon.middleware import Middleware
 from velithon.middleware.files import FileUploadMiddleware
 import os
@@ -564,7 +564,7 @@ async def upload_file(request):
     file = form.get("file")
     
     if not file or not file.filename:
-        return OptimizedJSONResponse(
+        return JSONResponse(
             {"error": "No file provided"}, 
             status_code=400
         )
@@ -589,7 +589,7 @@ async def upload_file(request):
         except Exception as e:
             print(f"Failed to create thumbnail: {e}")
     
-    return OptimizedJSONResponse({
+    return JSONResponse({
         "file_id": file_id,
         "filename": file.filename,
         "size": file_path.stat().st_size,
@@ -608,7 +608,7 @@ async def download_file(file_id: str):
                 media_type="application/octet-stream"
             )
     
-    return OptimizedJSONResponse(
+    return JSONResponse(
         {"error": "File not found"}, 
         status_code=404
     )
@@ -623,7 +623,7 @@ async def get_thumbnail(file_id: str):
                 media_type="image/jpeg"
             )
     
-    return OptimizedJSONResponse(
+    return JSONResponse(
         {"error": "Thumbnail not found"}, 
         status_code=404
     )
@@ -644,7 +644,7 @@ async def list_files():
                 "thumbnail_url": f"/thumbnail/{file_id}"
             })
     
-    return OptimizedJSONResponse(files)
+    return JSONResponse(files)
 
 @app.delete("/files/{file_id}")
 async def delete_file(file_id: str):
@@ -662,9 +662,9 @@ async def delete_file(file_id: str):
             thumb_path.unlink()
     
     if deleted:
-        return OptimizedJSONResponse({"message": "File deleted"})
+        return JSONResponse({"message": "File deleted"})
     else:
-        return OptimizedJSONResponse(
+        return JSONResponse(
             {"error": "File not found"}, 
             status_code=404
         )
@@ -676,7 +676,7 @@ async def delete_file(file_id: str):
 
 ```python
 from velithon import Velithon
-from velithon.responses import OptimizedJSONResponse
+from velithon.responses import JSONResponse
 from velithon.middleware import Middleware
 from velithon.middleware.proxy import ProxyMiddleware
 import httpx
@@ -714,12 +714,12 @@ async def startup_user_service():
 
 @user_app.get("/health")
 async def user_health():
-    return OptimizedJSONResponse({"status": "healthy", "service": "user-service"})
+    return JSONResponse({"status": "healthy", "service": "user-service"})
 
 @user_app.get("/users/{user_id}")
 async def get_user(user_id: int):
     # Mock user data
-    return OptimizedJSONResponse({
+    return JSONResponse({
         "id": user_id,
         "name": f"User {user_id}",
         "email": f"user{user_id}@example.com"
@@ -727,7 +727,7 @@ async def get_user(user_id: int):
 
 @user_app.get("/users")
 async def get_users():
-    return OptimizedJSONResponse([
+    return JSONResponse([
         {"id": 1, "name": "User 1", "email": "user1@example.com"},
         {"id": 2, "name": "User 2", "email": "user2@example.com"}
     ])
@@ -741,7 +741,7 @@ async def startup_order_service():
 
 @order_app.get("/health")
 async def order_health():
-    return OptimizedJSONResponse({"status": "healthy", "service": "order-service"})
+    return JSONResponse({"status": "healthy", "service": "order-service"})
 
 @order_app.get("/orders/{order_id}")
 async def get_order(order_id: int):
@@ -754,7 +754,7 @@ async def get_order(order_id: int):
     else:
         user_data = {"id": 1, "name": "Unknown User"}
     
-    return OptimizedJSONResponse({
+    return JSONResponse({
         "id": order_id,
         "user": user_data,
         "items": ["Item 1", "Item 2"],
@@ -768,13 +768,13 @@ gateway_app = Velithon(middleware=[
 
 @gateway_app.get("/health")
 async def gateway_health():
-    return OptimizedJSONResponse({"status": "healthy", "service": "api-gateway"})
+    return JSONResponse({"status": "healthy", "service": "api-gateway"})
 
 @gateway_app.get("/api/users/{path:path}")
 async def proxy_to_user_service(request):
     user_services = await registry.discover_service("user-service")
     if not user_services:
-        return OptimizedJSONResponse(
+        return JSONResponse(
             {"error": "User service unavailable"}, 
             status_code=503
         )
@@ -785,13 +785,13 @@ async def proxy_to_user_service(request):
     
     async with httpx.AsyncClient() as client:
         response = await client.get(f"{service_url}/users/{path}")
-        return OptimizedJSONResponse(response.json(), status_code=response.status_code)
+        return JSONResponse(response.json(), status_code=response.status_code)
 
 @gateway_app.get("/api/orders/{path:path}")
 async def proxy_to_order_service(request):
     order_services = await registry.discover_service("order-service")
     if not order_services:
-        return OptimizedJSONResponse(
+        return JSONResponse(
             {"error": "Order service unavailable"}, 
             status_code=503
         )
@@ -801,7 +801,7 @@ async def proxy_to_order_service(request):
     
     async with httpx.AsyncClient() as client:
         response = await client.get(f"{service_url}/orders/{path}")
-        return OptimizedJSONResponse(response.json(), status_code=response.status_code)
+        return JSONResponse(response.json(), status_code=response.status_code)
 
 # Circuit Breaker Pattern
 class CircuitBreaker:
