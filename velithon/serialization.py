@@ -8,10 +8,9 @@ and other JSON-serializable types.
 from __future__ import annotations
 
 import dataclasses
-import typing
 from typing import Any
 
-from velithon.responses import JSONResponse, OptimizedJSONResponse
+from velithon.responses import JsonResponse
 
 # Try to import pydantic
 try:
@@ -21,10 +20,10 @@ except ImportError:
     BaseModel = None
     HAS_PYDANTIC = False
 
-# Try to import msgpack
+# Try to import msgpack (check availability only)
 try:
-    import msgpack
-    HAS_MSGPACK = True
+    import importlib.util
+    HAS_MSGPACK = importlib.util.find_spec("msgpack") is not None
 except ImportError:
     HAS_MSGPACK = False
 
@@ -160,72 +159,38 @@ def serialize_to_dict(obj: Any) -> dict[str, Any] | list[Any] | Any:
 
 
 def should_use_optimized_json(obj: Any) -> bool:
-    """Determine if we should use OptimizedJSONResponse based on object complexity.
+    """Determine if optimized JSON should be used (legacy - always True).
+
+    This function is kept for backward compatibility but always returns True
+    since the unified JsonResponse handles all optimizations automatically.
 
     Args:
         obj: The object to check
 
     Returns:
-        True if OptimizedJSONResponse should be used, False for regular JSONResponse
+        Always True (deprecated logic)
 
     """
-    def _estimate_complexity(obj: Any, depth: int = 0) -> int:
-        """Estimate complexity of an object by counting elements."""
-        if depth > 5:  # Prevent infinite recursion
-            return 1
-
-        if isinstance(obj, list | tuple):
-            return len(obj) + sum(_estimate_complexity(item, depth + 1)
-                                 for item in obj[:10])  # Sample first 10
-        elif isinstance(obj, dict):
-            return len(obj) + sum(_estimate_complexity(v, depth + 1)
-                                 for v in list(obj.values())[:10])  # Sample first 10
-        else:
-            return 1
-
-    complexity = _estimate_complexity(obj)
-
-    # Use optimized JSON for complex objects or large collections
-    if isinstance(obj, list | tuple) and len(obj) > 100:
-        return True
-
-    if isinstance(obj, dict) and (len(obj) > 50 or complexity > 200):
-        return True
-
-    # Use optimized JSON for Pydantic models (they can be complex)
-    if HAS_PYDANTIC and isinstance(obj, BaseModel):
-        return True
-
-    # Use optimized JSON for dataclasses
-    if dataclasses.is_dataclass(obj):
-        return True
-
-    # Use optimized JSON for custom objects
-    if hasattr(obj, '__dict__') and len(obj.__dict__) > 10:
-        return True
-
-    return False
+    # Legacy function - the unified JsonResponse handles optimization automatically
+    return True
 
 
-def create_json_response(obj: Any, status_code: int = 200) -> JSONResponse:
-    """Create an appropriate JSON response for the given object.
+def create_json_response(obj: Any, status_code: int = 200) -> JsonResponse:
+    """Create a JSON response for the given object.
 
     Args:
         obj: The object to serialize
         status_code: HTTP status code
 
     Returns:
-        JSONResponse or OptimizedJSONResponse based on object complexity
+        JsonResponse with serialized content
 
     """
     # Convert object to serializable format
     serialized_obj = serialize_to_dict(obj)
 
-    # Choose the appropriate response type
-    if should_use_optimized_json(obj):
-        return OptimizedJSONResponse(serialized_obj, status_code=status_code)
-    else:
-        return JSONResponse(serialized_obj, status_code=status_code)
+    # Always use the unified JsonResponse - it handles optimization automatically
+    return JsonResponse(serialized_obj, status_code=status_code)
 
 
 def is_response_like(obj: Any) -> bool:
@@ -251,7 +216,7 @@ def is_response_like(obj: Any) -> bool:
     return False
 
 
-def auto_serialize_response(obj: Any, status_code: int = 200) -> JSONResponse:
+def auto_serialize_response(obj: Any, status_code: int = 200) -> JsonResponse:
     """Automatically serialize an object to an appropriate JSON response.
 
     This is the main entry point for automatic serialization. It handles:

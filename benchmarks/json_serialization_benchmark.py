@@ -14,7 +14,7 @@ from velithon.responses import JSONResponse as StandardJSONResponse
 
 # New optimized JSON responses (will be available after compilation)
 try:
-    from velithon.json_responses import (
+    from velithon.responses import (
         BatchJSONResponse,
         OptimizedJSONResponse,
     )

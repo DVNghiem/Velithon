@@ -18,7 +18,8 @@ from .gateway import Gateway, GatewayRoute, gateway_route, forward_to
 from .requests import Request
 from .responses import (
     Response,
-    JSONResponse,
+    JsonResponse,
+    JSONResponse,  # Backward compatibility alias
     HTMLResponse,
     PlainTextResponse,
     RedirectResponse,
@@ -26,8 +27,6 @@ from .responses import (
     StreamingResponse,
     SSEResponse,
     ProxyResponse,
-    OptimizedJSONResponse,
-    BatchJSONResponse,
 )
 
 # Routing
@@ -72,7 +71,6 @@ __all__ = [
     'HTTP_422_UNPROCESSABLE_ENTITY',
     'HTTP_500_INTERNAL_SERVER_ERROR',
     'BadRequestException',
-    'BatchJSONResponse',
     'FileResponse',
     'ForbiddenException',
     'Gateway',
@@ -80,10 +78,10 @@ __all__ = [
     'HTMLResponse',
     'HTTPException',
     'InternalServerException',
-    'JSONResponse',
+    'JSONResponse',  # Backward compatibility alias
+    'JsonResponse',  # Main JSON response
     'Middleware',
     'NotFoundException',
-    'OptimizedJSONResponse',
     'PlainTextResponse',
     'ProxyResponse',
     'RedirectResponse',
