@@ -24,6 +24,7 @@ mod routing;
 mod templates;
 mod vsp;
 mod error;
+mod formparsers;
 
 /// Velithon Rust Extensions
 /// High-performance Rust implementations for critical Velithon components
@@ -55,6 +56,9 @@ fn _velithon(m: &Bound<'_, PyModule>) -> PyResult<()> {
     
     // Register VSP (Velithon Service Protocol) components
     vsp::register_vsp(m.py(), m)?;
+    
+    // Register form parsers for high-performance form parsing
+    formparsers::register_formparsers(m.py(), m)?;
     
     Ok(())
 }
