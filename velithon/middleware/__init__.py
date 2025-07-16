@@ -21,6 +21,12 @@ from velithon.middleware.base import (
 from velithon.middleware.compression import CompressionLevel, CompressionMiddleware
 from velithon.middleware.cors import CORSMiddleware
 from velithon.middleware.logging import LoggingMiddleware
+from velithon.middleware.prometheus import (
+    FastPrometheusMiddleware,
+    PrometheusMetrics,
+    PrometheusMiddleware,
+    RustPrometheusMiddleware,
+)
 from velithon.middleware.proxy import ProxyMiddleware
 from velithon.middleware.session import (
     MemorySessionInterface,
@@ -42,14 +48,18 @@ __all__ = [
     'CompressionMiddleware',
     'ConditionalMiddleware',
     'FastLoggingMiddleware',
+    'FastPrometheusMiddleware',
     'LoggingMiddleware',
     'MemorySessionInterface',
     'Middleware',
     'PassThroughMiddleware',
+    'PrometheusMetrics',
+    'PrometheusMiddleware',
     'ProtocolWrapperMiddleware',
     'ProxyMiddleware',
     'RustLoggingMiddleware',
     'RustMiddlewareOptimizer',
+    'RustPrometheusMiddleware',
     'SecurityMiddleware',
     'Session',
     'SessionInterface',
