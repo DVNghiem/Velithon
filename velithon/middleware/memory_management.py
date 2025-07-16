@@ -109,7 +109,7 @@ class MemoryMonitoringMiddleware(Middleware):
         system_memory = stats.get('system_memory', {})
         rss_mb = system_memory.get('rss_mb', 0)
 
-        logger.info(
+        logger.debug(
             f'Memory stats - Objects: {total_objects}, '
             f'RSS: {rss_mb:.1f}MB, '
             f'Requests processed: {self._request_count}'

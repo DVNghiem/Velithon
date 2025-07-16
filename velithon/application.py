@@ -11,11 +11,10 @@ import granian.http
 from typing_extensions import Doc
 
 from velithon._utils import (
-    get_middleware_optimizer, 
-    is_async_callable,
+    get_middleware_optimizer,
     initialize_memory_management,
-    cleanup_framework_memory,
-    request_memory_context
+    is_async_callable,
+    request_memory_context,
 )
 from velithon.datastructures import FunctionInfo, Protocol, Scope
 from velithon.di import ServiceContainer
