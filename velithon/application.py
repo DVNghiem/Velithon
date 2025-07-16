@@ -397,7 +397,7 @@ class Velithon:
         if self.middleware_stack is None:
             self.middleware_stack = self.build_middleware_stack()
         
-        # Use memory-optimized request context for automatic cleanup
+        # Use optimized request context that respects global settings
         with request_memory_context():
             await self.middleware_stack(scope, protocol)
 

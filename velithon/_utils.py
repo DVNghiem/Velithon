@@ -15,8 +15,7 @@ from .memory_management import (
     enable_memory_optimizations,
     get_memory_optimizer,
     manual_memory_cleanup,
-    RequestMemoryContext,
-    with_memory_optimization
+    get_memory_context
 )
 
 try:
@@ -329,7 +328,8 @@ def clear_all_caches() -> None:
 
 def initialize_memory_management() -> None:
     """Initialize memory management for the Velithon framework."""
-    enable_memory_optimizations()
+    # Use lightweight mode by default for better performance
+    enable_memory_optimizations(lightweight=True)
     
     # Create object pools for common Velithon objects
     optimizer = get_memory_optimizer()
@@ -367,13 +367,14 @@ def cleanup_framework_memory() -> dict[str, Any]:
     return stats
 
 
-@with_memory_optimization
 def optimized_json_encode(obj: Any) -> bytes:
     """Memory-optimized JSON encoding with automatic cleanup."""
+    # For high-frequency operations like JSON encoding, skip memory management
+    # to avoid any overhead. Memory cleanup will happen at the request level.
     return get_json_encoder().encode(obj)
 
 
 # Context manager for request processing with memory optimization
 def request_memory_context():
     """Get a request memory context for optimal garbage collection."""
-    return RequestMemoryContext(enable_monitoring=True)
+    return get_memory_context(enable_monitoring=False)  # Use optimized context

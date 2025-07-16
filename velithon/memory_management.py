@@ -34,6 +34,11 @@ class GarbageCollectionOptimizer:
         self._optimization_enabled = False
         self._cleanup_callbacks: list[Callable[[], None]] = []
         self._lock = threading.Lock()
+        
+        # Add caching for expensive operations
+        self._cached_object_count = 0
+        self._cache_time = 0.0
+        self._cache_duration = 1.0  # Cache for 1 second
 
     def enable_optimizations(self) -> None:
         """Enable garbage collection optimizations for web workloads."""
@@ -116,12 +121,25 @@ class GarbageCollectionOptimizer:
 
     def get_memory_stats(self) -> dict[str, Any]:
         """Get comprehensive memory and GC statistics."""
+        # Use cached object count if available and fresh
+        current_time = time.time()
+        cache_valid = (
+            (current_time - self._cache_time) < self._cache_duration
+            and self._cached_object_count > 0
+        )
+        if cache_valid:
+            total_objects = self._cached_object_count
+        else:
+            total_objects = len(gc.get_objects())
+            self._cached_object_count = total_objects
+            self._cache_time = current_time
+
         return {
             'gc_enabled': gc.isenabled(),
             'gc_thresholds': gc.get_threshold(),
             'gc_counts': gc.get_count(),
             'gc_stats': gc.get_stats(),
-            'total_objects': len(gc.get_objects()),
+            'total_objects': total_objects,
             'optimization_enabled': self._optimization_enabled,
         }
 
@@ -207,92 +225,79 @@ class ObjectPool(Generic[T]):
             }
 
 
-class WeakRefCache(Generic[K, V]):
-    """Cache using weak references to prevent memory leaks."""
+class FastWeakRefCache(Generic[K, V]):
+    """High-performance cache using weak references with minimal locking."""
 
     def __init__(self, max_size: int = 1000):
         """Initialize weak reference cache with maximum size."""
         self._cache: weakref.WeakValueDictionary[K, V] = weakref.WeakValueDictionary()
-        self._access_order: deque[K] = deque()
         self._max_size = max_size
-        self._lock = threading.Lock()
         self._hits = 0
         self._misses = 0
+        # Use thread-local storage to reduce lock contention
+        import threading
+        self._local = threading.local()
 
     def get(self, key: K) -> Optional[V]:
         """Get value from cache."""
-        with self._lock:
-            try:
-                value = self._cache[key]
-                # Move to end (most recently accessed)
-                try:
-                    self._access_order.remove(key)
-                except ValueError:
-                    pass  # Key not in access order
-                self._access_order.append(key)
-                self._hits += 1
-                return value
-            except KeyError:
-                self._misses += 1
-                return None
+        try:
+            value = self._cache[key]
+            self._hits += 1
+            return value
+        except KeyError:
+            self._misses += 1
+            return None
 
     def put(self, key: K, value: V) -> None:
         """Put value in cache."""
-        with self._lock:
-            # Check if we need to evict
-            if len(self._cache) >= self._max_size:
-                self._evict_lru()
+        # Simple size management without expensive LRU tracking
+        if len(self._cache) >= self._max_size:
+            # Remove some items (approximately 10%)
+            keys_to_remove = list(self._cache.keys())[:self._max_size // 10]
+            for k in keys_to_remove:
+                try:
+                    del self._cache[k]
+                except KeyError:
+                    pass  # Already removed
 
-            self._cache[key] = value
-            self._access_order.append(key)
-
-    def _evict_lru(self) -> None:
-        """Evict least recently used item."""
-        while self._access_order:
-            oldest_key = self._access_order.popleft()
-            if oldest_key in self._cache:
-                del self._cache[oldest_key]
-                break
+        self._cache[key] = value
 
     def clear(self) -> None:
         """Clear the cache."""
-        with self._lock:
-            self._cache.clear()
-            self._access_order.clear()
+        self._cache.clear()
 
     def get_stats(self) -> dict[str, Any]:
         """Get cache statistics."""
-        with self._lock:
-            total_requests = self._hits + self._misses
-            hit_ratio = self._hits / total_requests if total_requests > 0 else 0.0
+        total_requests = self._hits + self._misses
+        hit_ratio = self._hits / total_requests if total_requests > 0 else 0.0
 
-            return {
-                'size': len(self._cache),
-                'max_size': self._max_size,
-                'hits': self._hits,
-                'misses': self._misses,
-                'hit_ratio': hit_ratio,
-            }
+        return {
+            'size': len(self._cache),
+            'max_size': self._max_size,
+            'hits': self._hits,
+            'misses': self._misses,
+            'hit_ratio': hit_ratio,
+        }
 
 
-class MemoryMonitor:
-    """Monitor memory usage and trigger cleanup when needed."""
+class LightweightMemoryMonitor:
+    """Lightweight memory monitor with minimal overhead."""
 
     def __init__(self, threshold_mb: float = 100.0):
-        """Initialize memory monitor with threshold in megabytes."""
+        """Initialize lightweight memory monitor."""
         self._threshold_bytes = threshold_mb * 1024 * 1024
         self._last_check = 0.0
-        self._check_interval = 10.0  # Check every 10 seconds
+        self._check_interval = 30.0  # Check every 30 seconds
         self._cleanup_callbacks: list[Callable[[], None]] = []
-        self._lock = threading.Lock()
+        self._request_count = 0
 
     def register_cleanup_callback(self, callback: Callable[[], None]) -> None:
         """Register a callback to be called when memory usage is high."""
-        with self._lock:
-            self._cleanup_callbacks.append(callback)
+        self._cleanup_callbacks.append(callback)
 
     def check_memory_usage(self) -> bool:
-        """Check if memory usage exceeds threshold and trigger cleanup if needed."""
+        """Lightweight memory check using request count as proxy."""
+        self._request_count += 1
         current_time = time.time()
 
         # Rate limit memory checks
@@ -301,33 +306,20 @@ class MemoryMonitor:
 
         self._last_check = current_time
 
-        try:
-            import psutil
-
-            process = psutil.Process()
-            memory_usage = process.memory_info().rss
-
-            if memory_usage > self._threshold_bytes:
-                logger.warning(
-                    f'Memory usage ({memory_usage / 1024 / 1024:.1f} MB) '
-                    f'exceeds threshold ({self._threshold_bytes / 1024 / 1024:.1f} MB)'
-                )
-
-                # Trigger cleanup callbacks
-                for callback in self._cleanup_callbacks:
-                    try:
-                        callback()
-                    except Exception as e:
-                        logger.warning(f'Memory cleanup callback failed: {e}')
-
-                return True
-
-        except ImportError:
-            # psutil not available, fall back to basic GC stats
-            obj_count = len(gc.get_objects())
-            if obj_count > 50000:  # Arbitrary threshold
-                logger.warning(f'High object count: {obj_count}')
-                return True
+        # Use request count as a proxy for memory usage
+        # This avoids expensive system calls
+        if self._request_count > 10000:  # Arbitrary threshold
+            logger.warning(f'High request count: {self._request_count}')
+            
+            # Trigger cleanup callbacks
+            for callback in self._cleanup_callbacks:
+                try:
+                    callback()
+                except Exception as e:
+                    logger.warning(f'Memory cleanup callback failed: {e}')
+            
+            self._request_count = 0  # Reset counter
+            return True
 
         return False
 
@@ -338,10 +330,15 @@ class MemoryOptimizer:
     def __init__(self):
         """Initialize memory optimizer with all components."""
         self.gc_optimizer = GarbageCollectionOptimizer()
-        self.memory_monitor = MemoryMonitor()
+        self.memory_monitor = LightweightMemoryMonitor()
         self._object_pools: dict[str, ObjectPool] = {}
-        self._weak_caches: dict[str, WeakRefCache] = {}
+        self._weak_caches: dict[str, FastWeakRefCache] = {}
         self._enabled = False
+        
+        # Add caching for expensive operations
+        self._cached_object_count = 0
+        self._cache_time = 0.0
+        self._cache_duration = 1.0  # Cache for 1 second
 
         # Register cleanup callbacks
         self.gc_optimizer.register_cleanup_callback(self._cleanup_pools)
@@ -383,13 +380,13 @@ class MemoryOptimizer:
         """Get an object pool by name."""
         return self._object_pools.get(name)
 
-    def create_weak_cache(self, name: str, max_size: int = 1000) -> WeakRefCache:
+    def create_weak_cache(self, name: str, max_size: int = 1000) -> FastWeakRefCache:
         """Create a named weak reference cache."""
-        cache = WeakRefCache(max_size=max_size)
+        cache = FastWeakRefCache(max_size=max_size)
         self._weak_caches[name] = cache
         return cache
 
-    def get_weak_cache(self, name: str) -> Optional[WeakRefCache]:
+    def get_weak_cache(self, name: str) -> Optional[FastWeakRefCache]:
         """Get a weak reference cache by name."""
         return self._weak_caches.get(name)
 
@@ -467,14 +464,30 @@ def get_memory_optimizer() -> MemoryOptimizer:
     return _memory_optimizer
 
 
-def enable_memory_optimizations() -> None:
+# Global configuration for memory management
+_MEMORY_MANAGEMENT_ENABLED = True
+_LIGHTWEIGHT_MODE = False
+
+
+def enable_memory_optimizations(lightweight: bool = False) -> None:
     """Enable memory optimizations globally."""
+    global _MEMORY_MANAGEMENT_ENABLED, _LIGHTWEIGHT_MODE
+    _MEMORY_MANAGEMENT_ENABLED = True
+    _LIGHTWEIGHT_MODE = lightweight
     _memory_optimizer.enable()
 
 
 def disable_memory_optimizations() -> None:
     """Disable memory optimizations globally."""
+    global _MEMORY_MANAGEMENT_ENABLED
+    _MEMORY_MANAGEMENT_ENABLED = False
     _memory_optimizer.disable()
+
+
+def set_lightweight_mode(enabled: bool = True) -> None:
+    """Enable or disable lightweight mode for better performance."""
+    global _LIGHTWEIGHT_MODE
+    _LIGHTWEIGHT_MODE = enabled
 
 
 def get_memory_stats() -> dict[str, Any]:
@@ -493,7 +506,16 @@ class RequestMemoryContext:
 
     def __init__(self, enable_monitoring: bool = True):
         """Initialize request memory context."""
-        self.enable_monitoring = enable_monitoring
+        # Check global settings
+        if not _MEMORY_MANAGEMENT_ENABLED:
+            self.enable_monitoring = False
+        elif _LIGHTWEIGHT_MODE:
+            # In lightweight mode, only monitor every 50th request
+            self.enable_monitoring = enable_monitoring and (id(self) % 50 == 0)
+        else:
+            # Only monitor every 10th request to reduce overhead
+            self.enable_monitoring = enable_monitoring and (id(self) % 10 == 0)
+        
         self._start_objects = 0
 
     def __enter__(self):
@@ -504,11 +526,20 @@ class RequestMemoryContext:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Exit the context manager and perform cleanup if needed."""
-        if self.enable_monitoring:
-            # Check if we should trigger cleanup
-            current_objects = len(gc.get_objects())
+        # Only check if we actually monitored and memory management is enabled
+        if (self.enable_monitoring and self._start_objects > 0
+                and _MEMORY_MANAGEMENT_ENABLED):
+            # Use a cached count to avoid expensive gc.get_objects() call
+            current_objects = _memory_optimizer._cached_object_count
+            if current_objects == 0:  # Cache miss, update cache
+                current_objects = len(gc.get_objects())
+                _memory_optimizer._cached_object_count = current_objects
+                _memory_optimizer._cache_time = time.time()
+
             if current_objects - self._start_objects > 1000:  # Threshold
                 _memory_optimizer.gc_optimizer.manual_collection(0)
+                # Clear cache after cleanup
+                _memory_optimizer._cached_object_count = 0
 
 
 # Decorators for automatic memory management
@@ -518,11 +549,69 @@ def with_memory_optimization(func: Callable) -> Callable:
         return func  # Already wrapped
 
     def wrapper(*args, **kwargs):
-        with RequestMemoryContext():
+        # Respect global settings
+        if not _MEMORY_MANAGEMENT_ENABLED:
+            return func(*args, **kwargs)
+        
+        # Use lightweight monitoring by default
+        with RequestMemoryContext(enable_monitoring=not _LIGHTWEIGHT_MODE):
             return func(*args, **kwargs)
 
     wrapper.__wrapped__ = func
     return wrapper
+
+
+def with_lightweight_memory_optimization(func: Callable) -> Callable:
+    """Add lightweight memory optimization to a function."""
+    if hasattr(func, '__wrapped__'):
+        return func  # Already wrapped
+
+    # For lightweight optimization, we only trigger GC occasionally
+    request_counter = getattr(func, '_request_counter', 0)
+
+    def wrapper(*args, **kwargs):
+        nonlocal request_counter
+        
+        # Skip if memory management is disabled
+        if not _MEMORY_MANAGEMENT_ENABLED:
+            return func(*args, **kwargs)
+        
+        request_counter += 1
+        func._request_counter = request_counter
+
+        # Only trigger GC every 100 requests (or 500 in lightweight mode)
+        threshold = 500 if _LIGHTWEIGHT_MODE else 100
+        if request_counter % threshold == 0:
+            _memory_optimizer.gc_optimizer.manual_collection(0)
+
+        return func(*args, **kwargs)
+
+    wrapper.__wrapped__ = func
+    return wrapper
+
+
+# No-op context manager for when memory management is disabled
+class NoOpMemoryContext:
+    """No-op memory context for maximum performance."""
+
+    def __init__(self, *args, **kwargs):
+        """Initialize no-op context manager."""
+        pass
+
+    def __enter__(self):
+        """Enter the context manager."""
+        return self
+
+    def __exit__(self, *args):
+        """Exit the context manager."""
+        pass
+
+
+def get_memory_context(enable_monitoring: bool = True):
+    """Get appropriate memory context based on global settings."""
+    if not _MEMORY_MANAGEMENT_ENABLED:
+        return NoOpMemoryContext()
+    return RequestMemoryContext(enable_monitoring=enable_monitoring)
 
 
 def with_object_pool(pool_name: str):
