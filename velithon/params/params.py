@@ -181,7 +181,9 @@ class Query(Param):
         examples: list[Any] | None = None,
         include_in_schema: bool = True,
         json_schema_extra: dict[str, Any] | None = None,
+        convert_underscores: bool = True,
     ):
+        self.convert_underscores = convert_underscores
         super().__init__(
             default=default,
             default_factory=default_factory,
@@ -305,7 +307,9 @@ class Cookie(Param):
         examples: list[Any] | None = None,
         include_in_schema: bool = True,
         json_schema_extra: dict[str, Any] | None = None,
+        convert_underscores: bool = True,
     ):
+        self.convert_underscores = convert_underscores
         super().__init__(
             default=default,
             default_factory=default_factory,

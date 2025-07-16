@@ -18,8 +18,13 @@ from velithon.exceptions import (
     UnsupportParameterException,
     ValidationException,
 )
-from velithon.params.params import Body, File, Form, Path, Query
+from velithon.params.params import Body, Cookie, File, Form, Header, Path, Query
 from velithon.requests import Request
+
+
+def _convert_underscore_to_hyphen(name: str) -> str:
+    """Convert underscore to hyphen for parameter name aliases."""
+    return name.replace('_', '-')
 
 
 def _is_auth_dependency(annotation: Any) -> bool:
@@ -97,6 +102,8 @@ class ParameterResolver:
             Body: 'json_body',
             Form: 'form_data',
             File: 'file_data',
+            Header: 'headers',
+            Cookie: 'cookies',
         }
 
     async def _fetch_data(self, param_type: str) -> Any:
@@ -108,6 +115,8 @@ class ParameterResolver:
                 'form_data': self._get_form_data,
                 'json_body': self.request.json,
                 'file_data': self.request.files,
+                'headers': lambda: self.request.headers,
+                'cookies': lambda: self.request.cookies,
             }
             parser = parsers.get(param_type)
             if not parser:
@@ -121,6 +130,33 @@ class ParameterResolver:
                 await result if inspect.iscoroutine(result) else result
             )
         return self.data_cache[param_type]
+
+    def _get_param_value_with_alias(
+        self, data: Any, param_name: str, param_metadata: Any = None
+    ) -> Any:
+        """
+        Get parameter value from data, trying the actual parameter name,
+        explicit alias, and auto-generated alias (underscore to hyphen).
+        """
+        # First try explicit alias if provided
+        if param_metadata and hasattr(param_metadata, 'alias') and param_metadata.alias:
+            value = data.get(param_metadata.alias)
+            if value is not None:
+                return value
+        
+        # Try the original parameter name
+        value = data.get(param_name)
+        if value is not None:
+            return value
+        
+        # Auto-generate alias by converting underscores to hyphens
+        if '_' in param_name:
+            auto_alias = _convert_underscore_to_hyphen(param_name)
+            value = data.get(auto_alias)
+            if value is not None:
+                return value
+        
+        return None
 
     async def _get_form_data(self):
         """Helper to handle async context manager for form data."""
@@ -153,9 +189,10 @@ class ParameterResolver:
         data: Any,
         default: Any,
         is_required: bool,
+        param_metadata: Any = None,
     ) -> Any:
         """Parse primitive types (int, float, str, bool, bytes) - OPTIMIZED."""
-        value = data.get(param_name)
+        value = self._get_param_value_with_alias(data, param_name, param_metadata)
         if value is None:
             if default is not None and default is not ...:
                 return default
@@ -180,7 +217,7 @@ class ParameterResolver:
                     'field': param_name,
                     'msg': f'Invalid value for type {annotation}: {e!s}',
                 }
-            )
+            ) from e
 
     async def _parse_list(
         self,
@@ -189,10 +226,13 @@ class ParameterResolver:
         data: Any,
         default: Any,
         is_required: bool,
+        param_metadata: Any = None,
     ) -> Any:
         """Parse list types."""
         item_type = get_args(annotation)[0]
-        values = data.get(param_name, [])
+        values = self._get_param_value_with_alias(data, param_name, param_metadata)
+        if values is None:
+            values = []
         if not isinstance(values, Sequence):
             values = [values]
         if not values and default is not None and default is not ...:
@@ -218,7 +258,7 @@ class ParameterResolver:
                         'field': param_name,
                         'msg': f'Invalid list item type {item_type}: {e!s}',
                     }
-                )
+                ) from e
         elif isinstance(item_type, type) and issubclass(item_type, BaseModel):
             try:
                 return [item_type(**item) for item in values]
@@ -229,7 +269,7 @@ class ParameterResolver:
                         {'field': get(item, 'loc')[0], 'msg': get(item, 'msg')}
                         for item in invalid_fields
                     ]
-                )
+                ) from e
         raise BadRequestException(
             details={'message': f'Unsupported list item type: {item_type}'}
         )
@@ -270,6 +310,7 @@ class ParameterResolver:
         data: Any,
         default: Any,
         is_required: bool,
+        param_metadata: Any = None,
     ) -> Any:
         """Parse special types (Request, FormData, Headers, etc.)."""
         type_map = {
@@ -278,7 +319,9 @@ class ParameterResolver:
             Headers: lambda: self.request.headers,
             QueryParams: lambda: self.request.query_params,
             dict: lambda: self.request.scope,
-            UploadFile: lambda: self._get_file(param_name, data, default, is_required),
+            UploadFile: lambda: self._get_file(
+                param_name, data, default, is_required, param_metadata
+            ),
         }
         handler = type_map.get(annotation)
         if handler:
@@ -289,10 +332,15 @@ class ParameterResolver:
         )
 
     async def _get_file(
-        self, param_name: str, data: Any, default: Any, is_required: bool
+        self,
+        param_name: str,
+        data: Any,
+        default: Any,
+        is_required: bool,
+        param_metadata: Any = None,
     ) -> Any:
         """Handle file uploads."""
-        files = data.get(param_name)
+        files = self._get_param_value_with_alias(data, param_name, param_metadata)
         if not files and default is not None and default is not ...:
             return default
         if not files and is_required:
@@ -312,19 +360,20 @@ class ParameterResolver:
     @parser_cache()
     def _resolve_param_metadata(
         self, param: inspect.Parameter
-    ) -> tuple[Any, str, Any, bool]:
-        """Cache parameter metadata (annotation, param_type, default, is_required)."""
+    ) -> tuple[Any, str, Any, bool, Any]:
+        """Cache parameter metadata (annotation, param_type, default, is_required, param_metadata)."""
         annotation = param.annotation
         default = (
             param.default if param.default is not inspect.Parameter.empty else None
         )
         is_required = default is None and param.default is inspect.Parameter.empty
         param_type = 'query_params'  # Default
+        param_metadata = None
 
         if get_origin(annotation) is Annotated:
             base_type, *metadata = get_args(annotation)
 
-            # Check if this is an authentication dependency using our centralized function
+            # Check if this is an authentication dependency using centralized function
             if _is_auth_dependency(annotation):
                 # Find the Provide dependency or callable in the metadata
                 provider = None
@@ -337,14 +386,14 @@ class ParameterResolver:
                         break
 
                 if provider:
-                    return base_type, 'provide', provider, is_required
+                    return base_type, 'provide', provider, is_required, None
                 else:
                     # Fallback to dummy provider if no provider found
                     dummy_provider = Provide()
-                    return base_type, 'provide', dummy_provider, is_required
+                    return base_type, 'provide', dummy_provider, is_required, None
 
             # Define parameter types tuple outside the generator expression
-            param_types = (Query, Path, Body, Form, File, Provide)
+            param_types = (Query, Path, Body, Form, File, Header, Cookie, Provide)
             param_metadata = next(
                 (m for m in metadata if isinstance(m, param_types)),
                 None,
@@ -352,7 +401,8 @@ class ParameterResolver:
             if not param_metadata:
                 raise InvalidMediaTypeException(
                     details={
-                        'message': f'Unsupported parameter metadata for {param.name}: {annotation}'
+                        'message': f'Unsupported parameter metadata for '
+                        f'{param.name}: {annotation}'
                     }
                 )
 
@@ -367,7 +417,7 @@ class ParameterResolver:
                     )
 
             if isinstance(param_metadata, Provide):
-                return base_type, 'provide', param_metadata, is_required
+                return base_type, 'provide', param_metadata, is_required, param_metadata
             param_type = self.param_types.get(type(param_metadata), 'query_params')
             metadata_default = (
                 param_metadata.default
@@ -379,7 +429,7 @@ class ParameterResolver:
             annotation = base_type
             # If Form() is used, ensure param_type remains form_data even for BaseModel
             if isinstance(param_metadata, Form):
-                return annotation, 'form_data', default, is_required
+                return annotation, 'form_data', default, is_required, param_metadata
 
         if annotation is inspect._empty:
             param_type = (
@@ -402,15 +452,19 @@ class ParameterResolver:
         elif param.name in self.request.path_params:
             param_type = 'path_params'
 
-        return annotation, param_type, default, is_required
+        return annotation, param_type, default, is_required, param_metadata
 
     async def resolve(self, signature: inspect.Signature) -> dict[str, Any]:
         """Resolve all parameters for the given function signature."""
         kwargs = {}
         for param in signature.parameters.values():
-            annotation, param_type, default, is_required = self._resolve_param_metadata(
-                param
-            )
+            (
+                annotation,
+                param_type,
+                default,
+                is_required,
+                param_metadata,
+            ) = self._resolve_param_metadata(param)
             name = param.name
 
             if param_type == 'provide':
@@ -445,11 +499,20 @@ class ParameterResolver:
                     continue
                 raise UnsupportParameterException(
                     details={
-                        'message': f'Unsupported parameter type for {name}: {annotation}'
+                        'message': f'Unsupported parameter type for {name}: '
+                        f'{annotation}'
                     }
                 )
             data = await self._fetch_data(param_type)
-            kwargs[name] = await handler(name, annotation, data, default, is_required)
+            # Pass param_metadata to handlers that support it
+            if handler in (self._parse_primitive, self._parse_list, self._parse_special):
+                kwargs[name] = await handler(
+                    name, annotation, data, default, is_required, param_metadata
+                )
+            else:
+                kwargs[name] = await handler(
+                    name, annotation, data, default, is_required
+                )
 
         return kwargs
 
