@@ -59,6 +59,27 @@ from .status import (
     HTTP_500_INTERNAL_SERVER_ERROR,
 )
 
+# Memory management utilities
+from .memory_management import (
+    enable_memory_optimizations,
+    disable_memory_optimizations,
+    get_memory_stats,
+    manual_memory_cleanup,
+    get_memory_optimizer,
+    RequestMemoryContext,
+    with_memory_optimization
+)
+
+# Memory management middleware
+from .middleware.memory_management import (
+    MemoryManagementMiddleware,
+    MemoryMonitoringMiddleware,
+    GCTuningMiddleware,
+    add_memory_management,
+    add_memory_monitoring,
+    add_gc_tuning
+)
+
 __all__ = [
     'HTTP_200_OK',
     'HTTP_201_CREATED',
@@ -100,4 +121,19 @@ __all__ = [
     'gateway_route',
     'request_response',
     'websocket_route',
+    # Memory optimization functions
+    'enable_memory_optimizations',
+    'disable_memory_optimizations', 
+    'get_memory_stats',
+    'manual_memory_cleanup',
+    'get_memory_optimizer',
+    'RequestMemoryContext',
+    'with_memory_optimization',
+    # Memory management middleware
+    'MemoryManagementMiddleware',
+    'MemoryMonitoringMiddleware',
+    'GCTuningMiddleware',
+    'add_memory_management',
+    'add_memory_monitoring',
+    'add_gc_tuning',
 ]

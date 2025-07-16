@@ -17,7 +17,6 @@ from velithon.convertors import CONVERTOR_TYPES
 from velithon.datastructures import Protocol, Scope
 from velithon.middleware import Middleware
 from velithon.openapi import swagger_generate
-
 from velithon.params.dispatcher import dispatch
 from velithon.requests import Request
 from velithon.responses import PlainTextResponse, Response

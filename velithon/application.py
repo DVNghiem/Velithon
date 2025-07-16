@@ -10,7 +10,13 @@ import granian
 import granian.http
 from typing_extensions import Doc
 
-from velithon._utils import get_middleware_optimizer, is_async_callable
+from velithon._utils import (
+    get_middleware_optimizer, 
+    is_async_callable,
+    initialize_memory_management,
+    cleanup_framework_memory,
+    request_memory_context
+)
 from velithon.datastructures import FunctionInfo, Protocol, Scope
 from velithon.di import ServiceContainer
 from velithon.logging import configure_logger
@@ -388,11 +394,19 @@ class Velithon:
         return app
 
     async def __call__(self, scope: Scope, protocol: Protocol):
+        """Handle incoming RSGI requests with memory optimization."""
         if self.middleware_stack is None:
             self.middleware_stack = self.build_middleware_stack()
-        await self.middleware_stack(scope, protocol)
+        
+        # Use memory-optimized request context for automatic cleanup
+        with request_memory_context():
+            await self.middleware_stack(scope, protocol)
 
     def setup(self) -> None:
+        """Set up the application including memory management."""
+        # Initialize memory management for best performance
+        initialize_memory_management()
+        
         if self.openapi_url:
             urls = (server_data.get('url') for server_data in self.servers)
             server_urls = {url for url in urls if url}
