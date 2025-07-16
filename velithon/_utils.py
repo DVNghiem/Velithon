@@ -15,7 +15,7 @@ from .memory_management import (
     enable_memory_optimizations,
     get_memory_optimizer,
     manual_memory_cleanup,
-    get_memory_context
+    get_memory_context,
 )
 
 try:
@@ -330,40 +330,37 @@ def initialize_memory_management() -> None:
     """Initialize memory management for the Velithon framework."""
     # Use lightweight mode by default for better performance
     enable_memory_optimizations(lightweight=True)
-    
+
     # Create object pools for common Velithon objects
     optimizer = get_memory_optimizer()
-    
+
     # Pool for request ID generation
     optimizer.create_object_pool(
-        'request_ids',
-        factory=lambda: [],
-        reset_func=lambda x: x.clear(),
-        max_size=50
+        'request_ids', factory=lambda: [], reset_func=lambda x: x.clear(), max_size=50
     )
-    
+
     # Pool for JSON encoding buffers
     optimizer.create_object_pool(
         'json_buffers',
         factory=lambda: bytearray(),
         reset_func=lambda x: x.clear(),
-        max_size=100
+        max_size=100,
     )
 
 
 def cleanup_framework_memory() -> dict[str, Any]:
     """Perform comprehensive framework memory cleanup."""
     stats = manual_memory_cleanup()
-    
+
     # Clear all framework caches
     clear_all_caches()
-    
+
     # Clear thread pool if needed
     global _thread_pool
     if _thread_pool:
         _thread_pool.shutdown(wait=False)
         _thread_pool = None
-    
+
     return stats
 
 

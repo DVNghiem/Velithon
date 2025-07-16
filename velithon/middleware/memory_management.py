@@ -44,7 +44,7 @@ class MemoryManagementMiddleware(Middleware):
 
         # Use lightweight memory monitoring to reduce overhead
         enable_monitoring = self.enable_monitoring and (self._request_count % 10 == 0)
-        
+
         # Use memory-optimized request context
         with RequestMemoryContext(enable_monitoring=enable_monitoring):
             # Check if periodic cleanup is needed

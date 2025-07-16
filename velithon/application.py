@@ -396,7 +396,7 @@ class Velithon:
         """Handle incoming RSGI requests with memory optimization."""
         if self.middleware_stack is None:
             self.middleware_stack = self.build_middleware_stack()
-        
+
         # Use optimized request context that respects global settings
         with request_memory_context():
             await self.middleware_stack(scope, protocol)
@@ -405,7 +405,7 @@ class Velithon:
         """Set up the application including memory management."""
         # Initialize memory management for best performance
         initialize_memory_management()
-        
+
         if self.openapi_url:
             urls = (server_data.get('url') for server_data in self.servers)
             server_urls = {url for url in urls if url}

@@ -34,7 +34,7 @@ class GarbageCollectionOptimizer:
         self._optimization_enabled = False
         self._cleanup_callbacks: list[Callable[[], None]] = []
         self._lock = threading.Lock()
-        
+
         # Add caching for expensive operations
         self._cached_object_count = 0
         self._cache_time = 0.0
@@ -124,9 +124,8 @@ class GarbageCollectionOptimizer:
         # Use cached object count if available and fresh
         current_time = time.time()
         cache_valid = (
-            (current_time - self._cache_time) < self._cache_duration
-            and self._cached_object_count > 0
-        )
+            current_time - self._cache_time
+        ) < self._cache_duration and self._cached_object_count > 0
         if cache_valid:
             total_objects = self._cached_object_count
         else:
@@ -236,6 +235,7 @@ class FastWeakRefCache(Generic[K, V]):
         self._misses = 0
         # Use thread-local storage to reduce lock contention
         import threading
+
         self._local = threading.local()
 
     def get(self, key: K) -> Optional[V]:
@@ -253,7 +253,7 @@ class FastWeakRefCache(Generic[K, V]):
         # Simple size management without expensive LRU tracking
         if len(self._cache) >= self._max_size:
             # Remove some items (approximately 10%)
-            keys_to_remove = list(self._cache.keys())[:self._max_size // 10]
+            keys_to_remove = list(self._cache.keys())[: self._max_size // 10]
             for k in keys_to_remove:
                 try:
                     del self._cache[k]
@@ -310,14 +310,14 @@ class LightweightMemoryMonitor:
         # This avoids expensive system calls
         if self._request_count > 10000:  # Arbitrary threshold
             logger.warning(f'High request count: {self._request_count}')
-            
+
             # Trigger cleanup callbacks
             for callback in self._cleanup_callbacks:
                 try:
                     callback()
                 except Exception as e:
                     logger.warning(f'Memory cleanup callback failed: {e}')
-            
+
             self._request_count = 0  # Reset counter
             return True
 
@@ -334,7 +334,7 @@ class MemoryOptimizer:
         self._object_pools: dict[str, ObjectPool] = {}
         self._weak_caches: dict[str, FastWeakRefCache] = {}
         self._enabled = False
-        
+
         # Add caching for expensive operations
         self._cached_object_count = 0
         self._cache_time = 0.0
@@ -515,7 +515,7 @@ class RequestMemoryContext:
         else:
             # Only monitor every 10th request to reduce overhead
             self.enable_monitoring = enable_monitoring and (id(self) % 10 == 0)
-        
+
         self._start_objects = 0
 
     def __enter__(self):
@@ -527,8 +527,11 @@ class RequestMemoryContext:
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Exit the context manager and perform cleanup if needed."""
         # Only check if we actually monitored and memory management is enabled
-        if (self.enable_monitoring and self._start_objects > 0
-                and _MEMORY_MANAGEMENT_ENABLED):
+        if (
+            self.enable_monitoring
+            and self._start_objects > 0
+            and _MEMORY_MANAGEMENT_ENABLED
+        ):
             # Use a cached count to avoid expensive gc.get_objects() call
             current_objects = _memory_optimizer._cached_object_count
             if current_objects == 0:  # Cache miss, update cache
@@ -552,7 +555,7 @@ def with_memory_optimization(func: Callable) -> Callable:
         # Respect global settings
         if not _MEMORY_MANAGEMENT_ENABLED:
             return func(*args, **kwargs)
-        
+
         # Use lightweight monitoring by default
         with RequestMemoryContext(enable_monitoring=not _LIGHTWEIGHT_MODE):
             return func(*args, **kwargs)
@@ -571,11 +574,11 @@ def with_lightweight_memory_optimization(func: Callable) -> Callable:
 
     def wrapper(*args, **kwargs):
         nonlocal request_counter
-        
+
         # Skip if memory management is disabled
         if not _MEMORY_MANAGEMENT_ENABLED:
             return func(*args, **kwargs)
-        
+
         request_counter += 1
         func._request_counter = request_counter
 
