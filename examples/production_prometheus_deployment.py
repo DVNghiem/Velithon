@@ -357,7 +357,7 @@ if __name__ == "__main__":
 
 # requirements.txt
 REQUIREMENTS_CONTENT = """
-velithon>=0.4.3
+velithon>=0.5.0
 """
 
 if __name__ == '__main__':

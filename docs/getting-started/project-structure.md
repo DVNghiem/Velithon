@@ -464,7 +464,7 @@ volumes:
 
 ```txt title="requirements.txt"
 # Core framework
-velithon>=0.4.3
+velithon>=0.5.0
 
 # Database
 sqlalchemy>=2.0.0
