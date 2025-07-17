@@ -143,19 +143,19 @@ class ParameterResolver:
             value = data.get(param_metadata.alias)
             if value is not None:
                 return value
-        
+
         # Try the original parameter name
         value = data.get(param_name)
         if value is not None:
             return value
-        
+
         # Auto-generate alias by converting underscores to hyphens
         if '_' in param_name:
             auto_alias = _convert_underscore_to_hyphen(param_name)
             value = data.get(auto_alias)
             if value is not None:
                 return value
-        
+
         return None
 
     async def _get_form_data(self):
@@ -505,7 +505,11 @@ class ParameterResolver:
                 )
             data = await self._fetch_data(param_type)
             # Pass param_metadata to handlers that support it
-            if handler in (self._parse_primitive, self._parse_list, self._parse_special):
+            if handler in (
+                self._parse_primitive,
+                self._parse_list,
+                self._parse_special,
+            ):
                 kwargs[name] = await handler(
                     name, annotation, data, default, is_required, param_metadata
                 )

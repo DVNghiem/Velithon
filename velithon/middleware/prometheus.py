@@ -65,9 +65,7 @@ class PrometheusMetrics:
         lines = []
 
         # Request count metrics
-        lines.append(
-            '# HELP http_requests_total Total number of HTTP requests'
-        )
+        lines.append('# HELP http_requests_total Total number of HTTP requests')
         lines.append('# TYPE http_requests_total counter')
         for key, count in self._request_count.items():
             method, path, status_code = key.split(':', 2)
@@ -79,8 +77,7 @@ class PrometheusMetrics:
 
         # Request duration metrics
         lines.append(
-            '# HELP http_request_duration_seconds '
-            'HTTP request duration in seconds'
+            '# HELP http_request_duration_seconds ' 'HTTP request duration in seconds'
         )
         lines.append('# TYPE http_request_duration_seconds histogram')
         for key, durations in self._request_duration.items():
@@ -120,9 +117,7 @@ class PrometheusMetrics:
                 )
 
         # Request size metrics
-        lines.append(
-            '# HELP http_request_size_bytes HTTP request size in bytes'
-        )
+        lines.append('# HELP http_request_size_bytes HTTP request size in bytes')
         lines.append('# TYPE http_request_size_bytes histogram')
         for key, sizes in self._request_size.items():
             if sizes:
@@ -141,9 +136,7 @@ class PrometheusMetrics:
                 )
 
         # Response size metrics
-        lines.append(
-            '# HELP http_response_size_bytes ' 'HTTP response size in bytes'
-        )
+        lines.append('# HELP http_response_size_bytes ' 'HTTP response size in bytes')
         lines.append('# TYPE http_response_size_bytes histogram')
         for key, sizes in self._response_size.items():
             if sizes:
@@ -162,9 +155,7 @@ class PrometheusMetrics:
                 )
 
         # Active requests
-        lines.append(
-            '# HELP http_requests_active Number of active HTTP requests'
-        )
+        lines.append('# HELP http_requests_active Number of active HTTP requests')
         lines.append('# TYPE http_requests_active gauge')
         lines.append(f'http_requests_active {self._active_requests}')
 

@@ -15,8 +15,8 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - VELITHON_ENV=production
-      - VELITHON_LOG_LEVEL=INFO
+      - ENV=production
+      - LOG_LEVEL=INFO
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -121,14 +121,14 @@ scrape_configs:
 # monitoring/alerts.yml
 ALERTING_RULES = """
 groups:
-  - name: velithon_alerts
+  - name: alerts
     rules:
       # High error rate alert
       - alert: VelithonHighErrorRate
         expr: |
           (
-            rate(velithon_http_requests_total{status_code=~"5.."}[5m]) /
-            rate(velithon_http_requests_total[5m])
+            rate(http_requests_total{status_code=~"5.."}[5m]) /
+            rate(http_requests_total[5m])
           ) > 0.05
         for: 2m
         labels:
@@ -142,7 +142,7 @@ groups:
       - alert: VelithonHighLatency
         expr: |
           histogram_quantile(0.95,
-            rate(velithon_http_request_duration_seconds_bucket[5m])
+            rate(http_request_duration_seconds_bucket[5m])
           ) > 1.0
         for: 5m
         labels:
@@ -279,7 +279,7 @@ from velithon.responses import JSONResponse
 
 # Configure logging
 logging.basicConfig(
-    level=getattr(logging, os.getenv('VELITHON_LOG_LEVEL', 'INFO')),
+    level=getattr(logging, os.getenv('LOG_LEVEL', 'INFO')),
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 

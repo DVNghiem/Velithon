@@ -23,14 +23,16 @@ def _get_param_name_for_docs(param_name: str, param_metadata: Any) -> str:
     # First check for explicit alias
     if hasattr(param_metadata, 'alias') and param_metadata.alias:
         return param_metadata.alias
-    
+
     # For specific parameter types, auto-generate hyphenated alias if underscore exists
     auto_alias_types = (Query, Header, Cookie, Form)
     if isinstance(param_metadata, auto_alias_types) and '_' in param_name:
         return param_name.replace('_', '-')
-    
+
     # Default to the original parameter name
     return param_name
+
+
 from velithon.requests import Request
 from velithon.responses import PlainTextResponse
 
@@ -354,9 +356,7 @@ def process_model_params(
                         field_name, field, schemas
                     )
                     # Use the same alias resolution as individual parameters
-                    display_name = _get_param_name_for_docs(
-                        field_name, param_metadata
-                    )
+                    display_name = _get_param_name_for_docs(field_name, param_metadata)
                     docs.setdefault('parameters', []).append(
                         {
                             'name': display_name,

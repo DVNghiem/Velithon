@@ -80,17 +80,17 @@ class TestPrometheusMetrics:
         output = metrics.get_prometheus_metrics()
 
         # Check that all expected metric types are present
-        assert 'velithon_http_requests_total' in output
-        assert 'velithon_http_request_duration_seconds' in output
-        assert 'velithon_http_request_size_bytes' in output
-        assert 'velithon_http_response_size_bytes' in output
-        assert 'velithon_http_requests_active' in output
-        assert 'velithon_app_uptime_seconds' in output
+        assert 'http_requests_total' in output
+        assert 'http_request_duration_seconds' in output
+        assert 'http_request_size_bytes' in output
+        assert 'http_response_size_bytes' in output
+        assert 'http_requests_active' in output
+        assert 'app_uptime_seconds' in output
 
         # Check specific metric values
         assert 'method="GET",path="/users",status_code="200"' in output
         assert 'method="POST",path="/users",status_code="201"' in output
-        assert 'velithon_http_requests_active 1' in output
+        assert 'http_requests_active 1' in output
 
 
 class TestPrometheusMiddleware:
