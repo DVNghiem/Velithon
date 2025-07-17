@@ -150,9 +150,13 @@ class Route(BaseRoute):
                     scope.path, scope.method
                 )
                 if params:
-                    scope._path_params = params
+                    # Ensure params is a proper dictionary and copy it
+                    scope._path_params = dict(params) if params else {}
                     return match_result, scope
                 elif match_result != Match.NONE:
+                    # Even if no params, make sure _path_params is initialized
+                    if not hasattr(scope, '_path_params') or scope._path_params is None:
+                        scope._path_params = {}
                     return match_result, scope
             except Exception:
                 # Fall back to Python implementation if Rust optimization fails
@@ -170,6 +174,8 @@ class Route(BaseRoute):
                 match_type, params = cached_result
                 if params:
                     scope._path_params = params.copy()
+                else:
+                    scope._path_params = {}
                 return match_type, scope
 
             # No cache hit, do the regex matching
@@ -451,11 +457,17 @@ class Router:
         if cached_route is not None:
             if cached_route == 'default':
                 await self.default(scope, protocol)
+                return
             elif cached_route == 'not_found':
                 await self.default(scope, protocol)
+                return
             else:
-                await cached_route.handle(scope, protocol)
-            return
+                # For cached routes, we still need to extract path parameters
+                match, updated_scope = cached_route.matches(scope)
+                if match == Match.FULL:
+                    await cached_route.handle(updated_scope, protocol)
+                    return
+                # If cache became invalid, continue to full route matching
 
         # Fall back to checking all routes
         partial = None
@@ -466,12 +478,12 @@ class Router:
             if match == Match.FULL:
                 # Cache this result for future lookups
                 # Don't cache parameterized routes to avoid memory issues
-                if not getattr(scope, '_path_params', None):
+                if not getattr(updated_scope, '_path_params', None):
                     self._exact_routes[route_key] = route
                 elif len(self._route_lookup) < 1000:  # Limit cache size
                     self._route_lookup[route_key] = route
 
-                await route.handle(scope, protocol)
+                await route.handle(updated_scope, protocol)
                 return
             elif match == Match.PARTIAL and partial is None:
                 partial = route
