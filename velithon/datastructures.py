@@ -75,6 +75,12 @@ class ResponseDataCapture:
         """Get the captured data."""
         return self._data if self.enabled else None
 
+    def get_response_size(self) -> int:
+        """Get the size of the captured response data."""
+        if self._data is None:
+            return 0
+        return sum(len(chunk) for chunk in self._data)
+
     @classmethod
     def _get_buffer(cls) -> list[bytes]:
         """Get a buffer from the pool or create a new one."""
@@ -182,6 +188,11 @@ class Protocol:
     def response_data(self) -> list[bytes] | None:
         """Get captured response data. Returns None if capture is disabled."""
         return self._response_capture.get_data()
+
+    @property
+    def status_code(self) -> int:
+        """Get the current response status code."""
+        return self._status_code
 
     def enable_response_capture(self) -> None:
         """Enable response data capture. Should be called before any response methods."""

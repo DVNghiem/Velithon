@@ -66,23 +66,23 @@ class PrometheusMetrics:
 
         # Request count metrics
         lines.append(
-            '# HELP velithon_http_requests_total Total number of HTTP requests'
+            '# HELP http_requests_total Total number of HTTP requests'
         )
-        lines.append('# TYPE velithon_http_requests_total counter')
+        lines.append('# TYPE http_requests_total counter')
         for key, count in self._request_count.items():
             method, path, status_code = key.split(':', 2)
             lines.append(
-                f'velithon_http_requests_total{{'
+                f'http_requests_total{{'
                 f'method="{method}",path="{path}",status_code="{status_code}"'
                 f'}} {count}'
             )
 
         # Request duration metrics
         lines.append(
-            '# HELP velithon_http_request_duration_seconds '
+            '# HELP http_request_duration_seconds '
             'HTTP request duration in seconds'
         )
-        lines.append('# TYPE velithon_http_request_duration_seconds histogram')
+        lines.append('# TYPE http_request_duration_seconds histogram')
         for key, durations in self._request_duration.items():
             if durations:
                 method, path = key.split(':', 1)
@@ -98,81 +98,81 @@ class PrometheusMetrics:
 
                 for bucket, bucket_count in bucket_counts.items():
                     lines.append(
-                        f'velithon_http_request_duration_seconds_bucket{{'
+                        f'http_request_duration_seconds_bucket{{'
                         f'method="{method}",path="{path}",le="{bucket}"'
                         f'}} {bucket_count}'
                     )
 
                 lines.append(
-                    f'velithon_http_request_duration_seconds_bucket{{'
+                    f'http_request_duration_seconds_bucket{{'
                     f'method="{method}",path="{path}",le="+Inf"'
                     f'}} {count}'
                 )
                 lines.append(
-                    f'velithon_http_request_duration_seconds_count{{'
+                    f'http_request_duration_seconds_count{{'
                     f'method="{method}",path="{path}"'
                     f'}} {count}'
                 )
                 lines.append(
-                    f'velithon_http_request_duration_seconds_sum{{'
+                    f'http_request_duration_seconds_sum{{'
                     f'method="{method}",path="{path}"'
                     f'}} {total}'
                 )
 
         # Request size metrics
         lines.append(
-            '# HELP velithon_http_request_size_bytes HTTP request size in bytes'
+            '# HELP http_request_size_bytes HTTP request size in bytes'
         )
-        lines.append('# TYPE velithon_http_request_size_bytes histogram')
+        lines.append('# TYPE http_request_size_bytes histogram')
         for key, sizes in self._request_size.items():
             if sizes:
                 method, path = key.split(':', 1)
                 count = len(sizes)
                 total = sum(sizes)
                 lines.append(
-                    f'velithon_http_request_size_bytes_count{{'
+                    f'http_request_size_bytes_count{{'
                     f'method="{method}",path="{path}"'
                     f'}} {count}'
                 )
                 lines.append(
-                    f'velithon_http_request_size_bytes_sum{{'
+                    f'http_request_size_bytes_sum{{'
                     f'method="{method}",path="{path}"'
                     f'}} {total}'
                 )
 
         # Response size metrics
         lines.append(
-            '# HELP velithon_http_response_size_bytes ' 'HTTP response size in bytes'
+            '# HELP http_response_size_bytes ' 'HTTP response size in bytes'
         )
-        lines.append('# TYPE velithon_http_response_size_bytes histogram')
+        lines.append('# TYPE http_response_size_bytes histogram')
         for key, sizes in self._response_size.items():
             if sizes:
                 method, path = key.split(':', 1)
                 count = len(sizes)
                 total = sum(sizes)
                 lines.append(
-                    f'velithon_http_response_size_bytes_count{{'
+                    f'http_response_size_bytes_count{{'
                     f'method="{method}",path="{path}"'
                     f'}} {count}'
                 )
                 lines.append(
-                    f'velithon_http_response_size_bytes_sum{{'
+                    f'http_response_size_bytes_sum{{'
                     f'method="{method}",path="{path}"'
                     f'}} {total}'
                 )
 
         # Active requests
         lines.append(
-            '# HELP velithon_http_requests_active Number of active HTTP requests'
+            '# HELP http_requests_active Number of active HTTP requests'
         )
-        lines.append('# TYPE velithon_http_requests_active gauge')
-        lines.append(f'velithon_http_requests_active {self._active_requests}')
+        lines.append('# TYPE http_requests_active gauge')
+        lines.append(f'http_requests_active {self._active_requests}')
 
         # Application uptime
         uptime = time.time() - self._app_start_time
-        lines.append('# HELP velithon_app_uptime_seconds Application uptime in seconds')
-        lines.append('# TYPE velithon_app_uptime_seconds counter')
-        lines.append(f'velithon_app_uptime_seconds {uptime}')
+        lines.append('# HELP app_uptime_seconds Application uptime in seconds')
+        lines.append('# TYPE app_uptime_seconds counter')
+        lines.append(f'app_uptime_seconds {uptime}')
 
         return '\n'.join(lines) + '\n'
 
@@ -276,21 +276,11 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
             response_size = 0
             status_code = 200
 
-            if self.collect_response_size:
-                original_send = protocol.send
-
-                async def capture_send(message):
-                    nonlocal response_size, status_code
-                    if message['type'] == 'http.response.start':
-                        status_code = message.get('status', 200)
-                    elif message['type'] == 'http.response.body':
-                        body = message.get('body', b'')
-                        response_size += len(body)
-                    await original_send(message)
-
-                protocol.send = capture_send
+            protocol.enable_response_capture()
 
             await self.app(scope, protocol)
+            response_size += len(protocol._response_capture.get_response_size())
+            status_code = protocol.status_code
 
         except Exception as e:
             # Handle errors and set appropriate status code
