@@ -21,16 +21,16 @@ request_id_generator = RequestIDGenerator()
 
 class ResponseDataCapture:
     """Efficient response data capture with memory pooling.
-    
+
     This class provides an optimized way to capture response data when needed
     by middleware, without impacting performance when not in use.
-    
+
     Usage in middleware:
     ```python
     # Only enable capture when needed
     if need_to_process_response:
         protocol.enable_response_capture()
-    
+
     # After response is sent, access the data
     response_data = protocol.response_data
     if response_data:
@@ -38,7 +38,7 @@ class ResponseDataCapture:
         for chunk in response_data:
             process_chunk(chunk)
     ```
-    
+
     Performance benefits:
     - Zero memory allocation when capture is disabled (default)
     - Memory pool reduces GC pressure for enabled capture
@@ -170,7 +170,9 @@ class Protocol:
         '_status_code',
     )
 
-    def __init__(self, protocol: HTTPProtocol, capture_response_data: bool = False) -> None:
+    def __init__(
+        self, protocol: HTTPProtocol, capture_response_data: bool = False
+    ) -> None:
         self._protocol = protocol
         self._status_code = 200
         self._headers = []
@@ -206,13 +208,13 @@ class Protocol:
         self._status_code = status
         self._headers.extend(headers)
         self._protocol.response_empty(status, self._headers)
-        self._response_capture.append(b"")
+        self._response_capture.append(b'')
 
     def response_str(self, status: int, headers: tuple[str, str], body: str) -> None:
         self._status_code = status
         self._headers.extend(headers)
         self._protocol.response_str(status, self._headers, body)
-        self._response_capture.append(body.encode("utf-8"))
+        self._response_capture.append(body.encode('utf-8'))
 
     def response_bytes(
         self, status: int, headers: tuple[str, str], body: bytes

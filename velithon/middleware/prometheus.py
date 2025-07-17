@@ -34,24 +34,22 @@ class PrometheusMetrics:
 
     def inc_request_count(self, method: str, path: str, status_code: int) -> None:
         """Increment request counter for given method, path, and status."""
-        key = f"{method}:{path}:{status_code}"
+        key = f'{method}:{path}:{status_code}'
         self._request_count[key] += 1
 
-    def record_request_duration(
-        self, method: str, path: str, duration: float
-    ) -> None:
+    def record_request_duration(self, method: str, path: str, duration: float) -> None:
         """Record request duration for given method and path."""
-        key = f"{method}:{path}"
+        key = f'{method}:{path}'
         self._request_duration[key].append(duration)
 
     def record_request_size(self, method: str, path: str, size: int) -> None:
         """Record request size for given method and path."""
-        key = f"{method}:{path}"
+        key = f'{method}:{path}'
         self._request_size[key].append(size)
 
     def record_response_size(self, method: str, path: str, size: int) -> None:
         """Record response size for given method and path."""
-        key = f"{method}:{path}"
+        key = f'{method}:{path}'
         self._response_size[key].append(size)
 
     def inc_active_requests(self) -> None:
@@ -68,11 +66,11 @@ class PrometheusMetrics:
 
         # Request count metrics
         lines.append(
-            "# HELP velithon_http_requests_total Total number of HTTP requests"
+            '# HELP velithon_http_requests_total Total number of HTTP requests'
         )
-        lines.append("# TYPE velithon_http_requests_total counter")
+        lines.append('# TYPE velithon_http_requests_total counter')
         for key, count in self._request_count.items():
-            method, path, status_code = key.split(":", 2)
+            method, path, status_code = key.split(':', 2)
             lines.append(
                 f'velithon_http_requests_total{{'
                 f'method="{method}",path="{path}",status_code="{status_code}"'
@@ -81,13 +79,13 @@ class PrometheusMetrics:
 
         # Request duration metrics
         lines.append(
-            "# HELP velithon_http_request_duration_seconds "
-            "HTTP request duration in seconds"
+            '# HELP velithon_http_request_duration_seconds '
+            'HTTP request duration in seconds'
         )
-        lines.append("# TYPE velithon_http_request_duration_seconds histogram")
+        lines.append('# TYPE velithon_http_request_duration_seconds histogram')
         for key, durations in self._request_duration.items():
             if durations:
-                method, path = key.split(":", 1)
+                method, path = key.split(':', 1)
                 count = len(durations)
                 total = sum(durations)
 
@@ -123,12 +121,12 @@ class PrometheusMetrics:
 
         # Request size metrics
         lines.append(
-            "# HELP velithon_http_request_size_bytes HTTP request size in bytes"
+            '# HELP velithon_http_request_size_bytes HTTP request size in bytes'
         )
-        lines.append("# TYPE velithon_http_request_size_bytes histogram")
+        lines.append('# TYPE velithon_http_request_size_bytes histogram')
         for key, sizes in self._request_size.items():
             if sizes:
-                method, path = key.split(":", 1)
+                method, path = key.split(':', 1)
                 count = len(sizes)
                 total = sum(sizes)
                 lines.append(
@@ -144,13 +142,12 @@ class PrometheusMetrics:
 
         # Response size metrics
         lines.append(
-            "# HELP velithon_http_response_size_bytes "
-            "HTTP response size in bytes"
+            '# HELP velithon_http_response_size_bytes ' 'HTTP response size in bytes'
         )
-        lines.append("# TYPE velithon_http_response_size_bytes histogram")
+        lines.append('# TYPE velithon_http_response_size_bytes histogram')
         for key, sizes in self._response_size.items():
             if sizes:
-                method, path = key.split(":", 1)
+                method, path = key.split(':', 1)
                 count = len(sizes)
                 total = sum(sizes)
                 lines.append(
@@ -166,20 +163,18 @@ class PrometheusMetrics:
 
         # Active requests
         lines.append(
-            "# HELP velithon_http_requests_active Number of active HTTP requests"
+            '# HELP velithon_http_requests_active Number of active HTTP requests'
         )
-        lines.append("# TYPE velithon_http_requests_active gauge")
-        lines.append(f"velithon_http_requests_active {self._active_requests}")
+        lines.append('# TYPE velithon_http_requests_active gauge')
+        lines.append(f'velithon_http_requests_active {self._active_requests}')
 
         # Application uptime
         uptime = time.time() - self._app_start_time
-        lines.append(
-            "# HELP velithon_app_uptime_seconds Application uptime in seconds"
-        )
-        lines.append("# TYPE velithon_app_uptime_seconds counter")
-        lines.append(f"velithon_app_uptime_seconds {uptime}")
+        lines.append('# HELP velithon_app_uptime_seconds Application uptime in seconds')
+        lines.append('# TYPE velithon_app_uptime_seconds counter')
+        lines.append(f'velithon_app_uptime_seconds {uptime}')
 
-        return "\n".join(lines) + "\n"
+        return '\n'.join(lines) + '\n'
 
 
 class PrometheusMiddleware(BaseHTTPMiddleware):
@@ -192,7 +187,7 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
     def __init__(
         self,
         app: Any,
-        metrics_path: str = "/metrics",
+        metrics_path: str = '/metrics',
         collect_request_size: bool = True,
         collect_response_size: bool = True,
         exclude_paths: list[str] | None = None,
@@ -224,12 +219,12 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
         """
         # Replace UUIDs first (before numeric IDs to avoid conflicts)
         uuid_pattern = (
-            r"/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-"
-            r"[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
+            r'/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-'
+            r'[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
         )
-        path = re.sub(uuid_pattern, "/{uuid}", path)
+        path = re.sub(uuid_pattern, '/{uuid}', path)
         # Replace numeric IDs
-        path = re.sub(r"/\d+", "/{id}", path)
+        path = re.sub(r'/\d+', '/{id}', path)
         return path
 
     def _should_collect_metrics(self, path: str) -> bool:
@@ -238,7 +233,7 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
 
     def _get_request_size(self, scope: Scope) -> int:
         """Get request size from headers."""
-        content_length = scope.headers.get("content-length")
+        content_length = scope.headers.get('content-length')
         if content_length:
             try:
                 return int(content_length)
@@ -256,9 +251,7 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
             metrics_content = self.metrics.get_prometheus_metrics()
             response = PlainTextResponse(
                 content=metrics_content,
-                headers={
-                    "Content-Type": "text/plain; version=0.0.4; charset=utf-8"
-                },
+                headers={'Content-Type': 'text/plain; version=0.0.4; charset=utf-8'},
             )
             return await response(scope, protocol)
 
@@ -288,10 +281,10 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
 
                 async def capture_send(message):
                     nonlocal response_size, status_code
-                    if message["type"] == "http.response.start":
-                        status_code = message.get("status", 200)
-                    elif message["type"] == "http.response.body":
-                        body = message.get("body", b"")
+                    if message['type'] == 'http.response.start':
+                        status_code = message.get('status', 200)
+                    elif message['type'] == 'http.response.body':
+                        body = message.get('body', b'')
                         response_size += len(body)
                     await original_send(message)
 

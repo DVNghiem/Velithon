@@ -42,8 +42,11 @@ class MemoryManagementMiddleware(Middleware):
         """Process request with memory management."""
         self._request_count += 1
 
+        # Use lightweight memory monitoring to reduce overhead
+        enable_monitoring = self.enable_monitoring and (self._request_count % 10 == 0)
+
         # Use memory-optimized request context
-        with RequestMemoryContext(enable_monitoring=self.enable_monitoring):
+        with RequestMemoryContext(enable_monitoring=enable_monitoring):
             # Check if periodic cleanup is needed
             current_time = time.time()
             if (current_time - self._last_cleanup) > self.cleanup_interval:
@@ -53,8 +56,8 @@ class MemoryManagementMiddleware(Middleware):
             # Process the request
             await self.app(scope, protocol)
 
-            # Trigger cleanup based on request count
-            if self._request_count % self.cleanup_threshold == 0:
+            # Trigger cleanup based on request count (less frequently)
+            if self._request_count % (self.cleanup_threshold * 2) == 0:
                 self.memory_optimizer.gc_optimizer.manual_collection(0)
 
     async def _periodic_cleanup(self) -> None:

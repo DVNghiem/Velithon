@@ -67,7 +67,10 @@ from .memory_management import (
     manual_memory_cleanup,
     get_memory_optimizer,
     RequestMemoryContext,
-    with_memory_optimization
+    with_memory_optimization,
+    with_lightweight_memory_optimization,
+    set_lightweight_mode,
+    get_memory_context,
 )
 
 # Memory management middleware
@@ -77,8 +80,11 @@ from .middleware.memory_management import (
     GCTuningMiddleware,
     add_memory_management,
     add_memory_monitoring,
-    add_gc_tuning
+    add_gc_tuning,
 )
+
+# Performance configuration
+from .performance import PerformanceConfig, configure_performance
 
 __all__ = [
     'HTTP_200_OK',
@@ -123,12 +129,15 @@ __all__ = [
     'websocket_route',
     # Memory optimization functions
     'enable_memory_optimizations',
-    'disable_memory_optimizations', 
+    'disable_memory_optimizations',
     'get_memory_stats',
     'manual_memory_cleanup',
     'get_memory_optimizer',
     'RequestMemoryContext',
     'with_memory_optimization',
+    'with_lightweight_memory_optimization',
+    'set_lightweight_mode',
+    'get_memory_context',
     # Memory management middleware
     'MemoryManagementMiddleware',
     'MemoryMonitoringMiddleware',
@@ -136,4 +145,7 @@ __all__ = [
     'add_memory_management',
     'add_memory_monitoring',
     'add_gc_tuning',
+    # Performance configuration
+    'PerformanceConfig',
+    'configure_performance',
 ]
