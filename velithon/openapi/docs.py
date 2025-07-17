@@ -15,7 +15,22 @@ from pydantic_core import PydanticUndefined
 
 from velithon.datastructures import FormData, Headers, UploadFile
 from velithon.di import Provide
-from velithon.params.params import Body, File, Form, Header, Path, Query
+from velithon.params.params import Body, Cookie, File, Form, Header, Path, Query
+
+
+def _get_param_name_for_docs(param_name: str, param_metadata: Any) -> str:
+    """Get the parameter name to use in documentation, considering aliases."""
+    # First check for explicit alias
+    if hasattr(param_metadata, 'alias') and param_metadata.alias:
+        return param_metadata.alias
+    
+    # For specific parameter types, auto-generate hyphenated alias if underscore exists
+    auto_alias_types = (Query, Header, Cookie, Form)
+    if isinstance(param_metadata, auto_alias_types) and '_' in param_name:
+        return param_name.replace('_', '-')
+    
+    # Default to the original parameter name
+    return param_name
 from velithon.requests import Request
 from velithon.responses import PlainTextResponse
 
@@ -338,9 +353,13 @@ def process_model_params(
                     field_schema = SchemaProcessor._process_field(
                         field_name, field, schemas
                     )
+                    # Use the same alias resolution as individual parameters
+                    display_name = _get_param_name_for_docs(
+                        field_name, param_metadata
+                    )
                     docs.setdefault('parameters', []).append(
                         {
-                            'name': field_name,
+                            'name': display_name,
                             'in': 'query' if param_type is Query else 'form',
                             'required': field.is_required(),
                             'schema': field_schema,
@@ -365,24 +384,31 @@ def process_model_params(
                 if f'{{{name}}}' not in path:
                     path = path.rstrip('/') + f'/{{{name}}}'
             elif param_type is Query:
+                param_name_for_docs = _get_param_name_for_docs(name, param_metadata)
                 docs.setdefault('parameters', []).append(
                     {
-                        'name': name,
+                        'name': param_name_for_docs,
                         'in': 'query',
                         'required': param_metadata.default is PydanticUndefined,
                         'schema': schema,
                     }
                 )
             elif param_type is Header:
-                header_name = (
-                    param_metadata.alias
-                    if hasattr(param_metadata, 'alias') and param_metadata.alias
-                    else name
-                )
+                param_name_for_docs = _get_param_name_for_docs(name, param_metadata)
                 docs.setdefault('parameters', []).append(
                     {
-                        'name': header_name,
+                        'name': param_name_for_docs,
                         'in': 'header',
+                        'required': param_metadata.default is PydanticUndefined,
+                        'schema': schema,
+                    }
+                )
+            elif param_type is Cookie:
+                param_name_for_docs = _get_param_name_for_docs(name, param_metadata)
+                docs.setdefault('parameters', []).append(
+                    {
+                        'name': param_name_for_docs,
+                        'in': 'cookie',
                         'required': param_metadata.default is PydanticUndefined,
                         'schema': schema,
                     }
