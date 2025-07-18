@@ -239,16 +239,16 @@ class Request(HTTPConnection):
         )
 
     async def files(self) -> dict[str, list[UploadFile]]:
-        async with self.form() as form:
-            files: dict[str, list[UploadFile]] = {}
-            for field_name, field_value in form.multi_items():
-                if isinstance(field_value, UploadFile):
-                    files.setdefault(field_name, []).append(field_value)
-                elif isinstance(field_value, list):
-                    for item in field_value:
-                        if isinstance(item, UploadFile):
-                            files.setdefault(field_name, []).append(item)
-            return files
+        form = await self._get_form()
+        files: dict[str, list[UploadFile]] = {}
+        for field_name, field_value in form.multi_items():
+            if isinstance(field_value, UploadFile):
+                files.setdefault(field_name, []).append(field_value)
+            elif isinstance(field_value, list):
+                for item in field_value:
+                    if isinstance(item, UploadFile):
+                        files.setdefault(field_name, []).append(item)
+        return files
 
     async def close(self) -> None:
         if self._form is not None:  # pragma: no branch
