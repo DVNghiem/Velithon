@@ -94,7 +94,7 @@ class FileResponse(Response):
 
     async def __call__(self, scope: Scope, protocol: Protocol) -> None:
         """Handle the file response."""
-        method = scope.get('method', 'GET')
+        method = scope.method
 
         # Check if file exists
         if not self.path.exists():
