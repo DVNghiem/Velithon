@@ -4,8 +4,8 @@ import typing
 from http import cookies as http_cookies
 
 import orjson
-from python_multipart.multipart import parse_options_header
 
+from velithon._velithon import parse_options_header
 from velithon.datastructures import (
     URL,
     Address,

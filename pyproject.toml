@@ -31,7 +31,6 @@ classifiers = [
 ]
 dependencies = [
     "granian[asyncio,reload,rloop,uvloop] (>=2.2.6,<3.0.0)",
-    "python-multipart (>=0.0.20,<0.0.21)",
     "orjson (>=3.10.16,<4.0.0)",
     "pydantic[email] (>=2.11.7,<3.0.0)",
     "pydash (>=8.0.5,<9.0.0)",

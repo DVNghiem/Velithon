@@ -560,12 +560,125 @@ fn parse_content_disposition(header: &str) -> Option<HashMap<String, String>> {
     Some(params)
 }
 
+/// Parses HTTP options headers (like Content-Type) into a tuple of (content_type, options_dict).
+/// This is a high-performance Rust implementation that replaces the python-multipart library.
+/// 
+/// # Arguments
+/// * `value` - The header value to parse (str, bytes, or None)
+/// 
+/// # Returns
+/// A tuple of (content_type: bytes, options: dict[bytes, bytes])
+/// 
+/// # Examples
+/// ```python
+/// from velithon._velithon import parse_options_header
+/// 
+/// # Basic content type
+/// content_type, options = parse_options_header("text/html")
+/// assert content_type == b"text/html"
+/// assert options == {}
+/// 
+/// # With parameters
+/// content_type, options = parse_options_header("text/html; charset=utf-8")
+/// assert content_type == b"text/html"
+/// assert options == {b"charset": b"utf-8"}
+/// ```
+#[pyfunction]
+pub fn parse_options_header(py: Python<'_>, value: Option<PyObject>) -> PyResult<(PyObject, PyObject)> {
+    let empty_bytes = PyBytes::new(py, b"").into();
+    let empty_dict = PyDict::new(py).into();
+    
+    // Handle None or empty values
+    let value_str = match value {
+        None => return Ok((empty_bytes, empty_dict)),
+        Some(v) => {
+            let bound_v = v.bind(py);
+            if bound_v.is_none() {
+                return Ok((empty_bytes, empty_dict));
+            }
+            
+            // Convert to string
+            let s = if let Ok(bytes) = bound_v.extract::<&[u8]>() {
+                // If it's bytes, decode as latin-1 (as per WSGI spec)
+                match String::from_utf8(bytes.to_vec()) {
+                    Ok(s) => s,
+                    Err(_) => {
+                        // Fallback to latin-1 decoding
+                        bytes.iter().map(|&b| b as char).collect::<String>()
+                    }
+                }
+            } else if let Ok(s) = bound_v.extract::<String>() {
+                s
+            } else {
+                return Err(PyValueError::new_err("Value must be str, bytes, or None"));
+            };
+            
+            if s.is_empty() {
+                return Ok((empty_bytes, empty_dict));
+            }
+            
+            s
+        }
+    };
+    
+    // If no semicolon, return the content type as-is
+    if !value_str.contains(';') {
+        let content_type = value_str.trim().to_lowercase();
+        let content_type_bytes = PyBytes::new(py, content_type.as_bytes()).into();
+        return Ok((content_type_bytes, empty_dict));
+    }
+    
+    // Split at the first semicolon
+    let mut parts = value_str.splitn(2, ';');
+    let content_type = parts.next().unwrap_or("").trim().to_lowercase();
+    let params_str = parts.next().unwrap_or("").trim();
+    
+    let content_type_bytes = PyBytes::new(py, content_type.as_bytes()).into();
+    let options_dict = PyDict::new(py);
+    
+    // Parse parameters
+    for param in params_str.split(';') {
+        let param = param.trim();
+        if param.is_empty() {
+            continue;
+        }
+        
+        if let Some((key, value)) = param.split_once('=') {
+            let key = key.trim().to_lowercase();
+            let mut value = value.trim();
+            
+            // Remove quotes if present
+            if value.len() >= 2 && value.starts_with('"') && value.ends_with('"') {
+                value = &value[1..value.len()-1];
+            }
+            
+            // Handle filename parameter - fix IE6 bug that sends full path
+            let final_value = if key == "filename" {
+                if value.len() >= 3 && (&value[1..3] == ":\\" || &value[0..2] == "\\\\") {
+                    value.split('\\').last().unwrap_or(value)
+                } else {
+                    value
+                }
+            } else {
+                value
+            };
+            
+            let key_bytes = PyBytes::new(py, key.as_bytes());
+            let value_bytes = PyBytes::new(py, final_value.as_bytes());
+            options_dict.set_item(key_bytes, value_bytes)?;
+        }
+    }
+    
+    Ok((content_type_bytes, options_dict.into()))
+}
+
 pub fn register_formparsers(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<FormMessage>()?;
     m.add_class::<UploadFile>()?;
     m.add_class::<FormData>()?;
     m.add_class::<FormParser>()?;
     m.add_class::<MultiPartParser>()?;
+    m.add_function(wrap_pyfunction!(parse_options_header, m)?)?;
     
     Ok(())
 }
