@@ -574,9 +574,8 @@ class QueryParams(ImmutableMultiDict[str, str]):
     def __str__(self) -> str:
         return urlencode(self._list)
 
-
-# UploadFile is now implemented in Rust for better performance
-# Import it from the _velithon module instead
+    # UploadFile is now implemented in Rust for better performance
+    # Import it from the _velithon module instead
 
     def _get_repr_attrs(self) -> dict[str, typing.Any]:
         """Return attributes to include in __repr__."""
@@ -718,14 +717,14 @@ class FunctionInfo(PriorityDataStructure):
 
 # Export all public classes and functions
 __all__ = [
-    "Address",
-    "FormData",
-    "FunctionInfo",
-    "Headers",
-    "Protocol",
-    "QueryParams",
-    "ResponseDataCapture",
-    "Scope",
-    "URL",
-    "UploadFile",  # This is now imported from Rust
+    'URL',
+    'Address',
+    'FormData',
+    'FunctionInfo',
+    'Headers',
+    'Protocol',
+    'QueryParams',
+    'ResponseDataCapture',
+    'Scope',
+    'UploadFile',
 ]
