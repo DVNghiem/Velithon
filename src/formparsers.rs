@@ -90,7 +90,7 @@ impl UploadFile {
         })
     }
 
-    fn write(&self, _py: Python, data: &Bound<'_, PyBytes>) -> PyResult<usize> {
+    fn write(&self, data: &Bound<'_, PyBytes>) -> PyResult<usize> {
         let rt = tokio::runtime::Runtime::new().map_err(|e| {
             PyRuntimeError::new_err(format!("Failed to create tokio runtime: {}", e))
         })?;
@@ -104,7 +104,7 @@ impl UploadFile {
         })
     }
 
-    fn seek(&self, _py: Python, offset: i64) -> PyResult<u64> {
+    fn seek(&self, offset: i64) -> PyResult<u64> {
         let rt = tokio::runtime::Runtime::new().map_err(|e| {
             PyRuntimeError::new_err(format!("Failed to create tokio runtime: {}", e))
         })?;
@@ -340,8 +340,8 @@ impl MultiPartParser {
 
                 // Write data to the upload file
                 let py_bytes = PyBytes::new(py, &part.data);
-                upload_file.write(py, &py_bytes)?;
-                upload_file.seek(py, 0)?;
+                upload_file.write(&py_bytes)?;
+                upload_file.seek(0)?;
 
                 items.push((part.name, Py::new(py, upload_file)?.into()));
             } else {

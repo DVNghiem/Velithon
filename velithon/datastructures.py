@@ -3,16 +3,17 @@ from __future__ import annotations
 
 import typing
 from urllib.parse import SplitResult, parse_qsl, urlencode, urlsplit
-from weakref import WeakValueDictionary
 
 from granian.rsgi import HTTPProtocol
 from granian.rsgi import Scope as RSGIScope
 
 from velithon._utils import RequestIDGenerator, run_in_threadpool
+
+# Import the Rust-based UploadFile for better performance
+from velithon._velithon import UploadFile
 from velithon.base_datastructures import (
     MultiDictBase,
     PriorityDataStructure,
-    RepresentableDataStructure,
     UrlDataStructure,
 )
 
@@ -561,57 +562,8 @@ class QueryParams(ImmutableMultiDict[str, str]):
         return urlencode(self._list)
 
 
-class UploadFile(RepresentableDataStructure):
-    """An uploaded file included as part of the request data."""
-
-    def __init__(
-        self,
-        file: typing.BinaryIO,
-        *,
-        size: int | None = None,
-        filename: str | None = None,
-        headers: Headers | None = None,
-    ) -> None:
-        self.filename = filename
-        self.file = file
-        self.size = size
-        self.headers = headers or Headers()
-
-    @property
-    def content_type(self) -> str | None:
-        return self.headers.get('content-type', None)
-
-    @property
-    def _in_memory(self) -> bool:
-        # check for SpooledTemporaryFile._rolled
-        rolled_to_disk = getattr(self.file, '_rolled', True)
-        return not rolled_to_disk
-
-    async def write(self, data: bytes) -> None:
-        if self.size is not None:
-            self.size += len(data)
-
-        if self._in_memory:
-            self.file.write(data)
-        else:
-            await run_in_threadpool(self.file.write, data)
-
-    async def read(self, size: int = -1) -> bytes:
-        if self._in_memory:
-            return self.file.read(size)
-        return await run_in_threadpool(self.file.read, size)
-
-    async def seek(self, offset: int) -> None:
-        if self._in_memory:
-            self.file.seek(offset)
-        else:
-            await run_in_threadpool(self.file.seek, offset)
-
-    async def close(self) -> None:
-        if self._in_memory:
-            self.file.close()
-        else:
-            await run_in_threadpool(self.file.close)
+# UploadFile is now implemented in Rust for better performance
+# Import it from the _velithon module instead
 
     def _get_repr_attrs(self) -> dict[str, typing.Any]:
         """Return attributes to include in __repr__."""
@@ -631,9 +583,10 @@ class FormData(ImmutableMultiDict[str, typing.Union[UploadFile, str]]):
         super().__init__(*args, **kwargs)
 
     async def close(self) -> None:
-        for key, value in self.multi_items():
+        for _, value in self.multi_items():
             if isinstance(value, UploadFile):
-                await value.close()
+                # Rust UploadFile has synchronous close method
+                value.close()
 
 
 class Headers(MultiDictBase, typing.Mapping[str, str]):
@@ -748,3 +701,18 @@ class FunctionInfo(PriorityDataStructure):
             return self.func(*self.args, **self.kwargs)
         else:
             return run_in_threadpool(self.func, *self.args, **self.kwargs)
+
+
+# Export all public classes and functions
+__all__ = [
+    "Address",
+    "FormData",
+    "FunctionInfo",
+    "Headers",
+    "Protocol",
+    "QueryParams",
+    "ResponseDataCapture",
+    "Scope",
+    "URL",
+    "UploadFile",  # This is now imported from Rust
+]
