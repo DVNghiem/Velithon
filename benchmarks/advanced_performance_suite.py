@@ -1,3 +1,10 @@
+#!/usr/bin/env python3
+"""Advanced benchmark suite for testing optimization improvements.
+
+This module provides comprehensive performance testing for Velithon framework
+optimizations including request throughput, JSON response times, and memory usage.
+"""
+
 import asyncio
 import json
 import time
@@ -265,11 +272,9 @@ class AdvancedBenchmarkSuite:
         start_time = time.perf_counter()
 
         for _ in range(num_requests):
-            request = create_mock_request()
+            create_mock_request()
             # Simulate JSON response creation
-            response = JSONResponse(
-                {'message': 'Hello World', 'timestamp': time.time()}
-            )
+            JSONResponse({'message': 'Hello World', 'timestamp': time.time()})
 
         end_time = time.perf_counter()
         total_time = end_time - start_time

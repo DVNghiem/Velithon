@@ -1,5 +1,4 @@
-"""
-Example demonstrating Router with path parameter and adding routers to application.
+"""Example demonstrating Router with path parameter and adding routers to application.
 
 This example shows how to:
 1. Create a router with a path prefix: Router(path="/orders", routes=[...])
@@ -8,34 +7,34 @@ This example shows how to:
 """
 
 from velithon import Velithon
-from velithon.routing import Router
 from velithon.responses import JSONResponse
+from velithon.routing import Router
 
 
 # Create handlers for orders
 def get_orders():
-    """Get all orders"""
+    """Get all orders."""
     return JSONResponse({'orders': ['order1', 'order2', 'order3']})
 
 
 def get_order(order_id: int):
-    """Get a specific order by ID"""
+    """Get a specific order by ID."""
     return JSONResponse({'order_id': order_id, 'status': 'shipped'})
 
 
 def create_order():
-    """Create a new order"""
+    """Create a new order."""
     return JSONResponse({'message': 'Order created', 'order_id': 123})
 
 
 # Create handlers for users
 def get_users():
-    """Get all users"""
+    """Get all users."""
     return JSONResponse({'users': ['user1', 'user2', 'user3']})
 
 
 def get_user(user_id: int):
-    """Get a specific user by ID"""
+    """Get a specific user by ID."""
     return JSONResponse({'user_id': user_id, 'name': 'John Doe'})
 
 
@@ -63,13 +62,13 @@ api_router = Router(path='/api/v1')
 
 @api_router.get('/health')
 def health_check():
-    """Health check endpoint"""
+    """Health check endpoint."""
     return JSONResponse({'status': 'healthy'})
 
 
 @api_router.get('/info')
 def app_info():
-    """Application info endpoint"""
+    """Application info endpoint."""
     return JSONResponse({'name': 'Velithon App', 'version': '1.0.0'})
 
 

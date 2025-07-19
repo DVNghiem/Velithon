@@ -1,3 +1,9 @@
+"""Core data structures for Velithon framework.
+
+This module provides essential data structures for HTTP handling including
+Headers, QueryParams, URL handling, and protocol interfaces.
+"""
+
 #  @copyright (c) 2025 Starlette
 from __future__ import annotations
 
@@ -455,7 +461,7 @@ class ImmutableMultiDict(MultiDictBase, typing.Mapping[_KeyType, _CovariantValue
             value = typing.cast('list[tuple[typing.Any, typing.Any]]', value)
             _items = list(value)
 
-        self._dict = {k: v for k, v in _items}
+        self._dict = dict(_items)
         self._list = _items
 
     def getlist(self, key: typing.Any) -> list[_CovariantValueType]:
@@ -638,7 +644,7 @@ class Headers(MultiDictBase, typing.Mapping[str, str]):
 
     def __contains__(self, key: typing.Any) -> bool:
         get_header_key = key.lower()
-        for header_key, header_value in self._list:
+        for header_key, _header_value in self._list:
             if header_key == get_header_key:
                 return True
         return False
@@ -656,7 +662,7 @@ class Headers(MultiDictBase, typing.Mapping[str, str]):
         key = key.lower()
 
         found_indexes: list[int] = []
-        for idx, (item_key, item_value) in enumerate(self._list):
+        for idx, (item_key, _item_value) in enumerate(self._list):
             if item_key == key:
                 found_indexes.append(idx)
 

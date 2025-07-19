@@ -1,5 +1,4 @@
-"""
-Velithon Template Engine Example.
+"""Velithon Template Engine Example.
 
 This example demonstrates the high-performance template engine built in Rust
 with Handlebars-style syntax integration.
@@ -11,7 +10,6 @@ from velithon import Velithon
 from velithon.requests import Request
 from velithon.responses import JSONResponse
 from velithon.templates import TemplateEngine
-
 
 # Create the Velithon app
 app = Velithon(

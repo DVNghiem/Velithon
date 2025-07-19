@@ -9,14 +9,12 @@ This module provides comprehensive memory management optimizations including:
 """
 
 import gc
-import sys
+import logging
 import threading
 import time
 import weakref
 from collections import deque
-from typing import Any, Callable, Generic, Optional, TypeVar, Union
-from collections.abc import Iterator
-import logging
+from typing import Any, Callable, Generic, Optional, TypeVar
 
 logger = logging.getLogger(__name__)
 

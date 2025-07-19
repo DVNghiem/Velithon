@@ -1,3 +1,9 @@
+"""Dependency injection system for Velithon framework.
+
+This module provides dependency injection functionality including providers,
+container management, and automatic dependency resolution for endpoints.
+"""
+
 import logging
 from collections.abc import Callable
 from contextvars import ContextVar
@@ -37,7 +43,7 @@ class ServiceContainer:
                 setattr(self, name, value)
 
     async def resolve(self, provide, scope=None, resolution_stack=None):
-        """Delegate to Rust implementation and handle async results"""
+        """Delegate to Rust implementation and handle async results."""
         result = self._rust_container.resolve(provide, scope, resolution_stack)
 
         # If the result is a coroutine, await it

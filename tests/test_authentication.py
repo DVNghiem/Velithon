@@ -2,35 +2,35 @@
 Test suite for Velithon authentication and security components.
 """
 
-import pytest
-from unittest.mock import Mock, patch
-from datetime import datetime, timedelta, timezone
 import base64
-import json
+from datetime import datetime, timedelta, timezone
+from unittest.mock import Mock, patch
+
+import pytest
 
 from velithon.security import (
-    HTTPBearer,
-    HTTPBasic,
     APIKeyHeader,
-    OAuth2PasswordBearer,
-    JWTHandler,
-    User,
-    UserInDB,
-    UserCreate,
-    Token,
-    TokenData,
-    get_password_hash,
-    verify_password,
-    hash_password,
     AuthenticationError,
     AuthorizationError,
-    TokenExpiredError,
+    HTTPBasic,
+    HTTPBearer,
     InvalidTokenError,
+    JWTHandler,
     MissingTokenError,
-    require_permission,
+    OAuth2PasswordBearer,
     Permission,
     PermissionChecker,
+    Token,
+    TokenData,
+    TokenExpiredError,
+    User,
+    UserCreate,
+    UserInDB,
     authenticate_user,
+    get_password_hash,
+    hash_password,
+    require_permission,
+    verify_password,
 )
 
 

@@ -1,4 +1,4 @@
-"""Velithon Memory Management Example
+"""Velithon Memory Management Example.
 
 This example demonstrates how to use Velithon's advanced memory management features
 for maximum performance in production web applications.
@@ -6,17 +6,18 @@ for maximum performance in production web applications.
 
 import asyncio
 import logging
+
 from velithon import (
-    Velithon,
+    GCTuningMiddleware,
     JSONResponse,
+    MemoryManagementMiddleware,
+    MemoryMonitoringMiddleware,
+    RequestMemoryContext,
     StreamingResponse,
+    Velithon,
     enable_memory_optimizations,
     get_memory_stats,
     manual_memory_cleanup,
-    MemoryManagementMiddleware,
-    MemoryMonitoringMiddleware,
-    GCTuningMiddleware,
-    RequestMemoryContext,
     with_memory_optimization,
 )
 

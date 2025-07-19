@@ -29,6 +29,7 @@ class MemoryManagementMiddleware(Middleware):
             enable_monitoring: Whether to enable memory monitoring
             cleanup_threshold: Object count threshold for triggering cleanup
             cleanup_interval: Interval between periodic cleanups (seconds)
+
         """
         super().__init__(app)
         self.enable_monitoring = enable_monitoring
@@ -82,6 +83,7 @@ class MemoryMonitoringMiddleware(Middleware):
         Args:
             app: The RSGI application
             log_interval: Number of requests between logging memory stats
+
         """
         super().__init__(app)
         self.log_interval = log_interval
@@ -136,6 +138,7 @@ class GCTuningMiddleware(Middleware):
             disable_gc_during_request: Whether to disable GC during request processing
             generation_0_interval: Requests between generation 0 collections
             generation_2_interval: Requests between generation 2 collections
+
         """
         super().__init__(app)
         self.disable_gc_during_request = disable_gc_during_request
@@ -192,6 +195,7 @@ def add_memory_management(
 
     Returns:
         The memory management middleware instance
+
     """
     return MemoryManagementMiddleware(
         app, enable_monitoring=enable_monitoring, cleanup_threshold=cleanup_threshold
@@ -209,6 +213,7 @@ def add_memory_monitoring(
 
     Returns:
         The memory monitoring middleware instance
+
     """
     return MemoryMonitoringMiddleware(app, log_interval=log_interval)
 
@@ -224,5 +229,6 @@ def add_gc_tuning(
 
     Returns:
         The GC tuning middleware instance
+
     """
     return GCTuningMiddleware(app, disable_gc_during_request=disable_gc_during_request)

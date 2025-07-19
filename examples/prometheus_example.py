@@ -14,6 +14,7 @@ def create_prometheus_app() -> Velithon:
 
     Returns:
         Configured Velithon application with Prometheus middleware
+
     """
     app = Velithon(
         middleware=[
@@ -70,6 +71,7 @@ def create_optimized_prometheus_app() -> Velithon:
 
     Returns:
         Configured Velithon application with optimized Prometheus middleware
+
     """
     from velithon.middleware import FastPrometheusMiddleware
 
@@ -120,6 +122,7 @@ def normalize_api_path(path: str) -> str:
 
     Returns:
         Normalized path for metrics grouping
+
     """
     import re
 

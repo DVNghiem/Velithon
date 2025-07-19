@@ -1,3 +1,9 @@
+"""HTTP request handling for Velithon framework.
+
+This module provides Request class for handling HTTP requests, including
+body parsing, header management, and parameter extraction.
+"""
+
 from __future__ import annotations
 
 import typing

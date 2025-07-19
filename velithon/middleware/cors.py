@@ -1,3 +1,9 @@
+"""Cross-Origin Resource Sharing (CORS) middleware for Velithon framework.
+
+This module provides CORS middleware to handle cross-origin requests,
+allowing web applications to securely access resources from different domains.
+"""
+
 import typing
 
 from velithon.datastructures import Headers, Protocol, Scope

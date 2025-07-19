@@ -1,3 +1,9 @@
+"""Wrapped middleware utilities for Velithon framework.
+
+This module provides utilities for wrapping and composing middleware
+components in the Velithon request processing pipeline.
+"""
+
 from __future__ import annotations
 
 import typing

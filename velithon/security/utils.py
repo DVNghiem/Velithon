@@ -3,7 +3,6 @@
 import hashlib
 import hmac
 import secrets
-from typing import Any
 
 try:
     from passlib.context import CryptContext

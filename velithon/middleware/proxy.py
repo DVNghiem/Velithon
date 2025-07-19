@@ -1,3 +1,9 @@
+"""HTTP proxy middleware for Velithon framework.
+
+This module provides HTTP proxy functionality including request forwarding,
+load balancing, and upstream server management.
+"""
+
 import asyncio
 import logging
 from collections.abc import Callable
@@ -50,7 +56,7 @@ class ProxyMiddleware(BaseHTTPMiddleware):
         """Initialize proxy middleware.
 
         Args:
-            app: The ASGI application to wrap
+            app: The RSGI application to wrap
             targets: Single target URL or list of target URLs for load balancing
             load_balancing_strategy: "round_robin", "random", or "weighted"
             weights: Weights for weighted load balancing (required if strategy is "weighted")
@@ -113,12 +119,10 @@ class ProxyMiddleware(BaseHTTPMiddleware):
         self.enable_health_checks = enable_health_checks
 
         # Header processing
-        self.strip_request_headers = set(
-            h.lower() for h in (strip_request_headers or [])
-        )
-        self.strip_response_headers = set(
+        self.strip_request_headers = {h.lower() for h in (strip_request_headers or [])}
+        self.strip_response_headers = {
             h.lower() for h in (strip_response_headers or [])
-        )
+        }
         self.add_request_headers = add_request_headers or {}
         self.add_response_headers = add_response_headers or {}
 

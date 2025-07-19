@@ -1,3 +1,9 @@
+"""Session management middleware for Velithon framework.
+
+This module provides session management functionality including session storage,
+encryption/decryption, and session-based authentication support.
+"""
+
 from __future__ import annotations
 
 import base64

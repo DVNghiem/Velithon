@@ -1,5 +1,4 @@
-"""
-Example demonstrating VSP multi-worker support with port sharing.
+"""Example demonstrating VSP multi-worker support with port sharing.
 
 This example shows how to run multiple VSP services on the same port
 using the SO_REUSEPORT socket option, which is essential for multi-worker

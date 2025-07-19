@@ -2,6 +2,7 @@
 """Simple Performance Test to measure current optimization impact."""
 
 import asyncio
+import json
 import time
 from typing import Any
 
@@ -40,11 +41,11 @@ class SimpleBenchmark(BaseBenchmark, ResponseBenchmarkMixin):
             response.render(test_data)
 
         # Actual benchmark
-        for i in range(self.iterations):
+        for _i in range(self.iterations):
             start = time.perf_counter()
 
             response = JSONResponse(test_data)
-            content = response.render(test_data)
+            response.render(test_data)
 
             end = time.perf_counter()
             times.append(end - start)
@@ -76,7 +77,7 @@ class SimpleBenchmark(BaseBenchmark, ResponseBenchmarkMixin):
         for i in range(self.iterations):
             test_data['id'] = i
             response = JSONResponse(test_data)
-            content = response.render(test_data)
+            response.render(test_data)
 
         end_time = time.perf_counter()
         total_time = end_time - start_time
@@ -104,7 +105,7 @@ class SimpleBenchmark(BaseBenchmark, ResponseBenchmarkMixin):
         tasks = [create_response(i) for i in range(num_concurrent)]
 
         start_time = time.perf_counter()
-        results = await asyncio.gather(*tasks)
+        await asyncio.gather(*tasks)
         end_time = time.perf_counter()
 
         total_time = end_time - start_time

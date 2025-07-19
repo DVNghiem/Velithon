@@ -1,3 +1,9 @@
+"""VSP (Velithon Service Protocol) client implementation.
+
+This module provides client functionality for the Velithon Service Protocol
+including connection management, service discovery, and remote procedure calls.
+"""
+
 import asyncio
 import logging
 import random
@@ -79,7 +85,7 @@ class VSPClient:
             self.connection_events[connection_key].clear()
             self.transports[connection_key].clear()
             connection_key = await self.ensure_transport(service_name)
-            active_transports = [t for t in self.transports[connection_key]]
+            active_transports = list(self.transports[connection_key])
         transport = random.choice(active_transports)
         return transport, connection_key
 

@@ -60,6 +60,7 @@ class TemplateEngine:
         <p>{{upper name}} - {{len items}} items</p>
         <p>Today: {{format_date today}}</p>
         ```
+
     """
 
     def __init__(
@@ -100,7 +101,10 @@ class TemplateEngine:
             # If loading fails, continue but log the error
             import warnings
 
-            warnings.warn(f'Some templates failed to load during initialization: {e}')
+            warnings.warn(
+                f'Some templates failed to load during initialization: {e}',
+                stacklevel=2,
+            )
 
     def render(self, template_name: str, context: dict[str, Any] | None = None) -> str:
         """Render a template with the given context.

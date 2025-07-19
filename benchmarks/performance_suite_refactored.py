@@ -144,7 +144,7 @@ class PerformanceBenchmark(BaseBenchmark, ResponseBenchmarkMixin, CacheBenchmark
         """Benchmark middleware execution overhead."""
         print('🔀 Benchmarking middleware performance...')
 
-        app = Velithon()
+        Velithon()
 
         # Simple middleware that adds a header
         class TestMiddleware:

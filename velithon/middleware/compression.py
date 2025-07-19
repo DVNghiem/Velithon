@@ -1,3 +1,9 @@
+"""HTTP compression middleware for Velithon framework.
+
+This module provides GZip compression middleware for compressing HTTP
+responses to reduce bandwidth and improve performance.
+"""
+
 import gzip
 import io
 import typing
@@ -24,7 +30,7 @@ class CompressionMiddleware(BaseHTTPMiddleware):
     - The response body is large enough to benefit from compression
 
     Args:
-        app: The ASGI application to wrap
+        app: The RSGI application to wrap
         minimum_size: Minimum response size in bytes to enable compression (default: 500)
         compression_level: Compression level to use (default: CompressionLevel.BALANCED)
         compressible_types: Set of content types that should be compressed

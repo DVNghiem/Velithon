@@ -38,7 +38,7 @@ class TestTemplateEngine:
     {{else}}
         <p>Please log in.</p>
     {{/if}}
-    
+
     {{#if items}}
         <ul>
         {{#each items}}

@@ -1,3 +1,9 @@
+"""Base data structures for Velithon framework.
+
+This module provides abstract base classes and fundamental data structures
+used throughout the framework for comparable operations and data handling.
+"""
+
 import typing
 from abc import ABC, abstractmethod
 
@@ -98,7 +104,7 @@ class RepresentableDataStructure(ABC):
                 attr_strs.append(f'{key}={value!r}')
             elif isinstance(value, (list, tuple)) and len(value) > 3:
                 # Truncate long sequences in repr
-                truncated = list(value[:3]) + ['...']
+                truncated = [*list(value[:3]), '...']
                 attr_strs.append(f'{key}={truncated}')
             else:
                 attr_strs.append(f'{key}={value!r}')

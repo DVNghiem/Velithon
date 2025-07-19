@@ -5,21 +5,20 @@ These tests verify that the example applications work correctly
 and demonstrate proper authentication usage patterns.
 """
 
-import pytest
-from unittest.mock import patch, Mock
-import asyncio
 from typing import Annotated
+from unittest.mock import Mock
+
+import pytest
 
 from velithon import Velithon
-from velithon.requests import Request
+from velithon.responses import JSONResponse
 from velithon.security import (
+    AuthenticationError,
     HTTPBearer,
     JWTHandler,
     User,
-    AuthenticationError,
     get_password_hash,
 )
-from velithon.responses import JSONResponse
 
 
 class TestSimpleAuthExample:

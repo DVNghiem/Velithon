@@ -5,8 +5,8 @@ Tests for OpenAPI security documentation integration.
 import pytest
 
 from velithon import Velithon
-from velithon.security import HTTPBearer, HTTPBasic, APIKeyHeader, OAuth2PasswordBearer
 from velithon.openapi.docs import get_security_schemes
+from velithon.security import APIKeyHeader, HTTPBasic, HTTPBearer, OAuth2PasswordBearer
 
 
 class TestOpenAPISecurityIntegration:

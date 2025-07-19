@@ -1,5 +1,4 @@
-"""
-Example application demonstrating Server-Sent Events (SSE) functionality.
+"""Example application demonstrating Server-Sent Events (SSE) functionality.
 
 This example shows various SSE use cases:
 - Basic event streaming
@@ -12,7 +11,6 @@ This example shows various SSE use cases:
 import asyncio
 import time
 from datetime import datetime
-from typing import Dict, List
 
 from velithon import Velithon
 from velithon.responses import HTMLResponse, SSEResponse
@@ -20,7 +18,7 @@ from velithon.responses import HTMLResponse, SSEResponse
 app = Velithon()
 
 # Simulate some data sources
-chat_messages: List[Dict] = []
+chat_messages: list[dict] = []
 user_count = 0
 
 
@@ -35,35 +33,35 @@ async def index():
         <style>
             body { font-family: Arial, sans-serif; margin: 20px; }
             .container { max-width: 800px; margin: 0 auto; }
-            .event-box { 
-                border: 1px solid #ccc; 
-                padding: 10px; 
-                margin: 10px 0; 
+            .event-box {
+                border: 1px solid #ccc;
+                padding: 10px;
+                margin: 10px 0;
                 border-radius: 5px;
                 background: #f9f9f9;
             }
-            .event-log { 
-                height: 200px; 
-                overflow-y: auto; 
-                border: 1px solid #ddd; 
-                padding: 10px; 
+            .event-log {
+                height: 200px;
+                overflow-y: auto;
+                border: 1px solid #ddd;
+                padding: 10px;
                 background: white;
                 font-family: monospace;
                 font-size: 12px;
             }
-            button { 
-                padding: 10px 20px; 
-                margin: 5px; 
-                background: #007bff; 
-                color: white; 
-                border: none; 
-                border-radius: 3px; 
+            button {
+                padding: 10px 20px;
+                margin: 5px;
+                background: #007bff;
+                color: white;
+                border: none;
+                border-radius: 3px;
                 cursor: pointer;
             }
             button:hover { background: #0056b3; }
-            .status { 
-                padding: 5px 10px; 
-                border-radius: 3px; 
+            .status {
+                padding: 5px 10px;
+                border-radius: 3px;
                 margin: 5px 0;
             }
             .connected { background: #d4edda; color: #155724; }
@@ -73,7 +71,7 @@ async def index():
     <body>
         <div class="container">
             <h1>Velithon Server-Sent Events Examples</h1>
-            
+
             <div class="event-box">
                 <h3>1. Basic Counter Stream</h3>
                 <div id="counter-status" class="status disconnected">Disconnected</div>
@@ -81,7 +79,7 @@ async def index():
                 <button onclick="stopCounter()">Stop Counter</button>
                 <div id="counter-log" class="event-log"></div>
             </div>
-            
+
             <div class="event-box">
                 <h3>2. Real-time Data Stream</h3>
                 <div id="data-status" class="status disconnected">Disconnected</div>
@@ -89,7 +87,7 @@ async def index():
                 <button onclick="stopDataStream()">Stop Data Stream</button>
                 <div id="data-log" class="event-log"></div>
             </div>
-            
+
             <div class="event-box">
                 <h3>3. Chat Messages</h3>
                 <div id="chat-status" class="status disconnected">Disconnected</div>
@@ -98,7 +96,7 @@ async def index():
                 <button onclick="sendMessage()">Send Test Message</button>
                 <div id="chat-log" class="event-log"></div>
             </div>
-            
+
             <div class="event-box">
                 <h3>4. Structured Events</h3>
                 <div id="structured-status" class="status disconnected">Disconnected</div>
@@ -110,41 +108,41 @@ async def index():
 
         <script>
             let connections = {};
-            
+
             function updateStatus(type, connected) {
                 const statusEl = document.getElementById(type + '-status');
                 statusEl.textContent = connected ? 'Connected' : 'Disconnected';
                 statusEl.className = 'status ' + (connected ? 'connected' : 'disconnected');
             }
-            
+
             function addLog(type, message) {
                 const logEl = document.getElementById(type + '-log');
                 const time = new Date().toLocaleTimeString();
                 logEl.innerHTML += `[${time}] ${message}<br>`;
                 logEl.scrollTop = logEl.scrollHeight;
             }
-            
+
             function startCounter() {
                 if (connections.counter) return;
-                
+
                 const eventSource = new EventSource('/sse/counter');
                 connections.counter = eventSource;
-                
+
                 eventSource.onopen = () => {
                     updateStatus('counter', true);
                     addLog('counter', '<strong>Connected to counter stream</strong>');
                 };
-                
+
                 eventSource.onmessage = (event) => {
                     addLog('counter', `Counter: ${event.data}`);
                 };
-                
+
                 eventSource.onerror = () => {
                     updateStatus('counter', false);
                     addLog('counter', '<strong style="color: red;">Connection error</strong>');
                 };
             }
-            
+
             function stopCounter() {
                 if (connections.counter) {
                     connections.counter.close();
@@ -153,29 +151,29 @@ async def index():
                     addLog('counter', '<strong>Disconnected</strong>');
                 }
             }
-            
+
             function startDataStream() {
                 if (connections.data) return;
-                
+
                 const eventSource = new EventSource('/sse/data');
                 connections.data = eventSource;
-                
+
                 eventSource.onopen = () => {
                     updateStatus('data', true);
                     addLog('data', '<strong>Connected to data stream</strong>');
                 };
-                
+
                 eventSource.onmessage = (event) => {
                     const data = JSON.parse(event.data);
                     addLog('data', `Temperature: ${data.temperature}°C, Humidity: ${data.humidity}%`);
                 };
-                
+
                 eventSource.onerror = () => {
                     updateStatus('data', false);
                     addLog('data', '<strong style="color: red;">Connection error</strong>');
                 };
             }
-            
+
             function stopDataStream() {
                 if (connections.data) {
                     connections.data.close();
@@ -184,37 +182,37 @@ async def index():
                     addLog('data', '<strong>Disconnected</strong>');
                 }
             }
-            
+
             function startChat() {
                 if (connections.chat) return;
-                
+
                 const eventSource = new EventSource('/sse/chat');
                 connections.chat = eventSource;
-                
+
                 eventSource.onopen = () => {
                     updateStatus('chat', true);
                     addLog('chat', '<strong>Connected to chat stream</strong>');
                 };
-                
+
                 eventSource.addEventListener('message', (event) => {
                     const data = JSON.parse(event.data);
                     addLog('chat', `<strong>${data.user}:</strong> ${data.message}`);
                 });
-                
+
                 eventSource.addEventListener('join', (event) => {
                     addLog('chat', `<em style="color: green;">${event.data} joined the chat</em>`);
                 });
-                
+
                 eventSource.addEventListener('leave', (event) => {
                     addLog('chat', `<em style="color: red;">${event.data} left the chat</em>`);
                 });
-                
+
                 eventSource.onerror = () => {
                     updateStatus('chat', false);
                     addLog('chat', '<strong style="color: red;">Connection error</strong>');
                 };
             }
-            
+
             function stopChat() {
                 if (connections.chat) {
                     connections.chat.close();
@@ -223,7 +221,7 @@ async def index():
                     addLog('chat', '<strong>Disconnected</strong>');
                 }
             }
-            
+
             function sendMessage() {
                 fetch('/api/send-message', {
                     method: 'POST',
@@ -234,38 +232,38 @@ async def index():
                     })
                 });
             }
-            
+
             function startStructured() {
                 if (connections.structured) return;
-                
+
                 const eventSource = new EventSource('/sse/structured');
                 connections.structured = eventSource;
-                
+
                 eventSource.onopen = () => {
                     updateStatus('structured', true);
                     addLog('structured', '<strong>Connected to structured events</strong>');
                 };
-                
+
                 eventSource.addEventListener('welcome', (event) => {
                     addLog('structured', `<strong>Welcome:</strong> ${event.data}`);
                 });
-                
+
                 eventSource.addEventListener('status', (event) => {
                     const data = JSON.parse(event.data);
                     addLog('structured', `<strong>Status:</strong> ${data.status} (ID: ${event.lastEventId})`);
                 });
-                
+
                 eventSource.addEventListener('data', (event) => {
                     const data = JSON.parse(event.data);
                     addLog('structured', `<strong>Data:</strong> ${JSON.stringify(data)}`);
                 });
-                
+
                 eventSource.onerror = () => {
                     updateStatus('structured', false);
                     addLog('structured', '<strong style="color: red;">Connection error</strong>');
                 };
             }
-            
+
             function stopStructured() {
                 if (connections.structured) {
                     connections.structured.close();
@@ -274,7 +272,7 @@ async def index():
                     addLog('structured', '<strong>Disconnected</strong>');
                 }
             }
-            
+
             // Clean up connections when page is unloaded
             window.addEventListener('beforeunload', () => {
                 Object.values(connections).forEach(conn => {

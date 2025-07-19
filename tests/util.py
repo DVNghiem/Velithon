@@ -1,3 +1,5 @@
+from typing import Optional
+
 import requests
 
 BASE_URL = 'http://127.0.0.1:5005'
@@ -12,7 +14,7 @@ def check_response(response: requests.Response, expected_status_code: int):
 def get(
     endpoint: str,
     expected_status_code: int = 200,
-    headers: dict = {},
+    headers: Optional[dict] = None,
     should_check_response: bool = False,
 ) -> requests.Response:
     """
@@ -23,6 +25,8 @@ def get(
     headers dict: The headers to send with the request.
     should_check_response bool: A boolean to indicate if the status code and headers should be checked.
     """
+    if headers is None:
+        headers = {}
     endpoint = endpoint.strip('/')
     response = requests.get(f'{BASE_URL}/{endpoint}', headers=headers)
     if should_check_response:
@@ -34,7 +38,7 @@ def post(
     endpoint: str,
     data: dict | None = None,
     expected_status_code: int = 200,
-    headers: dict = {},
+    headers: Optional[dict] = None,
     should_check_response: bool = False,
 ) -> requests.Response:
     """
@@ -46,6 +50,8 @@ def post(
     headers dict: The headers to send with the request.
     should_check_response bool: A boolean to indicate if the status code and headers should be checked.
     """
+    if headers is None:
+        headers = {}
     endpoint = endpoint.strip('/')
     response = requests.post(f'{BASE_URL}/{endpoint}', json=data, headers=headers)
     if should_check_response:
@@ -78,7 +84,7 @@ def put(
     endpoint: str,
     data: dict | None = None,
     expected_status_code: int = 200,
-    headers: dict = {},
+    headers: Optional[dict] = None,
     should_check_response: bool = False,
 ) -> requests.Response:
     """
@@ -89,6 +95,8 @@ def put(
     headers dict: The headers to send with the request.
     should_check_response bool: A boolean to indicate if the status code and headers should be checked.
     """
+    if headers is None:
+        headers = {}
     endpoint = endpoint.strip('/')
     response = requests.put(f'{BASE_URL}/{endpoint}', json=data, headers=headers)
     if should_check_response:
@@ -100,7 +108,7 @@ def delete(
     endpoint: str,
     data: dict | None = None,
     expected_status_code: int = 200,
-    headers: dict = {},
+    headers: Optional[dict] = None,
     should_check_response: bool = False,
 ) -> requests.Response:
     """
@@ -111,6 +119,8 @@ def delete(
     headers dict: The headers to send with the request.
     should_check_response bool: A boolean to indicate if the status code and headers should be checked.
     """
+    if headers is None:
+        headers = {}
     endpoint = endpoint.strip('/')
     response = requests.delete(f'{BASE_URL}/{endpoint}', json=data, headers=headers)
     if should_check_response:

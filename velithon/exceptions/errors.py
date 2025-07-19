@@ -1,8 +1,14 @@
+"""Standard error definitions for Velithon framework.
+
+This module provides predefined error definitions and error codes used
+throughout the framework for consistent error handling.
+"""
+
 from .base import VelithonError
 
 
 class ErrorDefinitions:
-    """Standard error definitions"""
+    """Standard error definitions."""
 
     BAD_REQUEST = VelithonError(message='Bad request', code='BAD_REQUEST')
     UNAUTHORIZED = VelithonError(message='Unauthorized access', code='UNAUTHORIZED')

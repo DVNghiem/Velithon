@@ -95,5 +95,5 @@ class Middleware:
         args_strings = [f'{value!r}' for value in self.args]
         option_strings = [f'{key}={value!r}' for key, value in self.kwargs.items()]
         name = getattr(self.cls, '__name__', '')
-        args_repr = ', '.join([name] + args_strings + option_strings)
+        args_repr = ', '.join([name, *args_strings, *option_strings])
         return f'{class_name}({args_repr})'

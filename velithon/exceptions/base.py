@@ -1,3 +1,9 @@
+"""Base exception classes and formatters for Velithon framework.
+
+This module provides abstract base classes for exception handling, response
+formatting, and common exception functionality across the framework.
+"""
+
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from typing import Any
@@ -8,7 +14,7 @@ from velithon.status import HTTP_400_BAD_REQUEST
 class ResponseFormatter(ABC):
     @abstractmethod
     def format_error(self, exception: 'HTTPException') -> dict[str, Any]:
-        """Format exception into response dictionary"""
+        """Format exception into response dictionary."""
         pass
 
 
@@ -28,7 +34,7 @@ class DefaultFormatter(ResponseFormatter):
 
 
 class VelithonError:
-    """Base error definition"""
+    """Base error definition."""
 
     def __init__(self, message: str, code: str):
         self.message = message
@@ -36,7 +42,7 @@ class VelithonError:
 
 
 class HTTPException(Exception):
-    """Base HTTP exception"""
+    """Base HTTP exception."""
 
     _formatter: ResponseFormatter = DefaultFormatter()
 

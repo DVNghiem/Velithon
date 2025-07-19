@@ -1,3 +1,9 @@
+"""HTTP exception classes for Velithon framework.
+
+This module provides specific HTTP exception classes for various HTTP status
+codes including client errors, server errors, and authentication exceptions.
+"""
+
 from typing import Any
 
 from velithon.status import (

@@ -1,3 +1,9 @@
+"""Protocol implementation for VSP (Velithon Service Protocol).
+
+This module provides the core VSP protocol implementation including
+message formats, handshaking, and protocol state management.
+"""
+
 import asyncio
 import logging
 from typing import TYPE_CHECKING

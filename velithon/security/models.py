@@ -1,7 +1,6 @@
 """Security models for Velithon authentication system."""
 
 from datetime import datetime
-from typing import Any
 
 try:
     from pydantic import BaseModel, Field
@@ -10,7 +9,9 @@ try:
 except ImportError:
     PYDANTIC_AVAILABLE = False
     BaseModel = object
-    Field = lambda **kwargs: None
+
+    def Field(**kwargs):
+        return None
 
 
 class Token(BaseModel):

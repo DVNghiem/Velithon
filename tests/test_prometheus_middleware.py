@@ -1,15 +1,14 @@
 """Tests for Prometheus metrics middleware."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
 
-from velithon.datastructures import Protocol, Scope
+import pytest
+
 from velithon.middleware.prometheus import (
-    PrometheusMiddleware,
-    PrometheusMetrics,
     FastPrometheusMiddleware,
+    PrometheusMetrics,
+    PrometheusMiddleware,
 )
-from velithon.responses import JSONResponse
 
 
 class TestPrometheusMetrics:

@@ -4,17 +4,16 @@ This example shows how to enable the built-in security middleware
 and create a basic protected endpoint.
 """
 
+# JWT Configuration - Use environment variable in production
+import os
 from typing import Annotated
+
 from pydantic import BaseModel
 
 from velithon import Velithon
 from velithon.requests import Request
 from velithon.responses import JSONResponse
-from velithon.security import HTTPBearer, AuthenticationError, User, JWTHandler
-
-
-# JWT Configuration - Use environment variable in production
-import os
+from velithon.security import AuthenticationError, HTTPBearer, JWTHandler, User
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'dev-key-change-in-production')
 jwt_handler = JWTHandler(secret_key=SECRET_KEY)

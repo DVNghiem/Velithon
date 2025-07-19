@@ -62,7 +62,7 @@ async def test_random_strategy():
     lb = ProxyLoadBalancer(targets, strategy='random')
 
     selected_targets = []
-    for i in range(10):
+    for _i in range(10):
         target = await lb.get_next_target()
         selected_targets.append(target)
 

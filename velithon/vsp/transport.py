@@ -1,3 +1,9 @@
+"""Transport layer for VSP (Velithon Service Protocol).
+
+This module provides transport layer implementations for VSP including
+TCP, WebSocket, and other transport protocols for service communication.
+"""
+
 import asyncio
 import logging
 from typing import TYPE_CHECKING

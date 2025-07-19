@@ -1,6 +1,6 @@
 """HTTP codes
 See HTTP Status Code Registry:
-https://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml
+https://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml.
 
 And RFC 2324 - https://tools.ietf.org/html/rfc2324
 """

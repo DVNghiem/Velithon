@@ -1,5 +1,4 @@
-"""
-Comprehensive example demonstrating Router with path parameter functionality.
+"""Comprehensive example demonstrating Router with path parameter functionality.
 
 This example shows all the features we've implemented:
 1. Router(path="/prefix", routes=[...]) - Router with path parameter
@@ -9,8 +8,8 @@ This example shows all the features we've implemented:
 """
 
 from velithon import Velithon
-from velithon.routing import Router
 from velithon.responses import JSONResponse
+from velithon.routing import Router
 
 # =============================================================================
 # Create handlers for different resource types

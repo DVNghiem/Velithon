@@ -1,12 +1,10 @@
-"""
-Example demonstrating WebSocket Channel, Heartbeat, and Room functionality in Velithon.
+"""Example demonstrating WebSocket Channel, Heartbeat, and Room functionality in Velithon.
 
 This example shows how to use the new WebSocket components to build a chat application
 with rooms, user management, and connection health monitoring.
 """
 
 import json
-from typing import Dict
 
 from velithon import Velithon
 from velithon.websocket import (
@@ -16,14 +14,13 @@ from velithon.websocket import (
     WebSocketEndpoint,
 )
 
-
 # Global managers
 room_manager = RoomManager(max_rooms=100, default_max_users=50)
 heartbeat_manager = HeartbeatManager(default_interval=30.0, default_timeout=10.0)
 
 # Connection tracking
-connections: Dict[str, WebSocket] = {}
-user_connections: Dict[str, str] = {}  # user_id -> connection_id
+connections: dict[str, WebSocket] = {}
+user_connections: dict[str, str] = {}  # user_id -> connection_id
 
 
 class ChatEndpoint(WebSocketEndpoint):
@@ -142,7 +139,7 @@ class ChatEndpoint(WebSocketEndpoint):
         connections.pop(connection_id, None)
 
     async def _handle_auth(
-        self, websocket: WebSocket, connection_id: str, message: Dict
+        self, websocket: WebSocket, connection_id: str, message: dict
     ):
         """Handle user authentication."""
         user_id = message.get('user_id')
@@ -167,7 +164,7 @@ class ChatEndpoint(WebSocketEndpoint):
         )
 
     async def _handle_join_room(
-        self, websocket: WebSocket, connection_id: str, message: Dict
+        self, websocket: WebSocket, connection_id: str, message: dict
     ):
         """Handle joining a room."""
         room_id = message.get('room_id')
@@ -218,7 +215,7 @@ class ChatEndpoint(WebSocketEndpoint):
             )
 
     async def _handle_leave_room(
-        self, websocket: WebSocket, connection_id: str, message: Dict
+        self, websocket: WebSocket, connection_id: str, message: dict
     ):
         """Handle leaving a room."""
         room_id = message.get('room_id')
@@ -252,7 +249,7 @@ class ChatEndpoint(WebSocketEndpoint):
             )
 
     async def _handle_send_message(
-        self, websocket: WebSocket, connection_id: str, message: Dict
+        self, websocket: WebSocket, connection_id: str, message: dict
     ):
         """Handle sending a message to a room."""
         room_id = message.get('room_id')
@@ -324,7 +321,7 @@ class ChatEndpoint(WebSocketEndpoint):
             }
         )
 
-    async def _handle_room_info(self, websocket: WebSocket, message: Dict):
+    async def _handle_room_info(self, websocket: WebSocket, message: dict):
         """Handle getting room information."""
         room_id = message.get('room_id')
         if not room_id:
@@ -496,44 +493,44 @@ async def chat_client():
     </head>
     <body>
         <h1>Velithon Chat Example</h1>
-        
+
         <div class="room-controls">
             <input type="text" id="userId" placeholder="Enter your user ID" />
             <button onclick="authenticate()">Login</button>
             <span id="authStatus"></span>
         </div>
-        
+
         <div class="room-controls">
             <input type="text" id="roomId" placeholder="Enter room ID" />
             <button onclick="joinRoom()">Join Room</button>
             <button onclick="leaveRoom()">Leave Room</button>
             <button onclick="listRooms()">List Rooms</button>
         </div>
-        
+
         <div id="messages"></div>
-        
+
         <div>
             <input type="text" id="messageInput" placeholder="Type a message..." />
             <button id="send" onclick="sendMessage()">Send</button>
         </div>
-        
+
         <div id="status">Connecting...</div>
-        
+
         <script>
             const ws = new WebSocket("ws://localhost:8000/ws/chat");
             const messages = document.getElementById("messages");
             const status = document.getElementById("status");
             let currentUser = null;
             let currentRoom = null;
-            
+
             ws.onopen = function() {
                 status.textContent = "Connected";
             };
-            
+
             ws.onmessage = function(event) {
                 const data = JSON.parse(event.data);
                 addMessage(data);
-                
+
                 // Handle ping requests
                 if (data.type === "ping") {
                     ws.send(JSON.stringify({
@@ -542,15 +539,15 @@ async def chat_client():
                     }));
                 }
             };
-            
+
             ws.onclose = function() {
                 status.textContent = "Disconnected";
             };
-            
+
             function addMessage(data) {
                 const div = document.createElement("div");
                 div.className = "message";
-                
+
                 if (data.type === "room.message") {
                     div.innerHTML = `<strong>${data.data.sender_id}:</strong> ${data.data.content}`;
                 } else if (data.type === "room.system_message") {
@@ -560,86 +557,86 @@ async def chat_client():
                     div.className += " system";
                     div.innerHTML = `<em>${data.type}:</em> ${data.message || JSON.stringify(data)}`;
                 }
-                
+
                 messages.appendChild(div);
                 messages.scrollTop = messages.scrollHeight;
             }
-            
+
             function authenticate() {
                 const userId = document.getElementById("userId").value.trim();
                 if (!userId) {
                     alert("Please enter a user ID");
                     return;
                 }
-                
+
                 ws.send(JSON.stringify({
                     type: "auth",
                     user_id: userId
                 }));
-                
+
                 currentUser = userId;
                 document.getElementById("authStatus").textContent = `Logged in as: ${userId}`;
             }
-            
+
             function joinRoom() {
                 const roomId = document.getElementById("roomId").value.trim();
                 if (!roomId) {
                     alert("Please enter a room ID");
                     return;
                 }
-                
+
                 if (!currentUser) {
                     alert("Please login first");
                     return;
                 }
-                
+
                 ws.send(JSON.stringify({
                     type: "join_room",
                     room_id: roomId,
                     room_name: roomId
                 }));
-                
+
                 currentRoom = roomId;
             }
-            
+
             function leaveRoom() {
                 if (!currentRoom) {
                     alert("You're not in a room");
                     return;
                 }
-                
+
                 ws.send(JSON.stringify({
                     type: "leave_room",
                     room_id: currentRoom
                 }));
-                
+
                 currentRoom = null;
             }
-            
+
             function listRooms() {
                 ws.send(JSON.stringify({
                     type: "list_rooms"
                 }));
             }
-            
+
             function sendMessage() {
                 const input = document.getElementById("messageInput");
                 const message = input.value.trim();
-                
+
                 if (!message || !currentRoom) {
                     alert("Please enter a message and join a room first");
                     return;
                 }
-                
+
                 ws.send(JSON.stringify({
                     type: "send_message",
                     room_id: currentRoom,
                     content: message
                 }));
-                
+
                 input.value = "";
             }
-            
+
             document.getElementById("messageInput").addEventListener("keypress", function(e) {
                 if (e.key === "Enter") {
                     sendMessage();

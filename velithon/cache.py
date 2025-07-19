@@ -1,3 +1,9 @@
+"""Caching utilities and decorators for Velithon framework.
+
+This module provides caching functionality including LRU cache decorators,
+cache configuration, and performance optimization utilities.
+"""
+
 import logging
 from collections.abc import Callable
 from functools import lru_cache

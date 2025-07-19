@@ -1,3 +1,9 @@
+"""Service mesh implementation for VSP (Velithon Service Protocol).
+
+This module provides service mesh functionality including service routing,
+load balancing, and inter-service communication patterns.
+"""
+
 import logging
 
 from velithon._velithon import LoadBalancer, RoundRobinBalancer, ServiceInfo

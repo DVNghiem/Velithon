@@ -9,7 +9,6 @@ from velithon import Gateway, Velithon, forward_to, gateway_route
 from velithon.requests import Request
 from velithon.responses import JSONResponse
 
-
 # Initialize the gateway
 gateway = Gateway()
 

@@ -1,3 +1,9 @@
+"""Form data parsing utilities for Velithon framework.
+
+This module provides form data parsing functionality including multipart
+form parsing, URL-encoded form parsing, and file upload handling.
+"""
+
 from __future__ import annotations
 
 import typing

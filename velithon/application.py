@@ -1,3 +1,9 @@
+"""Velithon application core module.
+
+This module contains the main Velithon application class and server startup functionality.
+It provides the core RSGI application interface and server configuration.
+"""
+
 import asyncio
 import logging
 from collections.abc import Awaitable, Callable, Sequence
@@ -282,7 +288,7 @@ class Velithon:
             Doc(
                 """
                 Whether to include the default security middleware stack.
-                
+
                 When True, includes AuthenticationMiddleware and SecurityMiddleware
                 for handling authentication errors and adding security headers.
                 Default is False to maintain backwards compatibility.
@@ -347,6 +353,7 @@ class Velithon:
 
         Returns:
             The middleware stack as an RSGI application.
+
         """
         middleware = [
             Middleware(WrappedRSGITypeMiddleware),
@@ -891,7 +898,7 @@ class Velithon:
         ```python
         some_sync_init_task()
         loop.run_until_complete(some_async_init_task())
-        ```
+        ```.
         """
         for function_info in self.shutdown_functions:
             loop.run_until_complete(function_info())

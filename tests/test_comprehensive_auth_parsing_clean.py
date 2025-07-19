@@ -11,10 +11,9 @@ from typing import Annotated, Optional
 from pydantic import BaseModel
 
 from velithon.application import Velithon
-from velithon.datastructures import UploadFile
 from velithon.di import Provide
 from velithon.openapi.docs import swagger_generate
-from velithon.params import Body, File, Form, Header, Path, Query
+from velithon.params import Body, Header, Query
 from velithon.requests import Request
 
 
@@ -242,7 +241,7 @@ async def test_runtime_parameter_resolution():
     print('Testing runtime parameter resolution...')
 
     # Import here to avoid circular imports
-    from velithon.params.parser import ParameterResolver, _is_auth_dependency
+    from velithon.params.parser import _is_auth_dependency
 
     # Mock request
     class MockRequest:
@@ -255,7 +254,7 @@ async def test_runtime_parameter_resolution():
         async def json(self):
             return {'name': 'test', 'age': 25}
 
-    request = MockRequest()
+    MockRequest()
 
     # Test authentication dependency detection
     sig = inspect.signature(query_with_auth_endpoint)

@@ -1,3 +1,9 @@
+"""Service discovery for VSP (Velithon Service Protocol).
+
+This module provides service discovery functionality including service
+registration, lookup, and health checking for VSP services.
+"""
+
 import enum
 import logging
 

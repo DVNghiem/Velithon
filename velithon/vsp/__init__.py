@@ -1,3 +1,9 @@
+"""Velithon Service Protocol (VSP) implementation.
+
+VSP provides high-performance inter-service communication with features like
+service discovery, connection pooling, and load balancing.
+"""
+
 from velithon._velithon import RoundRobinBalancer, ServiceInfo, WeightedBalancer
 
 from .abstract import Discovery, Transport

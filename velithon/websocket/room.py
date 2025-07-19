@@ -994,7 +994,7 @@ class RoomManager:
         self._stats['total_rooms_deleted'] += 1
 
         # Clean up user room tracking
-        for user_id, room_set in self._user_rooms.items():
+        for _user_id, room_set in self._user_rooms.items():
             room_set.discard(room_id)
 
         # Remove empty user entries

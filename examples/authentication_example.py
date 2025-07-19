@@ -11,6 +11,11 @@ This example demonstrates the complete authentication system including:
 8. User registration and login flows
 """
 
+# =============================================================================
+# Configuration and Setup
+# =============================================================================
+# JWT Configuration
+import os
 from datetime import datetime, timedelta
 from typing import Annotated
 
@@ -18,32 +23,24 @@ from velithon import Velithon
 from velithon.middleware import Middleware
 from velithon.middleware.auth import AuthenticationMiddleware, SecurityMiddleware
 from velithon.requests import Request
-from velithon.responses import JSONResponse, HTMLResponse
+from velithon.responses import HTMLResponse, JSONResponse
 from velithon.routing import Router
 from velithon.security import (
     APIKeyHeader,
     AuthenticationError,
-    AuthorizationError,
     HTTPBasic,
     HTTPBearer,
     JWTHandler,
+    LoginRequest,
     OAuth2PasswordBearer,
     TokenData,
     User,
     UserCreate,
     UserInDB,
-    LoginRequest,
     hash_password,
     require_permission,
     verify_password,
 )
-
-# =============================================================================
-# Configuration and Setup
-# =============================================================================
-
-# JWT Configuration
-import os
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'dev-key-change-in-production')
 ALGORITHM = 'HS256'
@@ -421,24 +418,24 @@ app = Velithon(
     title='Velithon Authentication Example',
     description="""
     A comprehensive example demonstrating Velithon's authentication system.
-    
+
     ## Authentication Methods
-    
+
     This API supports multiple authentication methods:
-    
+
     * **JWT Bearer Token** - Use the `/token` endpoint to get a token
     * **Basic Authentication** - Username and password in Authorization header
     * **API Key** - Pass API key in `X-API-Key` header
     * **OAuth2 Password Bearer** - OAuth2 flow with password grant
-    
+
     ## Test Credentials
-    
+
     * **Admin User**: username=`admin`, password=`admin123`
-    * **Regular User**: username=`john`, password=`secret123`  
+    * **Regular User**: username=`john`, password=`secret123`
     * **API Key**: `sk-1234567890abcdef`
-    
+
     ## Security Features
-    
+
     * Role-based access control
     * Permission-based authorization
     * JWT token expiration

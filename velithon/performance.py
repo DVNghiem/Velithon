@@ -5,10 +5,10 @@ based on different use cases and requirements.
 """
 
 import os
+
 from .memory_management import (
-    enable_memory_optimizations,
     disable_memory_optimizations,
-    set_lightweight_mode,
+    enable_memory_optimizations,
 )
 
 
@@ -56,6 +56,7 @@ def configure_performance(mode: str = 'high'):
 
     Args:
         mode: Performance mode - "maximum", "high", "balanced", or "memory"
+
     """
     if mode == 'maximum':
         PerformanceConfig.configure_for_maximum_performance()

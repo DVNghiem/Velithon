@@ -563,8 +563,7 @@ class TestRateLimiting:
         mock_app = AsyncMock()
         middleware = RateLimitingMiddleware(mock_app, max_requests=2, window_seconds=1)
 
-        mock_scope = {'client': 'test_client'}
-        mock_protocol = MagicMock()
+        MagicMock()
 
         # First two requests should pass through
         assert middleware.is_rate_limited('test_client') is False

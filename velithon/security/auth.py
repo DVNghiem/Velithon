@@ -7,11 +7,9 @@ architecture with enhanced features and better integration.
 import base64
 from typing import Any
 
-from velithon.datastructures import Scope
 from velithon.requests import Request
 
 from .exceptions import AuthenticationError, MissingTokenError
-from .models import Token, User
 
 
 class SecurityBase:

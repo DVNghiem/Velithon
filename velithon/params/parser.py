@@ -1,3 +1,9 @@
+"""Parameter parsing and validation for Velithon framework.
+
+This module provides functionality for parsing and validating HTTP request
+parameters including query parameters, path parameters, and request bodies.
+"""
+
 from __future__ import annotations
 
 import inspect
@@ -35,6 +41,7 @@ def _is_auth_dependency(annotation: Any) -> bool:
 
     Returns:
         True if this is an authentication dependency, False otherwise
+
     """
     if get_origin(annotation) is Annotated:
         _, *metadata = get_args(annotation)
@@ -134,8 +141,7 @@ class ParameterResolver:
     def _get_param_value_with_alias(
         self, data: Any, param_name: str, param_metadata: Any = None
     ) -> Any:
-        """
-        Get parameter value from data, trying the actual parameter name,
+        """Get parameter value from data, trying the actual parameter name,
         explicit alias, and auto-generated alias (underscore to hyphen).
         """
         # First try explicit alias if provided

@@ -4,6 +4,7 @@ This module provides memory-efficient parameter classes using __slots__ optimiza
 and reduced code duplication. The classes are designed for minimal memory usage
 while maintaining full functionality for HTTP parameter handling.
 """
+
 from collections.abc import Callable
 from enum import Enum
 from typing import Any
@@ -23,6 +24,7 @@ _PARAM_COOKIE = 'cookie'
 _MEDIA_JSON = 'application/json'
 _MEDIA_FORM = 'application/x-www-form-urlencoded'
 _MEDIA_MULTIPART = 'multipart/form-data'
+
 
 # Memory-optimized parameter creation helper with reduced overhead
 def _create_kwargs_dict(
@@ -162,32 +164,34 @@ class Param(FieldInfo):
         object.__setattr__(self, 'convert_underscores', convert_underscores)
 
         # Use the memory-efficient kwargs creation helper
-        super().__init__(**_create_kwargs_dict(
-            default,
-            default_factory,
-            annotation,
-            alias,
-            alias_priority,
-            validation_alias,
-            serialization_alias,
-            title,
-            description,
-            gt,
-            ge,
-            lt,
-            le,
-            min_length,
-            max_length,
-            pattern,
-            discriminator,
-            strict,
-            multiple_of,
-            allow_inf_nan,
-            max_digits,
-            decimal_places,
-            examples,
-            json_schema_extra,
-        ))
+        super().__init__(
+            **_create_kwargs_dict(
+                default,
+                default_factory,
+                annotation,
+                alias,
+                alias_priority,
+                validation_alias,
+                serialization_alias,
+                title,
+                description,
+                gt,
+                ge,
+                lt,
+                le,
+                min_length,
+                max_length,
+                pattern,
+                discriminator,
+                strict,
+                multiple_of,
+                allow_inf_nan,
+                max_digits,
+                decimal_places,
+                examples,
+                json_schema_extra,
+            )
+        )
 
     def __repr__(self) -> str:
         """Return memory-efficient string representation."""
@@ -292,32 +296,34 @@ class Body(FieldInfo):
         object.__setattr__(self, 'include_in_schema', include_in_schema)
 
         # Use the memory-efficient kwargs creation helper
-        super().__init__(**_create_kwargs_dict(
-            default,
-            default_factory,
-            annotation,
-            alias,
-            alias_priority,
-            validation_alias,
-            serialization_alias,
-            title,
-            description,
-            gt,
-            ge,
-            lt,
-            le,
-            min_length,
-            max_length,
-            pattern,
-            discriminator,
-            strict,
-            multiple_of,
-            allow_inf_nan,
-            max_digits,
-            decimal_places,
-            examples,
-            json_schema_extra,
-        ))
+        super().__init__(
+            **_create_kwargs_dict(
+                default,
+                default_factory,
+                annotation,
+                alias,
+                alias_priority,
+                validation_alias,
+                serialization_alias,
+                title,
+                description,
+                gt,
+                ge,
+                lt,
+                le,
+                min_length,
+                max_length,
+                pattern,
+                discriminator,
+                strict,
+                multiple_of,
+                allow_inf_nan,
+                max_digits,
+                decimal_places,
+                examples,
+                json_schema_extra,
+            )
+        )
 
     def __repr__(self) -> str:
         """Return memory-efficient string representation."""

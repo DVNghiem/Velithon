@@ -9,7 +9,6 @@ from .exceptions import AuthenticationError, AuthorizationError
 from .jwt import decode_access_token
 from .models import User
 
-
 # Default OAuth2 scheme
 oauth2_scheme = OAuth2PasswordBearer(token_url='/token')
 

@@ -1,3 +1,9 @@
+"""Routing system for Velithon framework.
+
+This module provides routing functionality including Route classes, Router,
+and route matching capabilities for HTTP requests and WebSocket connections.
+"""
+
 import functools
 import inspect
 import re
@@ -60,7 +66,7 @@ class BaseRoute:
         raise NotImplementedError()  # pragma: no cover
 
     async def __call__(self, scope: Scope, protocol: Protocol) -> None:
-        """A route may be used in isolation as a stand-alone ASGI app.
+        """A route may be used in isolation as a stand-alone RSGI app.
         This is a somewhat contrived case, as they'll almost always be used
         within a Router, but could be useful for some tooling and minimal apps.
         """
@@ -384,7 +390,7 @@ class Router:
         return full_path
 
     def _rebuild_rust_optimizations(self):
-        """Rebuild Rust optimizations for all routes"""
+        """Rebuild Rust optimizations for all routes."""
         try:
             self._pattern_matcher = _RoutePatternMatcher()
 

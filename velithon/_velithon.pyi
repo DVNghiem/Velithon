@@ -90,7 +90,9 @@ class SingletonProvider(Provider):
     kwargs: dict[str, typing.Any] = None
     lock_key: str
 
-    def __init__(self, cls: type, kwargs: dict[str, typing.Any] = None) -> None: ...
+    def __init__(
+        self, cls: type, kwargs: dict[str, typing.Any] | None = None
+    ) -> None: ...
     def get(
         self,
         scope: typing.Any | None = None,
@@ -102,7 +104,9 @@ class FactoryProvider(Provider):
     cls: type
     kwargs: dict[str, typing.Any] = None
 
-    def __init__(self, cls: type, kwargs: dict[str, typing.Any] = None) -> None: ...
+    def __init__(
+        self, cls: type, kwargs: dict[str, typing.Any] | None = None
+    ) -> None: ...
     def get(
         self,
         scope: typing.Any | None = None,
@@ -114,7 +118,9 @@ class AsyncFactoryProvider(Provider):
     cls: type
     kwargs: dict[str, typing.Any] = None
 
-    def __init__(self, cls: type, kwargs: dict[str, typing.Any] = None) -> None: ...
+    def __init__(
+        self, cls: type, kwargs: dict[str, typing.Any] | None = None
+    ) -> None: ...
     async def get(
         self,
         scope: typing.Any | None = None,

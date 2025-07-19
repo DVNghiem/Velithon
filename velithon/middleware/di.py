@@ -1,3 +1,9 @@
+"""Dependency injection middleware for Velithon framework.
+
+This module provides middleware for automatic dependency injection
+in HTTP request handlers using the Velithon DI container.
+"""
+
 from typing import Any
 
 from velithon.datastructures import Protocol, Scope

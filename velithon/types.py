@@ -1,3 +1,5 @@
+"""Type definitions and annotations for Velithon framework."""
+
 import typing
 
 if typing.TYPE_CHECKING:

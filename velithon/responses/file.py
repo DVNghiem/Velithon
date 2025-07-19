@@ -83,7 +83,7 @@ class FileResponse(Response):
         # Add cache headers for static files
         raw_headers.append(('cache-control', 'public, max-age=3600'))
 
-        self.raw_headers = raw_headers + [('server', 'velithon')]
+        self.raw_headers = [*raw_headers, ('server', 'velithon')]
 
     @property
     def headers(self) -> Headers:

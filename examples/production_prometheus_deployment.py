@@ -209,7 +209,7 @@ receivers:
   - name: 'web.hook'
     webhook_configs:
       - url: 'http://localhost:5001/'
-    
+
   # Example email configuration
   - name: 'email-alerts'
     email_configs:
@@ -269,7 +269,7 @@ import logging
 import os
 from velithon import Velithon
 from velithon.middleware import (
-    Middleware, 
+    Middleware,
     FastPrometheusMiddleware,
     LoggingMiddleware,
     CORSMiddleware,
@@ -288,17 +288,17 @@ app = Velithon(
     middleware=[
         # CORS for web frontends
         Middleware(CORSMiddleware, allow_origins=["*"]),
-        
+
         # Prometheus metrics collection
         Middleware(
             FastPrometheusMiddleware,
             metrics_path="/metrics",
             exclude_paths=["/health", "/ready", "/ping"],
         ),
-        
+
         # Request logging
         Middleware(LoggingMiddleware),
-        
+
         # Response compression
         Middleware(CompressionMiddleware),
     ]
@@ -309,7 +309,7 @@ app = Velithon(
 async def health_check():
     return JSONResponse({"status": "healthy", "service": "velithon-app"})
 
-# Ready check endpoint  
+# Ready check endpoint
 @app.get("/ready")
 async def ready_check():
     return JSONResponse({"status": "ready", "service": "velithon-app"})
@@ -324,7 +324,7 @@ async def get_user(user_id: int):
     # Simulate some processing time
     import asyncio
     await asyncio.sleep(0.01)
-    
+
     return JSONResponse({
         "user_id": user_id,
         "name": f"User {user_id}",
@@ -336,7 +336,7 @@ async def create_user(data: dict):
     # Simulate processing
     import asyncio
     await asyncio.sleep(0.05)
-    
+
     return JSONResponse(
         {"message": "User created successfully", "data": data},
         status_code=201
@@ -351,7 +351,7 @@ if __name__ == "__main__":
     print("Starting Velithon application with Prometheus monitoring...")
     print("Endpoints:")
     print("  - Health: http://localhost:8000/health")
-    print("  - Metrics: http://localhost:8000/metrics") 
+    print("  - Metrics: http://localhost:8000/metrics")
     print("  - API: http://localhost:8000/")
 """
 

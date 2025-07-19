@@ -5,14 +5,11 @@ These tests verify that the authentication system works correctly
 when integrated with a full Velithon application.
 """
 
-import asyncio
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 
 from velithon import Velithon
-from velithon.datastructures import Scope
-from velithon.di import Provide, ServiceContainer, SingletonProvider, inject
 from velithon.responses import JSONResponse
 from velithon.security import (
     AuthenticationError,

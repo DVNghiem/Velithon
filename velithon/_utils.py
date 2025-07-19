@@ -13,9 +13,9 @@ from ._velithon import ResponseCache
 from .cache import CacheConfig, LRUCache, cache_manager, middleware_cache
 from .memory_management import (
     enable_memory_optimizations,
+    get_memory_context,
     get_memory_optimizer,
     manual_memory_cleanup,
-    get_memory_context,
 )
 
 try:

@@ -1,3 +1,9 @@
+"""OpenAPI UI components for Velithon framework.
+
+This module provides Swagger UI and ReDoc UI integration for displaying
+interactive OpenAPI documentation in web browsers.
+"""
+
 from typing import Any
 
 import orjson

@@ -1,3 +1,9 @@
+"""WebSocket connection handling for Velithon framework.
+
+This module provides WebSocket connection management including connection
+state, message handling, and protocol operations.
+"""
+
 from __future__ import annotations
 
 import typing

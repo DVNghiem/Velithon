@@ -1,3 +1,9 @@
+"""HTTP endpoint base classes for Velithon framework.
+
+This module provides HTTPEndpoint base class for creating structured HTTP
+endpoints with automatic parameter dispatching and response handling.
+"""
+
 from __future__ import annotations
 
 import typing

@@ -1,3 +1,9 @@
+"""WebSocket implementation for Velithon framework.
+
+This module provides WebSocket functionality including WebSocket connections,
+message handling, and real-time communication features.
+"""
+
 from __future__ import annotations
 
 import re

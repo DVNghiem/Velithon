@@ -1,3 +1,9 @@
+"""WebSocket endpoint handling for Velithon framework.
+
+This module provides WebSocket endpoint functionality including route
+handling, connection management, and WebSocket-specific operations.
+"""
+
 from __future__ import annotations
 
 import typing

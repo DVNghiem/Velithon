@@ -2,12 +2,12 @@
 Tests for Velithon authentication middleware.
 """
 
+from unittest.mock import AsyncMock
+
 import pytest
-from unittest.mock import AsyncMock, Mock
 
 from velithon.middleware.auth import AuthenticationMiddleware, SecurityMiddleware
 from velithon.security import AuthenticationError, AuthorizationError
-from velithon.responses import JSONResponse
 
 
 class MockHeaders:

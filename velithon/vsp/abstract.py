@@ -1,3 +1,5 @@
+"""Abstract base classes for VSP components."""
+
 from abc import ABC, abstractmethod
 
 from velithon._velithon import ServiceInfo

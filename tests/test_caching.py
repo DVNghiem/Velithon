@@ -468,7 +468,7 @@ class TestCacheEdgeCases:
             return x * 2
 
         def worker():
-            for i in range(10):
+            for _i in range(10):
                 thread_safe_function(1)  # All threads use same argument
 
         threads = [threading.Thread(target=worker) for _ in range(5)]

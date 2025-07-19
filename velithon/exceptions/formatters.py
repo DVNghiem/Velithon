@@ -1,3 +1,9 @@
+"""Response formatters for HTTP exceptions in Velithon framework.
+
+This module provides various response formatters for HTTP exceptions including
+JSON API, RFC7807 Problem Details, and debug formatters.
+"""
+
 import uuid
 from datetime import datetime, timezone
 from typing import Any

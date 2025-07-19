@@ -1,3 +1,9 @@
+"""Logging utilities and configuration for Velithon framework.
+
+This module provides structured logging capabilities, request/response
+logging middleware, and performance monitoring utilities.
+"""
+
 import inspect
 import logging
 

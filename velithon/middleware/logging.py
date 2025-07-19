@@ -1,3 +1,9 @@
+"""Logging middleware for HTTP request/response logging in Velithon framework.
+
+This module provides middleware for comprehensive HTTP request and response
+logging with performance metrics and error tracking.
+"""
+
 import time
 import traceback
 

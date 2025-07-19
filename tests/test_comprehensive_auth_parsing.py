@@ -490,18 +490,15 @@ async def test_runtime_parameter_resolution():
             return {}
 
     # Test parameter resolution
-    from velithon.params.parser import ParameterResolver
 
     # Test 1: Query parameters with auth
     request = MockRequest(
         method='GET', query_params={'search': 'test', 'limit': '20', 'extra': 'value'}
     )
 
-    resolver = ParameterResolver(request)
+    ParameterResolver(request)
 
     # Check that auth dependencies are properly detected
-    import inspect
-    from velithon.params.parser import _is_auth_dependency
 
     sig = inspect.signature(query_with_auth_endpoint)
     auth_params = []

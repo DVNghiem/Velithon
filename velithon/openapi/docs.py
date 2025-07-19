@@ -1,3 +1,9 @@
+"""OpenAPI documentation generation for Velithon framework.
+
+This module provides comprehensive OpenAPI/Swagger documentation generation
+including schema introspection, endpoint documentation, and API specification.
+"""
+
 import inspect
 from collections.abc import Callable
 from enum import Enum
@@ -60,6 +66,7 @@ def pydantic_to_swagger(
 
     Returns:
         The schema definition for the model
+
     """
     if schemas is None:
         schemas = {}
@@ -697,6 +704,7 @@ def swagger_generate(
     Returns:
         Tuple of (path_docs, schemas) where path_docs contains the OpenAPI path
         documentation and schemas contains all referenced model schemas.
+
     """
     signature = inspect.signature(func)
     schemas: dict[str, Any] = {}
