@@ -43,61 +43,59 @@ async def health_check():
 
 ## Server Configuration
 
-### Using Gunicorn + Uvicorn
+### Using Granian (Recommended)
 
 ```bash
-# Install production dependencies
-pip install gunicorn uvicorn[standard]
+# Run with Granian (Built-in RSGI server)
+velithon run --app main:app \
+    --host 0.0.0.0 \
+    --port 8000 \
+    --workers 4 \
+    --runtime-mode mt \
+    --loop auto \
+    --http auto \
+    --log-level INFO
 
-# Run with Gunicorn
-gunicorn main:app \
-    -w 4 \
-    -k uvicorn.workers.UvicornWorker \
-    --bind 0.0.0.0:8000 \
-    --access-logfile - \
-    --error-logfile - \
-    --log-level info \
-    --timeout 120 \
-    --keep-alive 5 \
-    --max-requests 1000 \
-    --max-requests-jitter 100
+# Alternative: Direct Granian usage
+granian --interface rsgi main:app \
+    --host 0.0.0.0 \
+    --port 8000 \
+    --workers 4 \
+    --threading-mode workers \
+    --loop uvloop \
+    --http auto
 ```
 
-### Gunicorn Configuration File
+### Granian Configuration File
 
 ```python
-# gunicorn.conf.py
+# granian_config.py
 import multiprocessing
 import os
 
-# Server socket
-bind = f"0.0.0.0:{os.getenv('PORT', '8000')}"
-backlog = 2048
+# Application
+app = "main:app"
+interface = "rsgi"
+
+# Server socket  
+host = "0.0.0.0"
+port = int(os.getenv('PORT', '8000'))
 
 # Worker processes
 workers = int(os.getenv('WORKERS', multiprocessing.cpu_count() * 2 + 1))
-worker_class = "uvicorn.workers.UvicornWorker"
-worker_connections = 1000
-max_requests = 1000
-max_requests_jitter = 100
-timeout = 120
-keepalive = 5
+runtime_mode = "mt"  # Multi-threaded mode
+threading_mode = "workers"
+
+# Performance
+loop = "uvloop"  # Use uvloop for better performance
+http = "auto"    # HTTP/1.1 and HTTP/2 support
 
 # Logging
-accesslog = "-"
-errorlog = "-"
-loglevel = os.getenv('LOG_LEVEL', 'info')
-access_log_format = '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s" %(D)s'
+log_level = os.getenv('LOG_LEVEL', 'INFO')
 
 # Process naming
-proc_name = 'velithon-api'
-
-# Server mechanics
-preload_app = True
-daemon = False
-pidfile = '/tmp/gunicorn.pid'
-user = None
-group = None
+process_name = 'velithon-api'
+```
 tmp_upload_dir = None
 
 # SSL (if using HTTPS directly)

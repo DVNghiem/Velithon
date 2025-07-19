@@ -13,43 +13,35 @@ from velithon import Velithon
 
 app = Velithon(
     debug=True,  # Enable debug mode
-    reload=True  # Enable hot reloading
 )
 
 @app.get("/")
 async def root():
     return {"message": "Development server is running!"}
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(
-        "main:app",
-        host="127.0.0.1",
-        port=8000,
-        reload=True,
-        log_level="debug"
-    )
+# Run with CLI:
+# velithon run --app main:app --host 127.0.0.1 --port 8000 --reload --log-level DEBUG
 ```
 
-## Running with Uvicorn
+## Running with Velithon CLI
 
 ```bash
 # Basic development server
-uvicorn main:app --reload --port 8000
+velithon run --app main:app --reload --port 8000
 
 # With debug logging
-uvicorn main:app --reload --log-level debug
+velithon run --app main:app --reload --log-level DEBUG
 
 # Bind to all interfaces (for testing from other devices)
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+velithon run --app main:app --reload --host 0.0.0.0 --port 8000
 
-# Custom configuration
-uvicorn main:app \
+# Custom configuration with multi-threading
+velithon run --app main:app \
     --reload \
-    --reload-dir src \
-    --reload-exclude "*.pyc" \
     --port 8000 \
-    --log-config logging.yaml
+    --runtime-mode mt \
+    --workers 1 \
+    --log-level DEBUG
 ```
 
 ## Development Configuration
@@ -81,64 +73,24 @@ if DEBUG:
         }
 
 # Run configuration
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(
-        "main:app",
-        host=HOST,
-        port=PORT,
-        reload=DEBUG,
-        log_level="debug" if DEBUG else "info"
-    )
+# Use CLI instead:
+# velithon run --app main:app --host $HOST --port $PORT --reload --log-level DEBUG
 ```
 
 ## Hot Reloading Configuration
 
 ```python
-# uvicorn_config.py
-import os
+# dev_config.py
 
 # Development server configuration
 RELOAD_DIRS = [
     "src",
-    "app",
+    "app", 
     "velithon_app"
 ]
 
-RELOAD_INCLUDES = [
-    "*.py",
-    "*.yaml", 
-    "*.yml",
-    "*.json",
-    "*.env"
-]
-
-RELOAD_EXCLUDES = [
-    "*.pyc",
-    "*.pyo",
-    "__pycache__",
-    ".pytest_cache",
-    "*.log"
-]
-
-# Uvicorn run configuration
-def run_dev_server():
-    import uvicorn
-    uvicorn.run(
-        "main:app",
-        host="127.0.0.1",
-        port=8000,
-        reload=True,
-        reload_dirs=RELOAD_DIRS,
-        reload_includes=RELOAD_INCLUDES,
-        reload_excludes=RELOAD_EXCLUDES,
-        log_level="debug",
-        use_colors=True,
-        access_log=True
-    )
-
-if __name__ == "__main__":
-    run_dev_server()
+# Use CLI for development with hot reloading:
+# velithon run --app main:app --host 127.0.0.1 --port 8000 --reload --log-level DEBUG --runtime-mode st --workers 1
 ```
 
 ## Development Middleware

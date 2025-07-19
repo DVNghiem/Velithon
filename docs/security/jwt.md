@@ -319,8 +319,8 @@ async def admin_only_endpoint(request: Request):
     })
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    # Run with: velithon run --app jwt_example:app --host 0.0.0.0 --port 8000
+    print("Run with: velithon run --app jwt_example:app --host 0.0.0.0 --port 8000")
 ```
 
 ## Advanced JWT Features

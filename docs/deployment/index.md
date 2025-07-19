@@ -19,29 +19,27 @@ app = Velithon()
 async def hello():
     return {"message": "Hello, World!"}
 
-if __name__ == "__main__":
-    app.run(
-        host="127.0.0.1",
-        port=8000,
-        debug=True,
-        reload=True
-    )
+# Run with CLI:
+# velithon run --app main:app --host 127.0.0.1 --port 8000 --reload --log-level DEBUG
 ```
 
 ### Using the CLI
 
 ```bash
 # Basic development server
-velithon run app:app
+velithon run --app main:app
 
 # With custom host and port
-velithon run app:app --host 0.0.0.0 --port 8080
+velithon run --app main:app --host 0.0.0.0 --port 8080
 
 # With reload for development
-velithon run app:app --reload
+velithon run --app main:app --reload
 
-# With debug mode
-velithon run app:app --debug
+# With debug logging
+velithon run --app main:app --log-level DEBUG
+
+# Production settings
+velithon run --app main:app --workers 4 --runtime-mode mt
 ```
 
 ## Production Deployment

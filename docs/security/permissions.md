@@ -558,8 +558,8 @@ async def moderate_content(request: Request):
     })
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    # Run with: velithon run --app permissions_example:app --host 0.0.0.0 --port 8000
+    print("Run with: velithon run --app permissions_example:app --host 0.0.0.0 --port 8000")
 ```
 
 ## Resource-Level Permissions

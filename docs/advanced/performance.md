@@ -16,7 +16,7 @@ app = Velithon(
     debug=False,  # Disable debug mode in production
 )
 
-# Note: Compression should be handled at the server level (uvicorn/gunicorn)
+# Note: Compression should be handled at the server level (Granian/nginx)
 # or through middleware, not application configuration
 ```
 
@@ -239,34 +239,35 @@ async def memory_profiling_middleware(request: Request, call_next):
 ## Production Optimizations
 
 ```python
-# Use production ASGI server
-# uvicorn main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker
+# Use Granian RSGI server for production via CLI
+# velithon run --app main:app --workers 4 --runtime-mode mt --loop auto --http auto --log-level INFO
 
-# Configure for high concurrency
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(
-        "main:app",
-        host="0.0.0.0",
-        port=8000,
-        workers=4,
-        loop="uvloop",  # Use uvloop for better performance
-        http="httptools",  # Use httptools for HTTP parsing
-        access_log=False,  # Disable access logs in production
-        server_header=False,  # Remove server header
-        date_header=False,  # Remove date header
+# For advanced configuration, create a production script
+def configure_production():
+    from velithon import Velithon
+    
+    app = Velithon(
+        debug=False,  # Disable debug in production
     )
+    
+    # Your app configuration here...
+    
+    return app
+
+# Run with CLI:
+# velithon run --app production:app --host 0.0.0.0 --port 8000 --workers 4 --runtime-mode mt --loop auto --http auto --log-level INFO
+```
 ```
 
 ## Performance Tips
 
 1. **Use async/await consistently**
 2. **Implement connection pooling**
-3. **Enable compression at server level (uvicorn/nginx)**
+3. **Enable compression at server level (Granian/nginx)**
 4. **Use caching strategies**
 5. **Optimize database queries**
 6. **Profile your application regularly**
 7. **Monitor memory usage**
-8. **Use production ASGI servers**
+8. **Use Granian RSGI server for production**
 9. **Configure proper worker counts**
 10. **Minimize middleware overhead**

@@ -605,8 +605,8 @@ async def create_data(request: Request):
     })
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    # Run with: velithon run --app oauth2_example:app --host 0.0.0.0 --port 8000
+    print("Run with: velithon run --app oauth2_example:app --host 0.0.0.0 --port 8000")
 ```
 
 ## OAuth2 Client Example
