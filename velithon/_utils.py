@@ -35,19 +35,23 @@ except ImportError:
 
 T = TypeVar('T')
 
-# OPTIMIZED: Better configured thread pool with optimal sizing
 _thread_pool = None
 _pool_lock = threading.Lock()
 
 
 def set_thread_pool() -> None:
+    """Set up optimized thread pool for Velithon's performance requirements."""
     global _thread_pool
     with _pool_lock:
         if _thread_pool is None:
             # Optimized thread count: I/O bound (higher), CPU bound (lower)
             cpu_count = os.cpu_count() or 1
+            
+            # Performance-optimized worker count based on workload type
             # For web applications, I/O bound operations are more common
             max_workers = min(64, cpu_count * 8)  # Increased multiplier for I/O tasks
+            
+            # Enhanced thread pool with performance optimizations
             _thread_pool = concurrent.futures.ThreadPoolExecutor(
                 max_workers=max_workers,
                 thread_name_prefix='velithon_optimized',
@@ -59,10 +63,24 @@ def _warm_up_thread():
     """Warm up worker threads to reduce cold start latency."""
     # Pre-allocate some common objects to reduce first-call overhead
     import json
+    import marshal
+    import pickle
+    import threading
     import time
 
+    # Warm up common operations
     json.dumps({'warm_up': True})
     time.perf_counter()  # Initialize time measurement
+
+    # Pre-initialize thread-local storage if needed
+    _ = threading.current_thread().name  # Access thread name
+
+    # Warm up Python's import system in thread context
+    try:
+        pickle.dumps(1)
+        marshal.dumps(1)
+    except Exception:
+        pass  # Ignore warm-up errors
 
 
 def is_async_callable(obj: Any) -> bool:
@@ -74,11 +92,44 @@ def is_async_callable(obj: Any) -> bool:
 
 
 async def run_in_threadpool(func: Callable, *args, **kwargs) -> Any:
+    """Thread pool execution with enhanced performance features.
+    
+    Args:
+        func: The function to execute in the thread pool
+        *args: Positional arguments to pass to the function
+        **kwargs: Keyword arguments to pass to the function
+        
+    Returns:
+        The result of the function execution
+        
+    """
     global _thread_pool
     if _thread_pool is None:
         set_thread_pool()
+    
     loop = asyncio.get_running_loop()
-    return await loop.run_in_executor(_thread_pool, lambda: func(*args, **kwargs))
+
+    # Fast path for simple functions without arguments
+    if not args and not kwargs:
+        return await loop.run_in_executor(_thread_pool, func)
+    
+    # Memory-efficient parameter passing for large kwargs
+    if len(kwargs) > 10 or any(
+        hasattr(v, '__len__') and len(v) > 1000
+        for v in kwargs.values() if hasattr(v, '__len__')
+    ):
+        # For large parameter sets, use partial to avoid lambda closure overhead
+        partial_func = functools.partial(func, *args, **kwargs)
+        return await loop.run_in_executor(_thread_pool, partial_func)
+    
+    # Standard path with lambda (most common case)
+    # Use more efficient lambda creation for small parameter sets
+    if args and kwargs:
+        return await loop.run_in_executor(_thread_pool, lambda: func(*args, **kwargs))
+    elif args:
+        return await loop.run_in_executor(_thread_pool, lambda: func(*args))
+    else:  # kwargs only
+        return await loop.run_in_executor(_thread_pool, lambda: func(**kwargs))
 
 
 async def iterate_in_threadpool(iterator: Iterable[T]) -> AsyncIterator[T]:
@@ -246,7 +297,7 @@ class MiddlewareOptimizer:
 
     @staticmethod
     def optimize_middleware_stack(middlewares: list) -> list:
-        """Optimize middleware stack by removing redundant operations and ordering for performance."""
+        """Optimize middleware stack by removing redundant operations."""
         if not middlewares:
             return []
 
