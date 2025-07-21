@@ -23,7 +23,7 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         self.request_id_manager = RequestIDManager(velithon_app)
     
     async def process_http_request(self, scope: Scope, protocol: Protocol) -> None:
-        """Process HTTP request with context management."""
+        """Process HTTP request with async context management for optimal performance."""
         
         # Create a temporary request context for request ID generation
         temp_request = _TempRequestContext(scope._scope)
@@ -33,13 +33,13 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
             custom_request_id = self.velithon_app.request_id_generator(temp_request)
             scope._request_id = custom_request_id
         
-        # Create application context
-        with AppContext(self.velithon_app):
+        # Use async context managers for non-blocking context management
+        async with AppContext(self.velithon_app):
             # Create a full request object for the request context
             from velithon.requests import Request
             request = Request(scope, protocol)
             
-            # Create request context
-            with RequestContext(self.velithon_app, request):
+            # Use async request context for optimal performance
+            async with RequestContext(self.velithon_app, request):
                 # Process the request
                 await self.app(scope, protocol)

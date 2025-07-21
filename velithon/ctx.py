@@ -38,6 +38,17 @@ class AppContext:
         if self._token is not None:
             _app_ctx_stack.reset(self._token)
             self._token = None
+    
+    async def __aenter__(self) -> 'AppContext':
+        """Async context manager entry - non-blocking."""
+        self._token = _app_ctx_stack.set(self)
+        return self
+    
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+        """Async context manager exit - non-blocking cleanup."""
+        if self._token is not None:
+            _app_ctx_stack.reset(self._token)
+            self._token = None
 
 
 class RequestContext:
@@ -59,6 +70,17 @@ class RequestContext:
         return self
     
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        if self._token is not None:
+            _request_ctx_stack.reset(self._token)
+            self._token = None
+    
+    async def __aenter__(self) -> 'RequestContext':
+        """Async context manager entry - non-blocking."""
+        self._token = _request_ctx_stack.set(self)
+        return self
+    
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+        """Async context manager exit - non-blocking cleanup."""
         if self._token is not None:
             _request_ctx_stack.reset(self._token)
             self._token = None
