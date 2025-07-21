@@ -20,6 +20,7 @@ from velithon._velithon import (
 )
 from velithon.cache import CacheConfig
 from velithon.convertors import CONVERTOR_TYPES
+from velithon.ctx import get_or_create_request, has_request_context
 from velithon.datastructures import Protocol, Scope
 from velithon.middleware import Middleware
 from velithon.openapi import swagger_generate
@@ -40,15 +41,20 @@ def get_name(endpoint: Callable[..., Any]) -> str:
 def request_response(
     func: Callable[[Request], Awaitable[Response] | Response],
 ) -> RSGIApp:
-    """Takes a function or coroutine `func(request) -> response`,
-    and returns an ARGI application.
+    """Take a function or coroutine `func(request) -> response`,
+    and return an ARGI application.
     """
     f: Callable[[Request], Awaitable[Response]] = (
         func if is_async_callable(func) else functools.partial(run_in_threadpool, func)  # type:ignore
     )
 
     async def app(scope: Scope, protocol: Protocol) -> None:
-        request = Request(scope, protocol)
+        # Try to get request from context first (singleton pattern)
+        if has_request_context():
+            request = get_or_create_request(scope, protocol)
+        else:
+            # Create new request if no context exists
+            request = Request(scope, protocol)
         response = await dispatch(f, request)
         return await response(scope, protocol)
 

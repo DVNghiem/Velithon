@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import typing
 
+from velithon.ctx import get_or_create_request, has_request_context
 from velithon.datastructures import Protocol, Scope
 from velithon.params.dispatcher import dispatch
 from velithon.requests import Request
@@ -29,7 +30,13 @@ class HTTPEndpoint:
         return self.dispatch().__await__()
 
     async def dispatch(self) -> Response:
-        request = Request(self.scope, self.protocol)
+        # Use singleton request pattern - try to get from context first
+        if has_request_context():
+            request = get_or_create_request(self.scope, self.protocol)
+        else:
+            # Create new request if no context exists
+            request = Request(self.scope, self.protocol)
+
         handler_name = (
             'get'
             if request.method == 'HEAD' and not hasattr(self, 'head')

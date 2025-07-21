@@ -9,6 +9,7 @@ from collections.abc import Awaitable, Callable, Sequence
 from typing import Any
 
 from velithon._velithon import ProxyClient, ProxyLoadBalancer
+from velithon.ctx import get_or_create_request, has_request_context
 from velithon.datastructures import Protocol, Scope
 from velithon.requests import Request
 from velithon.responses import JSONResponse, Response
@@ -136,7 +137,12 @@ class GatewayRoute(BaseRoute):
 
     async def handle(self, scope: Scope, protocol: Protocol) -> None:
         """Handle the incoming request and forward it to backend."""
-        request = Request(scope, protocol)
+        # Use singleton request pattern - try to get from context first
+        if has_request_context():
+            request = get_or_create_request(scope, protocol)
+        else:
+            # Create new request if no context exists
+            request = Request(scope, protocol)
 
         try:
             # Get target URL
