@@ -86,6 +86,20 @@ from .middleware.memory_management import (
 # Performance configuration
 from .performance import PerformanceConfig, configure_performance
 
+# Context management (Flask-style)
+from .ctx import (
+    AppContext,
+    RequestContext,
+    current_app,
+    request,
+    g,
+    has_app_context,
+    has_request_context,
+    get_current_app,
+    get_current_request,
+    RequestIDManager,
+)
+
 __all__ = [
     'HTTP_200_OK',
     'HTTP_201_CREATED',
@@ -134,6 +148,17 @@ __all__ = [
     'add_memory_management',
     'add_memory_monitoring',
     'configure_performance',
+    # Context management
+    'AppContext',
+    'RequestContext',
+    'RequestIDManager',
+    'current_app',
+    'g',
+    'get_current_app',
+    'get_current_request',
+    'has_app_context',
+    'has_request_context',
+    'request',
     'disable_memory_optimizations',
     # Memory optimization functions
     'enable_memory_optimizations',

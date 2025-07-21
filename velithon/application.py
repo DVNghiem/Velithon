@@ -10,6 +10,7 @@ from collections.abc import Awaitable, Callable, Sequence
 from typing import (
     Annotated,
     Any,
+    Callable,
 )
 
 import granian
@@ -283,6 +284,22 @@ class Velithon:
                 """
             ),
         ] = None,
+        request_id_generator: Annotated[
+            Callable[[Any], str] | None,
+            Doc(
+                """
+                Custom function to generate request IDs.
+                
+                The function should take a request-like object as parameter and return 
+                a string representing the request ID. If not provided, the default 
+                system request ID generator will be used.
+                
+                Example:
+                    def custom_request_id(request):
+                        return f"custom-{request.headers.get('x-correlation-id', 'default')}"
+                """
+            ),
+        ] = None,
         include_security_middleware: Annotated[
             bool,
             Doc(
@@ -302,6 +319,7 @@ class Velithon:
         self.user_middleware = [] if middleware is None else list(middleware)
         self.middleware_stack: RSGIApp | None = None
         self.include_security_middleware = include_security_middleware
+        self.request_id_generator = request_id_generator
         self.title = title
         self.summary = summary
         self.description = description
@@ -357,8 +375,17 @@ class Velithon:
         """
         middleware = [
             Middleware(WrappedRSGITypeMiddleware),
-            Middleware(LoggingMiddleware),
         ]
+        
+        # Add request context middleware if custom request ID generator is configured
+        if self.request_id_generator:
+            from velithon.middleware.context import RequestContextMiddleware
+            middleware.append(Middleware(RequestContextMiddleware, self))
+        
+        middleware.extend([
+            Middleware(LoggingMiddleware),
+        ])
+        
         if self.container:
             middleware.append(Middleware(DIMiddleware, self))
 

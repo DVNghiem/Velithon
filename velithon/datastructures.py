@@ -26,6 +26,42 @@ from velithon.base_datastructures import (
 request_id_generator = RequestIDGenerator()
 
 
+class _TempRequestContext:
+    """Temporary request context for custom request ID generation.
+    
+    This class provides a minimal request-like interface that can be used
+    by custom request ID generators to access request information.
+    """
+    
+    def __init__(self, scope: RSGIScope) -> None:
+        self._scope = scope
+    
+    @property
+    def headers(self) -> 'Headers':
+        """Access request headers."""
+        return Headers(self._scope.headers)
+    
+    @property
+    def method(self) -> str:
+        """HTTP method of the request."""
+        return self._scope.method
+    
+    @property
+    def path(self) -> str:
+        """Request path."""
+        return self._scope.path
+    
+    @property
+    def client(self) -> str:
+        """Client address."""
+        return self._scope.client
+    
+    @property
+    def query_params(self) -> 'QueryParams':
+        """Query parameters."""
+        return QueryParams(self._scope.query_string)
+
+
 class ResponseDataCapture:
     """Efficient response data capture with memory pooling.
 
@@ -122,7 +158,11 @@ class Scope:
         self._scope = scope
         # extend the scope with additional properties
         self._path_params = {}
+        
+        # Generate request ID using default generator for now
+        # The request ID will be updated later by the context manager
         self._request_id = request_id_generator.generate()
+            
         self._di_context = {}
         self._session = None
 
