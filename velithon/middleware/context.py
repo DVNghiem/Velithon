@@ -17,9 +17,10 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
     3. Provides context management
     """
     
-    def __init__(self, app):
+    def __init__(self, app, velithon_app):
         super().__init__(app)
-        self.request_id_manager = RequestIDManager(app)
+        self.velithon_app = velithon_app
+        self.request_id_manager = RequestIDManager(velithon_app)
     
     async def process_http_request(self, scope: Scope, protocol: Protocol) -> None:
         """Process HTTP request with context management."""
@@ -28,17 +29,17 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         temp_request = _TempRequestContext(scope._scope)
         
         # Generate custom request ID if configured
-        if hasattr(self.app, 'request_id_generator') and self.app.request_id_generator:
-            custom_request_id = self.app.request_id_generator(temp_request)
+        if hasattr(self.velithon_app, 'request_id_generator') and self.velithon_app.request_id_generator:
+            custom_request_id = self.velithon_app.request_id_generator(temp_request)
             scope._request_id = custom_request_id
         
         # Create application context
-        with AppContext(self.app):
+        with AppContext(self.velithon_app):
             # Create a full request object for the request context
             from velithon.requests import Request
             request = Request(scope, protocol)
             
             # Create request context
-            with RequestContext(self.app, request):
+            with RequestContext(self.velithon_app, request):
                 # Process the request
                 await self.app(scope, protocol)

@@ -380,7 +380,7 @@ class Velithon:
         # Add request context middleware if custom request ID generator is configured
         if self.request_id_generator:
             from velithon.middleware.context import RequestContextMiddleware
-            middleware.append(Middleware(RequestContextMiddleware))
+            middleware.append(Middleware(RequestContextMiddleware, self))
         
         middleware.extend([
             Middleware(LoggingMiddleware),
