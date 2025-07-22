@@ -20,7 +20,7 @@ try:
     import orjson
 except ImportError as exc:
     raise ImportError(
-        "orjson is required for Velithon. Install it with: pip install orjson"
+        'orjson is required for Velithon. Install it with: pip install orjson'
     ) from exc
 
 
@@ -84,15 +84,15 @@ def is_async_callable(obj: Any) -> bool:
 
 async def run_in_threadpool(func: Callable, *args, **kwargs) -> Any:
     """Thread pool execution with enhanced performance features.
-    
+
     Args:
         func: The function to execute in the thread pool
         *args: Positional arguments to pass to the function
         **kwargs: Keyword arguments to pass to the function
-        
+
     Returns:
         The result of the function execution
-        
+
     """
     global _thread_pool
     if _thread_pool is None:
@@ -107,7 +107,8 @@ async def run_in_threadpool(func: Callable, *args, **kwargs) -> Any:
     # Memory-efficient parameter passing for large kwargs
     if len(kwargs) > 10 or any(
         hasattr(v, '__len__') and len(v) > 1000
-        for v in kwargs.values() if hasattr(v, '__len__')
+        for v in kwargs.values()
+        if hasattr(v, '__len__')
     ):
         # For large parameter sets, use partial to avoid lambda closure overhead
         partial_func = functools.partial(func, *args, **kwargs)
@@ -147,6 +148,7 @@ class RequestIDGenerator:
         self._prefix = str(random.randint(100, 999))
         # Use atomic counter for thread safety without locks
         import threading
+
         self._counter = threading.local()
         # Pre-allocate timestamp cache to reduce time.time() calls
         self._last_timestamp = 0
@@ -169,12 +171,12 @@ class RequestIDGenerator:
 
         # Increment counter (no modulo needed for better performance)
         self._counter.value += 1
-        
+
         # Use faster string concatenation for hot path
         # Format: prefix-timestamp-threadoffset-counter
         return (
-            f"{self._prefix}-{self._last_timestamp}-"
-            f"{self._counter.thread_offset}-{self._counter.value}"
+            f'{self._prefix}-{self._last_timestamp}-'
+            f'{self._counter.thread_offset}-{self._counter.value}'
         )
 
 
@@ -257,13 +259,13 @@ def get_cache_stats() -> dict:
     stats = {
         'json_encoder': _json_encoder.get_stats(),
     }
-    
+
     # Add cache manager stats if available
     try:
         stats.update(cache_manager.get_cache_stats())
     except Exception:
         pass  # Ignore cache manager errors
-        
+
     return stats
 
 
@@ -271,7 +273,7 @@ def clear_all_caches() -> None:
     """Clear all framework caches."""
     # Clear JSON encoder cache
     _json_encoder._simple_cache.clear()
-    
+
     # Clear cache manager caches
     try:
         cache_manager.clear_all_caches()
@@ -291,7 +293,7 @@ def initialize_memory_management() -> None:
 def cleanup_framework_memory() -> dict[str, Any]:
     """Perform basic framework memory cleanup."""
     stats = {'cleaned': True}
-    
+
     # Clear framework caches
     clear_all_caches()
 

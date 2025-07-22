@@ -10,7 +10,7 @@ from velithon.middleware.base import BaseHTTPMiddleware
 
 class RequestContextMiddleware(BaseHTTPMiddleware):
     """Middleware that manages request context and handles custom request ID generation.
-    
+
     This middleware:
     1. Creates application and request contexts
     2. Handles custom request ID generation
@@ -29,7 +29,10 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         temp_request = _TempRequestContext(scope._scope)
 
         # Generate custom request ID if configured
-        if hasattr(self.velithon_app, 'request_id_generator') and self.velithon_app.request_id_generator:
+        if (
+            hasattr(self.velithon_app, 'request_id_generator')
+            and self.velithon_app.request_id_generator
+        ):
             custom_request_id = self.velithon_app.request_id_generator(temp_request)
             scope._request_id = custom_request_id
 

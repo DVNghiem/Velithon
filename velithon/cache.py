@@ -15,10 +15,10 @@ logger = logging.getLogger(__name__)
 # Simplified cache size constants
 class CacheConfig:
     """Simplified cache size configuration."""
-    
+
     DEFAULT_CACHE_SIZE = 512  # Reduced from 1000
-    LARGE_CACHE_SIZE = 1024   # Reduced from 5000
-    SMALL_CACHE_SIZE = 128    # Reduced from 256
+    LARGE_CACHE_SIZE = 1024  # Reduced from 5000
+    SMALL_CACHE_SIZE = 128  # Reduced from 256
     RESPONSE_CACHE_SIZE = 50  # Reduced from 100
 
     @classmethod

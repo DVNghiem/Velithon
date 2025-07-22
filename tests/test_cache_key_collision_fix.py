@@ -15,7 +15,7 @@ class TestFastJSONEncoderSimplified:
     def test_string_caching_only(self):
         """Test that only small strings are cached."""
         # Small strings should be cached
-        small_string = "test"
+        small_string = 'test'
         result1 = self.encoder.encode(small_string)
         result2 = self.encoder.encode(small_string)
 
@@ -39,7 +39,7 @@ class TestFastJSONEncoderSimplified:
     def test_large_string_not_cached(self):
         """Test that large strings are not cached."""
         # Create a string larger than cache limit (50 chars)
-        large_string = "x" * 100
+        large_string = 'x' * 100
 
         self.encoder.encode(large_string)
 

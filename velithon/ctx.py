@@ -15,13 +15,17 @@ if typing.TYPE_CHECKING:
 
 
 # Context variables for thread-local storage
-_app_ctx_stack: contextvars.ContextVar = contextvars.ContextVar('app_ctx_stack', default=None)
-_request_ctx_stack: contextvars.ContextVar = contextvars.ContextVar('request_ctx_stack', default=None)
+_app_ctx_stack: contextvars.ContextVar = contextvars.ContextVar(
+    'app_ctx_stack', default=None
+)
+_request_ctx_stack: contextvars.ContextVar = contextvars.ContextVar(
+    'request_ctx_stack', default=None
+)
 
 
 class AppContext:
     """Application context for Velithon applications.
-    
+
     This holds application-level
     information that needs to be accessible during request processing.
     """
@@ -67,12 +71,15 @@ class RequestContext:
         self.g = SimpleNamespace()
 
     @classmethod
-    def create_with_singleton_request(cls, app: 'Velithon', scope: 'Scope', protocol: 'Protocol') -> 'RequestContext':
+    def create_with_singleton_request(
+        cls, app: 'Velithon', scope: 'Scope', protocol: 'Protocol'
+    ) -> 'RequestContext':
         """Create a RequestContext with a singleton Request object.
-        
+
         This method ensures that only one Request instance is created per request context.
         """
         from velithon.requests import Request
+
         request = Request(scope, protocol)
         return cls(app, request)
 
@@ -105,14 +112,12 @@ class SimpleNamespace:
 
     def __repr__(self) -> str:
         keys = sorted(self.__dict__)
-        items = (f"{k}={self.__dict__[k]!r}" for k in keys)
-        return "{}({})".format(type(self).__name__, ", ".join(items))
+        items = (f'{k}={self.__dict__[k]!r}' for k in keys)
+        return '{}({})'.format(type(self).__name__, ', '.join(items))
 
 
 class LocalProxy:
-    """A proxy object that forwards all operations to a context-local object.
-    
-    """
+    """A proxy object that forwards all operations to a context-local object."""
 
     def __init__(self, local: Callable[[], Any], name: Optional[str] = None) -> None:
         object.__setattr__(self, '_LocalProxy__local', local)
@@ -192,7 +197,7 @@ def get_current_request() -> 'Request':
 
 def get_or_create_request(scope: 'Scope', protocol: 'Protocol') -> 'Request':
     """Get request from context or create new one as singleton.
-    
+
     This ensures that only one Request instance exists per request context,
     implementing the singleton pattern for better memory efficiency.
     """
@@ -202,6 +207,7 @@ def get_or_create_request(scope: 'Scope', protocol: 'Protocol') -> 'Request':
     except RuntimeError:
         # No request context exists, create new request
         from velithon.requests import Request
+
         return Request(scope, protocol)
 
 
@@ -255,6 +261,7 @@ class RequestIDManager:
         # Use default generator
         if self._default_generator is None:
             from velithon._utils import RequestIDGenerator
+
             self._default_generator = RequestIDGenerator()
 
         return self._default_generator.generate()

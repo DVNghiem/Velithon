@@ -36,10 +36,10 @@ class TestCustomRequestIDGeneration:
         # Create a mock RSGI scope
         mock_scope = Mock()
         mock_scope.headers = []
-        mock_scope.method = "GET"
-        mock_scope.path = "/test"
-        mock_scope.client = "127.0.0.1"
-        mock_scope.query_string = b""
+        mock_scope.method = 'GET'
+        mock_scope.path = '/test'
+        mock_scope.client = '127.0.0.1'
+        mock_scope.query_string = b''
 
         # Create Velithon scope
         scope = Scope(mock_scope)
@@ -56,7 +56,7 @@ class TestCustomRequestIDGeneration:
         """Test that custom request ID generator can be configured."""
 
         def custom_generator(request):
-            return f"custom-{request.method.lower()}-{hash(request.path) % 1000}"
+            return f'custom-{request.method.lower()}-{hash(request.path) % 1000}'
 
         app = Velithon(request_id_generator=custom_generator)
 
@@ -70,44 +70,44 @@ class TestCustomRequestIDGeneration:
         def custom_generator(request):
             correlation_id = request.headers.get('x-correlation-id')
             if correlation_id:
-                return f"corr-{correlation_id}"
-            return f"custom-{request.method.lower()}-{abs(hash(request.path)) % 1000}"
+                return f'corr-{correlation_id}'
+            return f'custom-{request.method.lower()}-{abs(hash(request.path)) % 1000}'
 
         app = Velithon(request_id_generator=custom_generator)
 
         # Test with correlation ID
         mock_scope = Mock()
         mock_scope.headers = [('x-correlation-id', 'test-123')]
-        mock_scope.method = "GET"
-        mock_scope.path = "/test"
-        mock_scope.client = "127.0.0.1"
-        mock_scope.query_string = b""
+        mock_scope.method = 'GET'
+        mock_scope.path = '/test'
+        mock_scope.client = '127.0.0.1'
+        mock_scope.query_string = b''
 
         temp_request = _TempRequestContext(mock_scope)
         result_id = custom_generator(temp_request)
-        assert result_id == "corr-test-123"
+        assert result_id == 'corr-test-123'
 
         # Test without correlation ID
         mock_scope.headers = []
         temp_request = _TempRequestContext(mock_scope)
         result_id = custom_generator(temp_request)
-        assert result_id.startswith("custom-get-")
+        assert result_id.startswith('custom-get-')
 
     def test_temp_request_context(self):
         """Test _TempRequestContext provides correct request information."""
 
         mock_scope = Mock()
         mock_scope.headers = [('content-type', 'application/json'), ('x-test', 'value')]
-        mock_scope.method = "POST"
-        mock_scope.path = "/api/users"
-        mock_scope.client = "192.168.1.100"
-        mock_scope.query_string = b"param=value"
+        mock_scope.method = 'POST'
+        mock_scope.path = '/api/users'
+        mock_scope.client = '192.168.1.100'
+        mock_scope.query_string = b'param=value'
 
         temp_request = _TempRequestContext(mock_scope)
 
-        assert temp_request.method == "POST"
-        assert temp_request.path == "/api/users"
-        assert temp_request.client == "192.168.1.100"
+        assert temp_request.method == 'POST'
+        assert temp_request.path == '/api/users'
+        assert temp_request.client == '192.168.1.100'
         # Note: Headers access would require proper Headers class implementation
 
 
@@ -116,18 +116,20 @@ class TestContextManagement:
 
     def test_app_context_basic_functionality(self):
         """Test basic application context functionality."""
-        app = Velithon(title="Test App")
+        app = Velithon(title='Test App')
 
         # Initially no context
         assert not has_app_context()
 
-        with pytest.raises(RuntimeError, match="Working outside of application context"):
+        with pytest.raises(
+            RuntimeError, match='Working outside of application context'
+        ):
             _ = current_app.title
 
         # Within context
         with AppContext(app):
             assert has_app_context()
-            assert current_app.title == "Test App"
+            assert current_app.title == 'Test App'
             assert get_current_app() == app
 
         # After context
@@ -141,76 +143,76 @@ class TestContextManagement:
         mock_scope = Mock()
         mock_protocol = Mock()
         mock_request = Mock()
-        mock_request.request_id = "test-request-123"
+        mock_request.request_id = 'test-request-123'
 
         # Initially no context
         assert not has_request_context()
 
-        with pytest.raises(RuntimeError, match="Working outside of request context"):
+        with pytest.raises(RuntimeError, match='Working outside of request context'):
             _ = request.request_id
 
         # Within context
         with AppContext(app):
             with RequestContext(app, mock_request):
                 assert has_request_context()
-                assert request.request_id == "test-request-123"
+                assert request.request_id == 'test-request-123'
                 assert get_current_request() == mock_request
 
                 # Test 'g' object for request-local storage
-                g.custom_value = "test"
-                assert g.custom_value == "test"
+                g.custom_value = 'test'
+                assert g.custom_value == 'test'
 
         # After context
         assert not has_request_context()
 
     def test_nested_contexts(self):
         """Test nested application and request contexts."""
-        app1 = Velithon(title="App 1")
-        app2 = Velithon(title="App 2")
+        app1 = Velithon(title='App 1')
+        app2 = Velithon(title='App 2')
 
         mock_request1 = Mock()
-        mock_request1.request_id = "req-1"
+        mock_request1.request_id = 'req-1'
         mock_request2 = Mock()
-        mock_request2.request_id = "req-2"
+        mock_request2.request_id = 'req-2'
 
         # Nested app contexts
         with AppContext(app1):
-            assert current_app.title == "App 1"
+            assert current_app.title == 'App 1'
 
             with AppContext(app2):
-                assert current_app.title == "App 2"
+                assert current_app.title == 'App 2'
 
                 with RequestContext(app2, mock_request1):
-                    assert request.request_id == "req-1"
-                    g.value1 = "first"
+                    assert request.request_id == 'req-1'
+                    g.value1 = 'first'
 
                     with RequestContext(app2, mock_request2):
-                        assert request.request_id == "req-2"
-                        g.value2 = "second"
+                        assert request.request_id == 'req-2'
+                        g.value2 = 'second'
                         # Inner context overrides outer
-                        assert g.value2 == "second"
+                        assert g.value2 == 'second'
 
                     # Back to outer request context
-                    assert request.request_id == "req-1"
-                    assert g.value1 == "first"
+                    assert request.request_id == 'req-1'
+                    assert g.value1 == 'first'
 
             # Back to outer app context
-            assert current_app.title == "App 1"
+            assert current_app.title == 'App 1'
 
     def test_context_isolation(self):
         """Test that contexts are properly isolated."""
         app = Velithon()
 
         mock_request1 = Mock()
-        mock_request1.request_id = "req-1"
+        mock_request1.request_id = 'req-1'
         mock_request2 = Mock()
-        mock_request2.request_id = "req-2"
+        mock_request2.request_id = 'req-2'
 
         # First context
         with AppContext(app):
             with RequestContext(app, mock_request1):
                 g.user_id = 123
-                g.session_data = {"key": "value1"}
+                g.session_data = {'key': 'value1'}
 
         # Second context should not see first context's data
         with AppContext(app):
@@ -221,7 +223,7 @@ class TestContextManagement:
 
                 # Can set new data
                 g.user_id = 456
-                g.session_data = {"key": "value2"}
+                g.session_data = {'key': 'value2'}
                 assert g.user_id == 456
 
 
@@ -232,7 +234,7 @@ class TestRequestContextMiddleware:
         """Test middleware can be initialized with app."""
         app = Velithon()
         middleware = RequestContextMiddleware(app, app)
-        
+
         assert middleware.app == app
         assert hasattr(middleware, 'request_id_manager')
 
@@ -240,34 +242,34 @@ class TestRequestContextMiddleware:
         """Test middleware correctly applies custom request ID generator."""
 
         def custom_generator(req):
-            return f"middleware-{req.method}-{abs(hash(req.path)) % 100}"
+            return f'middleware-{req.method}-{abs(hash(req.path)) % 100}'
 
         app = Velithon(request_id_generator=custom_generator)
         middleware = RequestContextMiddleware(app, app)
-        
+
         # Verify the middleware has access to the custom generator
         assert middleware.velithon_app.request_id_generator == custom_generator
-    
+
     @pytest.mark.asyncio
     async def test_middleware_request_processing(self):
         """Test that middleware properly processes requests and sets context."""
 
         def custom_generator(req):
-            return f"processed-{req.method.lower()}"
+            return f'processed-{req.method.lower()}'
 
         app = Velithon(request_id_generator=custom_generator)
 
         # Mock the next middleware/app in the chain
         app.process_request = Mock()
-        
+
         middleware = RequestContextMiddleware(app, app)
         # Create mock scope and protocol
         mock_rsgi_scope = Mock()
         mock_rsgi_scope.headers = []
-        mock_rsgi_scope.method = "GET"
-        mock_rsgi_scope.path = "/test"
-        mock_rsgi_scope.client = "127.0.0.1"
-        mock_rsgi_scope.query_string = b""
+        mock_rsgi_scope.method = 'GET'
+        mock_rsgi_scope.path = '/test'
+        mock_rsgi_scope.client = '127.0.0.1'
+        mock_rsgi_scope.query_string = b''
 
         scope = Scope(mock_rsgi_scope)
         protocol = Mock()
@@ -278,7 +280,7 @@ class TestRequestContextMiddleware:
         temp_request = _TempRequestContext(mock_rsgi_scope)
         custom_id = custom_generator(temp_request)
 
-        assert custom_id == "processed-get"
+        assert custom_id == 'processed-get'
 
 
 class TestRequestIDManager:
@@ -289,6 +291,7 @@ class TestRequestIDManager:
         app = Velithon()
 
         from velithon.ctx import RequestIDManager
+
         manager = RequestIDManager(app)
 
         assert manager.app == app
@@ -298,16 +301,17 @@ class TestRequestIDManager:
         """Test RequestIDManager with custom generator."""
 
         def custom_generator(req):
-            return "manager-test"
+            return 'manager-test'
 
         app = Velithon(request_id_generator=custom_generator)
 
         from velithon.ctx import RequestIDManager
+
         manager = RequestIDManager(app)
 
         mock_request = Mock()
         request_id = manager.generate_request_id(mock_request)
-        assert request_id == "manager-test"
+        assert request_id == 'manager-test'
 
     def test_request_id_manager_default_fallback(self):
         """Test RequestIDManager falls back to default generator."""
@@ -315,6 +319,7 @@ class TestRequestIDManager:
         app = Velithon()  # No custom generator
 
         from velithon.ctx import RequestIDManager
+
         manager = RequestIDManager(app)
 
         mock_request = Mock()
@@ -336,36 +341,38 @@ class TestIntegrationScenarios:
         generator_calls = []
 
         def tracking_generator(req):
-            generator_calls.append({
-                'method': req.method,
-                'path': req.path,
-                'headers': dict(req.headers) if hasattr(req, 'headers') else {}
-            })
+            generator_calls.append(
+                {
+                    'method': req.method,
+                    'path': req.path,
+                    'headers': dict(req.headers) if hasattr(req, 'headers') else {},
+                }
+            )
             correlation_id = req.headers.get('x-correlation-id')
             if correlation_id:
-                return f"tracked-{correlation_id}"
-            return f"tracked-{req.method.lower()}-{len(generator_calls)}"
+                return f'tracked-{correlation_id}'
+            return f'tracked-{req.method.lower()}-{len(generator_calls)}'
 
         app = Velithon(request_id_generator=tracking_generator)
 
-        @app.get("/test")
+        @app.get('/test')
         async def test_endpoint(request: Request):
-            return JSONResponse({"request_id": request.request_id})
+            return JSONResponse({'request_id': request.request_id})
 
         # Test that the generator function is properly configured
         assert app.request_id_generator == tracking_generator
 
         # Simulate request processing by calling the generator directly
         mock_request = Mock()
-        mock_request.method = "GET"
-        mock_request.path = "/test"
+        mock_request.method = 'GET'
+        mock_request.path = '/test'
         mock_request.headers = {'x-correlation-id': 'integration-test'}
 
         result_id = tracking_generator(mock_request)
-        assert result_id == "tracked-integration-test"
+        assert result_id == 'tracked-integration-test'
         assert len(generator_calls) == 1
-        assert generator_calls[0]['method'] == "GET"
-        assert generator_calls[0]['path'] == "/test"
+        assert generator_calls[0]['method'] == 'GET'
+        assert generator_calls[0]['path'] == '/test'
 
     def test_performance_considerations(self):
         """Test performance aspects of custom request ID generation."""
@@ -386,20 +393,20 @@ class TestIntegrationScenarios:
 
             processing_time = time.time() - start_time
 
-            return f"perf-{method_hash}-{path_hash}-{call_count}"
+            return f'perf-{method_hash}-{path_hash}-{call_count}'
 
         app = Velithon(request_id_generator=performance_generator)
 
         # Test multiple calls
         mock_request = Mock()
-        mock_request.method = "GET"
-        mock_request.path = "/api/test"
+        mock_request.method = 'GET'
+        mock_request.path = '/api/test'
         mock_request.headers = {}
 
         # Generate multiple IDs
         ids = []
         for i in range(10):
-            mock_request.path = f"/api/test/{i}"
+            mock_request.path = f'/api/test/{i}'
             request_id = performance_generator(mock_request)
             ids.append(request_id)
 
@@ -408,7 +415,7 @@ class TestIntegrationScenarios:
         assert call_count == 10
 
         for request_id in ids:
-            assert request_id.startswith("perf-")
+            assert request_id.startswith('perf-')
             parts = request_id.split('-')
             assert len(parts) == 4  # perf-methodhash-pathhash-counter
 
@@ -423,20 +430,20 @@ class TestIntegrationScenarios:
                 failing_generator.call_count = 1
 
             if failing_generator.call_count == 2:
-                raise ValueError("Simulated generator failure")
+                raise ValueError('Simulated generator failure')
 
-            return f"success-{failing_generator.call_count}"
+            return f'success-{failing_generator.call_count}'
 
         app = Velithon(request_id_generator=failing_generator)
 
         mock_request = Mock()
-        mock_request.method = "GET"
-        mock_request.path = "/test"
+        mock_request.method = 'GET'
+        mock_request.path = '/test'
         mock_request.headers = {}
 
         # First call should succeed
         first_id = failing_generator(mock_request)
-        assert first_id == "success-1"
+        assert first_id == 'success-1'
 
         # Second call should fail - in real implementation, this would be caught
         # and fall back to default generator

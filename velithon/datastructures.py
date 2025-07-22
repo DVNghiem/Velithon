@@ -28,7 +28,7 @@ request_id_generator = RequestIDGenerator()
 
 class _TempRequestContext:
     """Temporary request context for custom request ID generation.
-    
+
     This class provides a minimal request-like interface that can be used
     by custom request ID generators to access request information.
     """
