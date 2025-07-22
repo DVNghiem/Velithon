@@ -129,7 +129,7 @@ async def error_example():
 if __name__ == '__main__':
     print('🚀 Velithon JSONResponse Example')
     print('===============================')
-    print('Run this with: uvicorn json_response_example:app --reload')
+    print('Run this with: velithon run --app json_response_example:app --reload')
     print()
     print('Try these endpoints:')
     print('  GET  /                  - Simple JSON response')

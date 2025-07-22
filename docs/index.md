@@ -24,7 +24,7 @@ Velithon is a modern, lightning-fast web framework for Python that combines simp
 
     ---
 
-    Optimized for maximum speed with advanced JSON processing and memory optimizations. Achieves ~110,000-115,000 requests per second.
+    Optimized for maximum speed with advanced JSON processing and memory optimizations. Built on RSGI protocol achieving ~70,000 requests per second.
 
 -   :material-puzzle: **Dependency Injection**
 
@@ -154,7 +154,7 @@ Velithon is perfect for:
 
 ## 🔥 Performance Highlights
 
-- **~115,000 req/s** - Exceptional throughput for REST API endpoints
+- **~70,000 req/s** - Exceptional throughput for REST API endpoints
 - **Advanced JSON Processing** - Optimized serialization with orjson
 - **Memory Efficient** - Minimal memory footprint and smart resource management
 - **Async-First** - Built from the ground up for asynchronous operations
@@ -166,7 +166,7 @@ Velithon stands out as a next-generation Python web framework built on the **RSG
 
 ### 🚀 **RSGI-Powered Performance**
 Unlike traditional ASGI frameworks, Velithon leverages RSGI for:
-- **~115,000 req/s** throughput (vs ~75,000 for FastAPI)
+- **~70,000 req/s** throughput (exceptional performance for Python)
 - **Native Rust optimizations** in the core runtime
 - **Zero-copy operations** for maximum efficiency
 - **Memory-efficient** request handling
@@ -183,7 +183,7 @@ Unlike traditional ASGI frameworks, Velithon leverages RSGI for:
 | Feature | Velithon | FastAPI | Flask | Django |
 |---------|----------|---------|-------|--------|
 | **Foundation** | ⚡ RSGI + Granian | ASGI + Uvicorn | WSGI | WSGI |
-| **Performance** | 🏆 ~115k req/s | 🚀 ~75k req/s | 🐌 ~25k req/s | 🐌 ~20k req/s |
+| **Performance** | 🏆 ~70k req/s | 🚀 ~65k req/s | 🐌 ~25k req/s | 🐌 ~20k req/s |
 | **Learning Curve** | 📈 Easy | 📈 Easy | 📈 Easy | 📊 Steep |
 | **Type Safety** | ✅ Full | ✅ Full | ❌ Optional | ❌ Optional |
 | **Async Support** | ✅ Native RSGI | ✅ Native ASGI | ⚠️ Limited | ⚠️ Limited |

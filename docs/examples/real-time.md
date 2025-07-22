@@ -177,8 +177,15 @@ async def send_notification(request: Request):
     return {"status": "Notification sent"}
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    import granian
+    server = granian.Granian(
+        target="__main__:app",
+        address="0.0.0.0",
+        port=8000,
+        interface="rsgi",
+        reload=True,
+    )
+    server.serve()
 ```
 
 ### Advanced SSE with Channels
@@ -519,8 +526,15 @@ async def broadcast_websocket_message(request: Request):
     })
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    import granian
+    server = granian.Granian(
+        target="__main__:app",
+        address="0.0.0.0",
+        port=8000,
+        interface="rsgi",
+        reload=True,
+    )
+    server.serve()
 ```
 
 ## Real-time Dashboard Example
@@ -678,8 +692,15 @@ async def dashboard_events(request: Request):
     return EventSourceResponse(metric_stream())
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    import granian
+    server = granian.Granian(
+        target="__main__:app",
+        address="0.0.0.0",
+        port=8000,
+        interface="rsgi",
+        reload=True,
+    )
+    server.serve()
 ```
 
 ## Testing Real-time Features

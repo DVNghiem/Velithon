@@ -139,7 +139,7 @@ INFO:     Press CTRL+C to quit
 ```
 
 !!! note "RSGI vs ASGI"
-    Velithon uses RSGI (Rust SGI) protocol through Granian, not ASGI. This provides superior performance compared to traditional ASGI servers like uvicorn.
+    Velithon uses RSGI (Rust Server Gateway Interface) protocol through Granian, not ASGI. This provides superior performance compared to traditional ASGI servers like uvicorn.
 
 ## 🧪 Step 3: Test Your Endpoints
 
@@ -462,7 +462,7 @@ python test_performance.py
 ```
 
 !!! success "RSGI Performance"
-    Velithon with Granian RSGI typically achieves **110,000-115,000 requests/second** for simple endpoints, significantly outperforming traditional ASGI frameworks.
+    Velithon with Granian RSGI typically achieves **~70,000 requests/second** for simple endpoints, significantly outperforming traditional ASGI frameworks.
 
 ## 🎉 Congratulations!
 

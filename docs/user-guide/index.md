@@ -92,7 +92,7 @@ Velithon is built on several key architectural principles:
 
 Unlike traditional ASGI frameworks, Velithon uses **RSGI (Rust Server Gateway Interface)** through Granian:
 
-- **10x Performance**: Achieves 110,000+ requests/second
+- **High Performance**: Achieves ~70,000 requests/second
 - **Memory Efficiency**: Minimal memory footprint with Rust optimizations
 - **HTTP/2 Native**: Full HTTP/2 support with push capabilities
 - **WebSocket Excellence**: Native WebSocket handling without overhead
@@ -235,7 +235,7 @@ Before diving into the user guide, you should have:
 | Feature | Velithon | FastAPI | Django | Flask |
 |---------|----------|---------|--------|-------|
 | **Protocol** | RSGI | ASGI | WSGI | WSGI |
-| **Performance** | 115k req/s | 65k req/s | 15k req/s | 20k req/s |
+| **Performance** | 70k req/s | 65k req/s | 15k req/s | 20k req/s |
 | **WebSockets** | Advanced (Rooms/Channels) | Basic | Channels | Extensions |
 | **DI System** | Native Advanced | Basic | Manual | Manual |
 | **Service Mesh** | Built-in VSP | External | External | External |

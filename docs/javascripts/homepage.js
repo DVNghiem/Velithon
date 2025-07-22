@@ -179,7 +179,7 @@ function initPerformanceCounter() {
     counterContainer.className = 'performance-counter';
     counterContainer.innerHTML = `
         <div class="counter-item">
-            <div class="counter-number" data-target="115000">0</div>
+            <div class="counter-number" data-target="70000">0</div>
             <div class="counter-label">Requests/sec</div>
         </div>
         <div class="counter-item">

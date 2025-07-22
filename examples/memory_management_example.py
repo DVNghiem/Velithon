@@ -195,6 +195,6 @@ if __name__ == '__main__':
     print('- GET /cache-heavy: Cache-heavy operations')
     print('- GET /large-dataset/{size}: Process large datasets')
 
-    # In a real application, you would run this with uvicorn or granian:
-    # uvicorn memory_optimization_example:app --host 0.0.0.0 --port 8000
+    # In a real application, you would run this with velithon CLI using Granian RSGI:
+    # velithon run --app memory_optimization_example:app --host 0.0.0.0 --port 8000
     # granian --interface rsgi memory_optimization_example:app

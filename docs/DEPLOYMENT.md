@@ -215,7 +215,7 @@ Use Material Design admonitions for better content organization:
 
 ```markdown
 !!! note "Performance Tip"
-    Velithon with Granian achieves 110,000+ requests/second.
+    Velithon with Granian achieves ~70,000 requests/second.
 
 !!! warning "Important"
     Always use HTTPS in production.

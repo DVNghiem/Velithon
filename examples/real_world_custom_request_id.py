@@ -250,7 +250,7 @@ def demonstrate_request_id_generation():
     print(f"4. Regular endpoint: {request_id}")
     
     print("\n🌟 To test with real HTTP requests, run:")
-    print("python -m uvicorn real_world_example:app --reload")
+    print("velithon run --app real_world_example:app --reload")
     print("\nThen try these curl commands:")
     print("curl http://localhost:8000/")
     print("curl http://localhost:8000/api/users/123")

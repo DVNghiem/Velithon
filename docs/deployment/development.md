@@ -199,9 +199,9 @@ def setup_development_logging():
     root_logger.addHandler(console_handler)
     root_logger.addHandler(file_handler)
     
-    # Configure uvicorn logger
-    uvicorn_logger = logging.getLogger("uvicorn")
-    uvicorn_logger.setLevel(logging.DEBUG)
+    # Configure granian logger
+    granian_logger = logging.getLogger("granian")
+    granian_logger.setLevel(logging.DEBUG)
 
 # Setup logging
 if DEBUG:
@@ -261,14 +261,14 @@ def install_dependencies():
     ])
 
 def run_server():
-    """Run development server"""
+    """Run development server with Velithon CLI and Granian RSGI"""
     subprocess.run([
-        "uvicorn", "main:app",
+        "velithon", "run",
+        "--app", "main:app",
         "--reload",
-        "--reload-dir", "src",
         "--host", os.getenv("HOST", "127.0.0.1"), 
         "--port", os.getenv("PORT", "8000"),
-        "--log-level", os.getenv("LOG_LEVEL", "debug")
+        "--log-level", os.getenv("LOG_LEVEL", "DEBUG")
     ])
 
 if __name__ == "__main__":

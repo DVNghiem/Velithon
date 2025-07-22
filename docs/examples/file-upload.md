@@ -73,8 +73,15 @@ async def upload_multiple_files(request: Request):
     })
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    import granian
+    server = granian.Granian(
+        target="__main__:app",
+        address="0.0.0.0",
+        port=8000,
+        interface="rsgi",
+        reload=True,
+    )
+    server.serve()
 ```
 
 ## File Upload with Validation
@@ -141,8 +148,15 @@ async def upload_with_validation(request: Request):
     })
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    import granian
+    server = granian.Granian(
+        target="__main__:app",
+        address="0.0.0.0",
+        port=8000,
+        interface="rsgi",
+        reload=True,
+    )
+    server.serve()
 ```
 
 ## Image Upload with Processing
@@ -221,8 +235,15 @@ async def upload_image(request: Request):
         )
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    import granian
+    server = granian.Granian(
+        target="__main__:app",
+        address="0.0.0.0",
+        port=8000,
+        interface="rsgi",
+        reload=True,
+    )
+    server.serve()
 ```
 
 ## File Download
@@ -273,8 +294,15 @@ async def list_files(request: Request):
     return JSONResponse({"files": files})
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    import granian
+    server = granian.Granian(
+        target="__main__:app",
+        address="0.0.0.0",
+        port=8000,
+        interface="rsgi",
+        reload=True,
+    )
+    server.serve()
 ```
 
 ## Testing File Upload

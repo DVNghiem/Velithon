@@ -92,7 +92,7 @@ mkdocs build
 3. **Use admonitions** for important info:
    ```markdown
    !!! tip "Performance"
-       Velithon achieves 110,000+ req/s with RSGI
+       Velithon achieves ~70,000 req/s with RSGI
    ```
 4. **Add proper alt text** to images
 5. **Use relative links** between pages

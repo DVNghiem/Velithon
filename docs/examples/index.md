@@ -25,7 +25,15 @@ async def hello_name(name: str):
     return JSONResponse({"message": f"Hello, {name}!"})
 
 if __name__ == "__main__":
-    app.run()
+    import granian
+    server = granian.Granian(
+        target="__main__:app",
+        address="0.0.0.0",
+        port=8000,
+        interface="rsgi",
+        reload=True,
+    )
+    server.serve()
 ```
 
 ### Simple REST API
