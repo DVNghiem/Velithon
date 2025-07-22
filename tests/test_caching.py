@@ -3,11 +3,10 @@ Tests for caching functionality and performance optimizations.
 """
 
 import time
-from unittest.mock import MagicMock
 
 import pytest
 
-from velithon._utils import MiddlewareOptimizer
+from velithon._utils import SimpleMiddlewareOptimizer
 from velithon.cache import (
     CacheConfig,
     create_lru_cache,
@@ -251,40 +250,8 @@ class TestCachePerformance:
         assert hit_rate == 0.5
 
 
-class TestMiddlewareOptimizer:
-    """Test middleware optimization functionality."""
-
-    def test_middleware_stack_optimization(self):
-        """Test middleware stack optimization."""
-
-        class SecurityMiddleware:
-            pass
-
-        class AuthMiddleware:
-            pass
-
-        class LoggingMiddleware:
-            pass
-
-        class CompressionMiddleware:
-            pass
-
-        middlewares = [
-            CompressionMiddleware,  # Low priority
-            AuthMiddleware,  # High priority
-            LoggingMiddleware,  # Low priority
-            SecurityMiddleware,  # High priority
-        ]
-
-        optimized = MiddlewareOptimizer.optimize_middleware_stack(middlewares)
-
-        # Should reorder for optimal performance
-        assert len(optimized) == len(middlewares)
-        # High priority middleware should come first
-        assert any(
-            'security' in m.__name__.lower() or 'auth' in m.__name__.lower()
-            for m in optimized[:2]
-        )
+class TestSimpleMiddlewareOptimizer:
+    """Test simplified middleware optimization functionality."""
 
     def test_middleware_deduplication(self):
         """Test middleware deduplication."""
@@ -295,7 +262,7 @@ class TestMiddlewareOptimizer:
         # Create list with duplicates
         middlewares = [TestMiddleware, TestMiddleware, TestMiddleware]
 
-        optimized = MiddlewareOptimizer.optimize_middleware_stack(middlewares)
+        optimized = SimpleMiddlewareOptimizer.optimize_middleware_stack(middlewares)
 
         # Should remove duplicates
         assert len(optimized) == 1
@@ -303,56 +270,30 @@ class TestMiddlewareOptimizer:
 
     def test_empty_middleware_stack(self):
         """Test optimization of empty middleware stack."""
-        optimized = MiddlewareOptimizer.optimize_middleware_stack([])
+        optimized = SimpleMiddlewareOptimizer.optimize_middleware_stack([])
 
         assert len(optimized) == 0
 
-    def test_cached_middleware_chain(self):
-        """Test cached middleware chain compilation."""
-
-        class TestMiddleware1:
-            def __init__(self, app):
-                self.app = app
-
-        class TestMiddleware2:
-            def __init__(self, app):
-                self.app = app
-
-        middleware_tuple = (TestMiddleware1, TestMiddleware2)
-
-        chain_builder = MiddlewareOptimizer.cached_middleware_chain(middleware_tuple)
-
-        # Should return a function that builds the chain
-        assert callable(chain_builder)
-
-        # Test with a mock handler
-        mock_handler = MagicMock()
-        chain = chain_builder(mock_handler)
-
-        assert chain is not None
-
-    def test_small_middleware_chain_optimization(self):
-        """Test optimization for small middleware chains."""
+    def test_preserve_order(self):
+        """Test that middleware order is preserved when no duplicates."""
 
         class Middleware1:
-            def __init__(self, app):
-                self.app = app
+            pass
 
         class Middleware2:
-            def __init__(self, app):
-                self.app = app
+            pass
 
-        # Test with 1, 2, and 3 middleware (should be unrolled)
-        for count in [1, 2, 3]:
-            middleware_tuple = tuple([Middleware1] * count)
-            chain_builder = MiddlewareOptimizer.cached_middleware_chain(
-                middleware_tuple
-            )
+        class Middleware3:
+            pass
 
-            mock_handler = MagicMock()
-            chain = chain_builder(mock_handler)
+        middlewares = [Middleware1, Middleware2, Middleware3]
+        optimized = SimpleMiddlewareOptimizer.optimize_middleware_stack(middlewares)
 
-            assert chain is not None
+        # Should preserve order
+        assert len(optimized) == 3
+        assert optimized[0] == Middleware1
+        assert optimized[1] == Middleware2
+        assert optimized[2] == Middleware3
 
 
 class TestCacheEviction:

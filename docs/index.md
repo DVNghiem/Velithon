@@ -24,7 +24,7 @@ Velithon is a modern, lightning-fast web framework for Python that combines simp
 
     ---
 
-    Optimized for maximum speed with advanced JSON processing and memory optimizations. Built on RSGI protocol achieving ~70,000 requests per second.
+    Optimized for maximum speed with orjson-only JSON processing and simplified memory management. Built on RSGI protocol achieving ~70,000 requests per second.
 
 -   :material-puzzle: **Dependency Injection**
 
@@ -189,7 +189,7 @@ Unlike traditional ASGI frameworks, Velithon leverages RSGI for:
 | **Async Support** | ✅ Native RSGI | ✅ Native ASGI | ⚠️ Limited | ⚠️ Limited |
 | **WebSockets** | ✅ Built-in | ✅ Via Starlette | ❌ Extensions | ❌ Channels |
 | **Dependency Injection** | ✅ Advanced | ✅ Basic | ❌ Manual | ❌ Manual |
-| **JSON Optimization** | ✅ Rust-based | ❌ Standard | ❌ Standard | ❌ Standard |
+| **JSON Optimization** | ✅ orjson-only | ❌ Standard | ❌ Standard | ❌ Standard |
 | **Gateway/Proxy** | ✅ Built-in | ❌ External | ❌ External | ❌ External |
 
 ### 🎯 **When to Choose Velithon**

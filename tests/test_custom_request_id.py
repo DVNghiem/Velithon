@@ -231,8 +231,8 @@ class TestRequestContextMiddleware:
     def test_middleware_initialization(self):
         """Test middleware can be initialized with app."""
         app = Velithon()
-        middleware = RequestContextMiddleware(app)
-
+        middleware = RequestContextMiddleware(app, app)
+        
         assert middleware.app == app
         assert hasattr(middleware, 'request_id_manager')
 
@@ -243,11 +243,11 @@ class TestRequestContextMiddleware:
             return f"middleware-{req.method}-{abs(hash(req.path)) % 100}"
 
         app = Velithon(request_id_generator=custom_generator)
-        middleware = RequestContextMiddleware(app)
-
+        middleware = RequestContextMiddleware(app, app)
+        
         # Verify the middleware has access to the custom generator
-        assert middleware.app.request_id_generator == custom_generator
-
+        assert middleware.velithon_app.request_id_generator == custom_generator
+    
     @pytest.mark.asyncio
     async def test_middleware_request_processing(self):
         """Test that middleware properly processes requests and sets context."""
@@ -259,9 +259,8 @@ class TestRequestContextMiddleware:
 
         # Mock the next middleware/app in the chain
         app.process_request = Mock()
-
-        middleware = RequestContextMiddleware(app)
-
+        
+        middleware = RequestContextMiddleware(app, app)
         # Create mock scope and protocol
         mock_rsgi_scope = Mock()
         mock_rsgi_scope.headers = []
