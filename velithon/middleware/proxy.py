@@ -11,6 +11,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from velithon._velithon import ProxyClient, ProxyLoadBalancer
+from velithon.ctx import get_or_create_request, has_request_context
 from velithon.datastructures import Protocol, Scope
 from velithon.middleware.base import BaseHTTPMiddleware
 from velithon.requests import Request
@@ -196,7 +197,12 @@ class ProxyMiddleware(BaseHTTPMiddleware):
                 upstream_path = self.upstream_path_prefix + upstream_path
 
             # Create request object for transformation
-            request = Request(scope, protocol)
+            # Use singleton request pattern - try to get from context first
+            if has_request_context():
+                request = get_or_create_request(scope, protocol)
+            else:
+                # Create new request if no context exists
+                request = Request(scope, protocol)
 
             # Transform request if needed
             if self.transform_request:

@@ -97,6 +97,7 @@ from .ctx import (
     has_request_context,
     get_current_app,
     get_current_request,
+    get_or_create_request,
     RequestIDManager,
 )
 
@@ -156,6 +157,7 @@ __all__ = [
     'g',
     'get_current_app',
     'get_current_request',
+    'get_or_create_request',
     'has_app_context',
     'has_request_context',
     'request',

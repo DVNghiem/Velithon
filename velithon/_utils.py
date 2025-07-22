@@ -37,11 +37,11 @@ def set_thread_pool() -> None:
         if _thread_pool is None:
             # Optimized thread count: I/O bound (higher), CPU bound (lower)
             cpu_count = os.cpu_count() or 1
-            
+
             # Performance-optimized worker count based on workload type
             # For web applications, I/O bound operations are more common
             max_workers = min(64, cpu_count * 8)  # Increased multiplier for I/O tasks
-            
+
             # Enhanced thread pool with performance optimizations
             _thread_pool = concurrent.futures.ThreadPoolExecutor(
                 max_workers=max_workers,
@@ -97,13 +97,13 @@ async def run_in_threadpool(func: Callable, *args, **kwargs) -> Any:
     global _thread_pool
     if _thread_pool is None:
         set_thread_pool()
-    
+
     loop = asyncio.get_running_loop()
 
     # Fast path for simple functions without arguments
     if not args and not kwargs:
         return await loop.run_in_executor(_thread_pool, func)
-    
+
     # Memory-efficient parameter passing for large kwargs
     if len(kwargs) > 10 or any(
         hasattr(v, '__len__') and len(v) > 1000
@@ -112,7 +112,7 @@ async def run_in_threadpool(func: Callable, *args, **kwargs) -> Any:
         # For large parameter sets, use partial to avoid lambda closure overhead
         partial_func = functools.partial(func, *args, **kwargs)
         return await loop.run_in_executor(_thread_pool, partial_func)
-    
+
     # Standard path with lambda (most common case)
     # Use more efficient lambda creation for small parameter sets
     if args and kwargs:
@@ -140,22 +140,42 @@ async def iterate_in_threadpool(iterator: Iterable[T]) -> AsyncIterator[T]:
 
 
 class RequestIDGenerator:
-    """Efficient request ID generator with much less overhead than UUID."""
+    """Ultra-fast request ID generator optimized for high-throughput scenarios."""
 
     def __init__(self):
-        self._prefix = f'{random.randint(100, 999)}'
-        self._counter = 0
-        self._lock = threading.Lock()
+        # Pre-compute prefix once to avoid repeated random calls
+        self._prefix = str(random.randint(100, 999))
+        # Use atomic counter for thread safety without locks
+        import threading
+        self._counter = threading.local()
+        # Pre-allocate timestamp cache to reduce time.time() calls
+        self._last_timestamp = 0
+        self._timestamp_cache_duration = 0.001  # 1ms cache duration
+        self._last_cache_time = 0.0
 
     def generate(self) -> str:
-        """Generate a unique request ID with format: prefix-timestamp-counter."""
-        timestamp = int(time.time() * 1000)  # Timestamp in milliseconds
+        """Generate a unique request ID with minimal overhead."""
+        # Use thread-local counter to avoid locks
+        if not hasattr(self._counter, 'value'):
+            self._counter.value = 0
+            # Add thread ID to ensure uniqueness across threads
+            self._counter.thread_offset = threading.get_ident() % 1000
 
-        with self._lock:
-            self._counter = (self._counter + 1) % 100000
-            request_id = f'{self._prefix}-{timestamp}-{self._counter:05d}'
+        # Cache timestamp for 1ms to reduce system calls
+        current_time = time.perf_counter()
+        if current_time - self._last_cache_time > self._timestamp_cache_duration:
+            self._last_timestamp = int(time.time() * 1000)
+            self._last_cache_time = current_time
 
-        return request_id
+        # Increment counter (no modulo needed for better performance)
+        self._counter.value += 1
+        
+        # Use faster string concatenation for hot path
+        # Format: prefix-timestamp-threadoffset-counter
+        return (
+            f"{self._prefix}-{self._last_timestamp}-"
+            f"{self._counter.thread_offset}-{self._counter.value}"
+        )
 
 
 class FastJSONEncoder:
