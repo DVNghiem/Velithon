@@ -73,7 +73,7 @@ class TestCustomRequestIDGeneration:
                 return f'corr-{correlation_id}'
             return f'custom-{request.method.lower()}-{abs(hash(request.path)) % 1000}'
 
-        app = Velithon(request_id_generator=custom_generator)
+        Velithon(request_id_generator=custom_generator)
 
         # Test with correlation ID
         mock_scope = Mock()
@@ -140,8 +140,8 @@ class TestContextManagement:
         app = Velithon()
 
         # Create mock request
-        mock_scope = Mock()
-        mock_protocol = Mock()
+        Mock()
+        Mock()
         mock_request = Mock()
         mock_request.request_id = 'test-request-123'
 
@@ -262,7 +262,7 @@ class TestRequestContextMiddleware:
         # Mock the next middleware/app in the chain
         app.process_request = Mock()
 
-        middleware = RequestContextMiddleware(app, app)
+        RequestContextMiddleware(app, app)
         # Create mock scope and protocol
         mock_rsgi_scope = Mock()
         mock_rsgi_scope.headers = []
@@ -271,8 +271,8 @@ class TestRequestContextMiddleware:
         mock_rsgi_scope.client = '127.0.0.1'
         mock_rsgi_scope.query_string = b''
 
-        scope = Scope(mock_rsgi_scope)
-        protocol = Mock()
+        Scope(mock_rsgi_scope)
+        Mock()
 
         # Process request through middleware
         # Note: This is a simplified test - in reality, the middleware would
@@ -391,11 +391,11 @@ class TestIntegrationScenarios:
             method_hash = hash(req.method) % 1000
             path_hash = abs(hash(req.path)) % 1000
 
-            processing_time = time.time() - start_time
+            time.time() - start_time
 
             return f'perf-{method_hash}-{path_hash}-{call_count}'
 
-        app = Velithon(request_id_generator=performance_generator)
+        Velithon(request_id_generator=performance_generator)
 
         # Test multiple calls
         mock_request = Mock()
@@ -434,7 +434,7 @@ class TestIntegrationScenarios:
 
             return f'success-{failing_generator.call_count}'
 
-        app = Velithon(request_id_generator=failing_generator)
+        Velithon(request_id_generator=failing_generator)
 
         mock_request = Mock()
         mock_request.method = 'GET'

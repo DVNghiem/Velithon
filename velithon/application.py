@@ -289,11 +289,11 @@ class Velithon:
             Doc(
                 """
                 Custom function to generate request IDs.
-                
-                The function should take a request-like object as parameter and return 
-                a string representing the request ID. If not provided, the default 
+
+                The function should take a request-like object as parameter and return
+                a string representing the request ID. If not provided, the default
                 system request ID generator will be used.
-                
+
                 Example:
                     def custom_request_id(request):
                         return f"custom-{request.headers.get('x-correlation-id', 'default')}"
