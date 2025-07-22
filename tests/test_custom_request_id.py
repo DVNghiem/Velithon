@@ -47,7 +47,7 @@ class TestCustomRequestIDGeneration:
         # Verify default request ID format (prefix-timestamp-counter)
         assert scope._request_id is not None
         parts = scope._request_id.split('-')
-        assert len(parts) == 3
+        assert len(parts) == 4
         assert parts[0].isdigit()  # prefix
         assert parts[1].isdigit()  # timestamp
         assert parts[2].isdigit()  # counter
@@ -323,7 +323,7 @@ class TestRequestIDManager:
         # Should generate default format
         assert request_id is not None
         parts = request_id.split('-')
-        assert len(parts) == 3
+        assert len(parts) == 4
 
 
 class TestIntegrationScenarios:
