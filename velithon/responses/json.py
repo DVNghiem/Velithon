@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import typing
 
-from velithon._utils import HAS_ORJSON, get_json_encoder, get_response_cache
+from velithon._utils import get_json_encoder, get_response_cache
 from velithon.background import BackgroundTask
 
 from .base import Response
@@ -39,37 +39,10 @@ class JSONResponse(Response):
         super().__init__(content, status_code, headers, media_type, background)
 
     def render(self, content: typing.Any) -> bytes:
-        """Render content to JSON bytes with optimal performance."""
+        """Render content to JSON bytes using orjson encoder."""
         # Fast path: if we already rendered this content during __init__, use that
         if self._rendered and content is self._content:
             return self.body
 
-        # Use orjson for maximum performance when available
-        if HAS_ORJSON and isinstance(
-            content, dict | list | str | int | float | bool | type(None)
-        ):
-            try:
-                import orjson
-
-                result = orjson.dumps(content, option=orjson.OPT_SERIALIZE_NUMPY)
-                self._rendered = True
-                return result
-            except (TypeError, ValueError):
-                # Fall back to standard encoder if orjson fails
-                pass
-
-        # For complex objects or when orjson is not available, use optimized encoder
-        # Only use caching for objects that are expensive to serialize
-        content_str = str(content)
-        if len(content_str) > 1000:  # Only cache larger objects
-            cache_key = f'json:{id(content)}'
-            cached_response = _response_cache.get(cache_key)
-            if cached_response is not None:
-                return cached_response
-
-            result = _optimized_json_encoder.encode(content)
-            _response_cache.put(cache_key, result)
-            return result
-
-        # For simple objects, encode directly without caching overhead
+        # Use the optimized JSON encoder (orjson-only)
         return _optimized_json_encoder.encode(content)

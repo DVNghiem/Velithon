@@ -1,7 +1,6 @@
 import asyncio
 import concurrent.futures
 import functools
-import json
 import os
 import random
 import threading
@@ -10,27 +9,19 @@ from collections.abc import AsyncIterator, Callable, Iterable
 from typing import Any, TypeVar
 
 from ._velithon import ResponseCache
-from .cache import CacheConfig, LRUCache, cache_manager, middleware_cache
+from .cache import cache_manager
 from .memory_management import (
     enable_memory_optimizations,
     get_memory_context,
-    get_memory_optimizer,
     manual_memory_cleanup,
 )
 
 try:
     import orjson
-
-    HAS_ORJSON = True
-except ImportError:
-    HAS_ORJSON = False
-
-try:
-    import ujson  # type: ignore
-
-    HAS_UJSON = True
-except ImportError:
-    HAS_UJSON = False
+except ImportError as exc:
+    raise ImportError(
+        "orjson is required for Velithon. Install it with: pip install orjson"
+    ) from exc
 
 
 T = TypeVar('T')
@@ -168,190 +159,66 @@ class RequestIDGenerator:
 
 
 class FastJSONEncoder:
-    """Ultra optimized JSON encoder with multiple backend support."""
+    """Simplified JSON encoder using only orjson."""
 
     def __init__(self):
-        # Direct functions for maximum performance - avoid multiple dispatch overhead
-        if HAS_ORJSON:
-            self._encode = self._encode_orjson
-        elif HAS_UJSON:
-            self._encode = self._encode_ujson
-        else:
-            self._encode = self._encode_stdlib
+        # Use orjson with optimized settings
+        self._encode_func = lambda obj: orjson.dumps(
+            obj, option=orjson.OPT_SERIALIZE_NUMPY
+        )
+        self._backend = 'orjson'
 
-        # Cache for small, common responses using centralized cache
-        self._cache = LRUCache[Any, bytes](CacheConfig.get_cache_size('response'))
-        cache_manager.register_cache('json_encoder', self._cache)
-
-    def _encode_orjson(self, obj: Any) -> bytes:
-        """Encode with orjson (fastest)."""
-        try:
-            return orjson.dumps(obj, option=orjson.OPT_SERIALIZE_NUMPY)
-        except TypeError:
-            # Fall back to standard JSON for types orjson can't handle
-            return json.dumps(obj, separators=(',', ':')).encode('utf-8')
-
-    def _encode_ujson(self, obj: Any) -> bytes:
-        """Encode with ujson (faster than stdlib)."""
-        try:
-            return ujson.dumps(obj).encode('utf-8')
-        except TypeError:
-            # Fall back to standard JSON for types ujson can't handle
-            return json.dumps(obj, separators=(',', ':')).encode('utf-8')
-
-    def _encode_stdlib(self, obj: Any) -> bytes:
-        """Encode with standard library json (always works but slower)."""
-        return json.dumps(obj, separators=(',', ':')).encode('utf-8')
-
-    def _create_dict_cache_key(self, obj: dict[str, Any]) -> str:
-        """Create a collision-resistant cache key for dictionaries."""
-        # Use a deterministic serialization approach that prevents collisions
-        # by properly escaping separators and using length prefixes
-        items = []
-        for k, v in sorted(obj.items()):
-            # Escape any special characters in keys and values
-            key_str = (
-                str(k).replace('\\', '\\\\').replace('|', '\\|').replace(':', '\\:')
-            )
-            val_str = (
-                str(v).replace('\\', '\\\\').replace('|', '\\|').replace(':', '\\:')
-            )
-            # Use length-prefixed format to prevent ambiguity
-            items.append(f'{len(key_str)}:{key_str}={len(val_str)}:{val_str}')
-
-        return '|'.join(items)
+        # Simple cache for very common small responses only
+        self._simple_cache: dict[str, bytes] = {}
 
     def encode(self, obj: Any) -> bytes:
-        """Encode object to JSON bytes with caching for common values."""
-        # Only cache simple types that are serializable and hashable
-        if isinstance(obj, str | int | bool | float | type(None)):
-            try:
-                cached = self._cache.get(obj)
-                if cached is not None:
-                    return cached
+        """Encode object to JSON bytes using orjson with minimal caching."""
+        # Only cache very simple, small string responses
+        if isinstance(obj, str) and len(obj) <= 50:
+            cached = self._simple_cache.get(obj)
+            if cached is not None:
+                return cached
 
-                result = self._encode(obj)
-                # Only cache small objects to prevent memory bloat
-                if len(result) <= 256:  # 256 bytes limit
-                    self._cache.put(obj, result)
-                return result
-            except (TypeError, OverflowError):
-                # Fall through to normal encoding on any error
-                pass
+            result = self._encode_func(obj)
+            # Only cache if result is small and cache isn't too large
+            if len(result) <= 100 and len(self._simple_cache) < 50:
+                self._simple_cache[obj] = result
+            return result
 
-        # For small dicts, try to use cache with collision-resistant key
-        if isinstance(obj, dict) and len(obj) <= 5:
-            try:
-                # Only cache if dict keys are all strings
-                if all(isinstance(k, str) for k in obj.keys()):
-                    # Create a collision-resistant cache key
-                    cache_key = self._create_dict_cache_key(obj)
-
-                    cached = self._cache.get(cache_key)
-                    if cached is not None:
-                        return cached
-
-                    result = self._encode(obj)
-                    # Only cache small results
-                    if len(result) <= 512:  # 512 bytes limit for dicts
-                        self._cache.put(cache_key, result)
-                    return result
-            except (TypeError, OverflowError):
-                # Fall through to normal encoding on any error
-                pass
-
-        # Normal encoding path for complex objects
-        return self._encode(obj)
+        # Direct orjson encoding for all other cases
+        return self._encode_func(obj)
 
 
-class MiddlewareOptimizer:
-    """Optimize middleware stack for better performance."""
-
-    # Use centralized cache configuration for middleware chains
-    @staticmethod
-    @middleware_cache()
-    def cached_middleware_chain(middleware_tuple: tuple) -> Callable:
-        """Cache compiled middleware chains for maximum performance."""
-
-        # Pre-build the entire middleware chain at once instead of iteratively
-        def optimized_chain(handler: Callable) -> Callable:
-            # Use direct call for small chains (common case)
-            if len(middleware_tuple) <= 3:
-                # Unroll the loop for better performance
-                if len(middleware_tuple) == 1:
-                    return middleware_tuple[0](handler)
-                elif len(middleware_tuple) == 2:
-                    return middleware_tuple[0](middleware_tuple[1](handler))
-                elif len(middleware_tuple) == 3:
-                    return middleware_tuple[0](
-                        middleware_tuple[1](middleware_tuple[2](handler))
-                    )
-
-            # Fall back to loop for longer chains
-            wrapped = handler
-            for middleware in reversed(middleware_tuple):
-                wrapped = middleware(wrapped)
-            return wrapped
-
-        return optimized_chain
+class SimpleMiddlewareOptimizer:
+    """Simplified middleware stack optimization."""
 
     @staticmethod
     def optimize_middleware_stack(middlewares: list) -> list:
-        """Optimize middleware stack by removing redundant operations."""
+        """Simple middleware optimization - just remove duplicates."""
         if not middlewares:
             return []
 
-        # Categorize middlewares by priority (some are more expensive than others)
-        high_priority = []
-        normal_priority = []
-        low_priority = []
-
-        # Use set for faster duplicate detection
+        # Remove duplicates while preserving order
         seen = set()
+        optimized = []
 
         for middleware in middlewares:
-            middleware_id = id(middleware)  # Use object ID for faster comparison
+            middleware_id = id(middleware)
+            if middleware_id not in seen:
+                seen.add(middleware_id)
+                optimized.append(middleware)
 
-            if middleware_id in seen:
-                continue  # Skip duplicates
-
-            seen.add(middleware_id)
-
-            # Optimize middleware categorization with faster string checks
-            middleware_name = getattr(
-                middleware, '__class__', type(middleware)
-            ).__name__.lower()
-
-            # Use startswith/endswith for faster string matching
-            if any(
-                pattern in middleware_name for pattern in ('security', 'auth', 'cors')
-            ):
-                high_priority.append(middleware)
-            elif any(
-                pattern in middleware_name
-                for pattern in ('log', 'compression', 'cache')
-            ):
-                low_priority.append(middleware)
-            else:
-                normal_priority.append(middleware)
-
-        # Return optimized middleware stack with priority ordering
-        return high_priority + normal_priority + low_priority
+        return optimized
 
 
-# Global optimized instances
+# Global simplified instances
 _json_encoder = FastJSONEncoder()
 _response_cache = ResponseCache()
-_middleware_optimizer = MiddlewareOptimizer()
-
-# Register the middleware cache for management
-cache_manager.register_lru_cache(
-    'middleware_chain', _middleware_optimizer.cached_middleware_chain
-)
+_middleware_optimizer = SimpleMiddlewareOptimizer()
 
 
 def get_json_encoder() -> FastJSONEncoder:
-    """Get the global optimized JSON encoder."""
+    """Get the global simplified JSON encoder."""
     return _json_encoder
 
 
@@ -360,50 +227,52 @@ def get_response_cache() -> ResponseCache:
     return _response_cache
 
 
-def get_middleware_optimizer() -> MiddlewareOptimizer:
-    """Get the global middleware optimizer."""
+def get_middleware_optimizer() -> SimpleMiddlewareOptimizer:
+    """Get the global simplified middleware optimizer."""
     return _middleware_optimizer
 
 
 def get_cache_stats() -> dict:
-    """Get comprehensive cache statistics from the cache manager."""
-    return cache_manager.get_cache_stats()
+    """Get simplified cache statistics."""
+    stats = {
+        'json_encoder': _json_encoder.get_stats(),
+    }
+    
+    # Add cache manager stats if available
+    try:
+        stats.update(cache_manager.get_cache_stats())
+    except Exception:
+        pass  # Ignore cache manager errors
+        
+    return stats
 
 
 def clear_all_caches() -> None:
-    """Clear all performance-related caches."""
-    cache_manager.clear_all_caches()
-    _json_encoder._cache.clear()
-    _response_cache = ResponseCache()  # Reset response cache
+    """Clear all framework caches."""
+    # Clear JSON encoder cache
+    _json_encoder._simple_cache.clear()
+    
+    # Clear cache manager caches
+    try:
+        cache_manager.clear_all_caches()
+    except Exception:
+        pass  # Ignore cache manager errors
 
 
 def initialize_memory_management() -> None:
-    """Initialize memory management for the Velithon framework."""
-    # Use lightweight mode by default for better performance
-    enable_memory_optimizations(lightweight=True)
-
-    # Create object pools for common Velithon objects
-    optimizer = get_memory_optimizer()
-
-    # Pool for request ID generation
-    optimizer.create_object_pool(
-        'request_ids', factory=lambda: [], reset_func=lambda x: x.clear(), max_size=50
-    )
-
-    # Pool for JSON encoding buffers
-    optimizer.create_object_pool(
-        'json_buffers',
-        factory=lambda: bytearray(),
-        reset_func=lambda x: x.clear(),
-        max_size=100,
-    )
+    """Initialize basic memory management for the Velithon framework."""
+    # Use lightweight mode for better performance
+    try:
+        enable_memory_optimizations(lightweight=True)
+    except Exception:
+        pass  # Ignore if memory optimizations are not available
 
 
 def cleanup_framework_memory() -> dict[str, Any]:
-    """Perform comprehensive framework memory cleanup."""
-    stats = manual_memory_cleanup()
-
-    # Clear all framework caches
+    """Perform basic framework memory cleanup."""
+    stats = {'cleaned': True}
+    
+    # Clear framework caches
     clear_all_caches()
 
     # Clear thread pool if needed
@@ -411,18 +280,37 @@ def cleanup_framework_memory() -> dict[str, Any]:
     if _thread_pool:
         _thread_pool.shutdown(wait=False)
         _thread_pool = None
+        stats['thread_pool_cleared'] = True
+
+    # Basic memory cleanup if available
+    try:
+        memory_stats = manual_memory_cleanup()
+        stats.update(memory_stats)
+    except Exception:
+        pass  # Ignore if memory management is not available
 
     return stats
 
 
 def optimized_json_encode(obj: Any) -> bytes:
-    """Memory-optimized JSON encoding with automatic cleanup."""
-    # For high-frequency operations like JSON encoding, skip memory management
-    # to avoid any overhead. Memory cleanup will happen at the request level.
+    """Simplified JSON encoding."""
     return get_json_encoder().encode(obj)
 
 
-# Context manager for request processing with memory optimization
 def request_memory_context():
-    """Get a request memory context for optimal garbage collection."""
-    return get_memory_context(enable_monitoring=False)  # Use optimized context
+    """Get a simple memory context for request processing."""
+    try:
+        return get_memory_context(enable_monitoring=False)
+    except Exception:
+        # Return a no-op context if memory management is not available
+        return NoOpContext()
+
+
+class NoOpContext:
+    """No-op context manager for when memory management is not available."""
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
