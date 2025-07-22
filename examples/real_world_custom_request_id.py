@@ -12,12 +12,13 @@ This example demonstrates:
 import re
 import time
 import uuid
+
 from velithon import Velithon
-from velithon.requests import Request
-from velithon.responses import JSONResponse
+from velithon.ctx import current_app, g, has_request_context, request
 from velithon.middleware import Middleware
 from velithon.middleware.base import BaseHTTPMiddleware
-from velithon.ctx import current_app, request, g, has_request_context
+from velithon.requests import Request
+from velithon.responses import JSONResponse
 
 # Compile regex patterns once for performance
 UUID_PATTERN = re.compile(r'^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$')
@@ -33,53 +34,51 @@ def production_request_id_generator(req):
     3. Generate UUID for API endpoints
     4. Custom format for other endpoints
     """
-    
     try:
         # Strategy 1: Use distributed tracing ID
         trace_id = req.headers.get('x-trace-id')
         if trace_id and UUID_PATTERN.match(trace_id):
             return f"trace-{trace_id}"
-        
+
         # Strategy 2: Use client correlation ID
         correlation_id = req.headers.get('x-correlation-id')
         if correlation_id and CORRELATION_PATTERN.match(correlation_id) and len(correlation_id) <= 64:
             return f"corr-{correlation_id}"
-        
+
         # Strategy 3: Generate UUID for API endpoints
         if req.path.startswith('/api/'):
             return f"api-{str(uuid.uuid4())[:8]}"
-        
+
         # Strategy 4: Custom format for other endpoints
         timestamp = int(time.time() * 1000) % 1000000  # Last 6 digits
         path_hash = abs(hash(req.path)) % 10000
         client_hash = abs(hash(req.client)) % 1000 if hasattr(req, 'client') else 0
         return f"req-{timestamp}-{path_hash}-{client_hash}"
-        
-    except Exception as e:
+
+    except Exception:
         # Ultimate fallback: simple timestamp-based ID
         return f"fallback-{int(time.time() * 1000)}"
 
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
     """Middleware to demonstrate context usage and request logging."""
-    
+
     async def process_http_request(self, scope, protocol):
         """Log request start and end with custom request ID."""
-        
         start_time = time.time()
         request_id = scope._request_id
         method = scope.method
         path = scope.path
-        
+
         print(f"🚀 [{request_id}] Starting {method} {path}")
-        
+
         try:
             # Process the request
             await self.app(scope, protocol)
-            
+
             duration = (time.time() - start_time) * 1000
             print(f"✅ [{request_id}] Completed {method} {path} in {duration:.2f}ms")
-            
+
         except Exception as e:
             duration = (time.time() - start_time) * 1000
             print(f"❌ [{request_id}] Failed {method} {path} after {duration:.2f}ms: {e}")
@@ -111,14 +110,13 @@ async def root():
 @app.get("/api/users/{user_id}")
 async def get_user(req: Request):
     """API endpoint that will get UUID-based request ID."""
-    
     user_id = req.path_params["user_id"]
-    
+
     # Store some data in request context
     if has_request_context():
         g.user_id = user_id
         g.request_start = time.time()
-    
+
     return JSONResponse({
         "request_id": req.request_id,
         "user_id": user_id,
@@ -134,19 +132,18 @@ async def get_user(req: Request):
 @app.post("/api/users")
 async def create_user(req: Request):
     """Create user endpoint with request body."""
-    
     try:
         body = await req.json()
         user_name = body.get("name", "Unknown")
-        
+
         # Simulate some processing time
         time.sleep(0.1)
-        
+
         # Use request context
         if has_request_context():
             g.created_user = user_name
             g.processing_time = 0.1
-        
+
         return JSONResponse({
             "request_id": req.request_id,
             "message": f"User {user_name} created successfully",
@@ -157,7 +154,7 @@ async def create_user(req: Request):
                 "request_size": len(await req.body()) if hasattr(req, 'body') else 0
             }
         })
-        
+
     except Exception as e:
         return JSONResponse({
             "request_id": req.request_id,
@@ -169,7 +166,6 @@ async def create_user(req: Request):
 @app.get("/health")
 async def health_check(req: Request):
     """Health check endpoint that shows different request ID for non-API paths."""
-    
     return JSONResponse({
         "status": "healthy",
         "request_id": req.request_id,
@@ -184,10 +180,9 @@ async def health_check(req: Request):
 @app.get("/demo/trace")
 async def demo_trace_id(req: Request):
     """Demo endpoint to show trace ID handling."""
-    
     trace_id = req.headers.get("x-trace-id")
     correlation_id = req.headers.get("x-correlation-id")
-    
+
     return JSONResponse({
         "request_id": req.request_id,
         "demonstrates": "Trace ID and Correlation ID handling",
@@ -208,47 +203,47 @@ async def demo_trace_id(req: Request):
 
 def demonstrate_request_id_generation():
     """Demonstrate different request ID generation scenarios."""
-    
     print("=" * 80)
     print("VELITHON CUSTOM REQUEST ID GENERATION DEMO")
     print("=" * 80)
-    
+
     # Test the generator function directly
-    from velithon.datastructures import _TempRequestContext
     from unittest.mock import Mock
-    
+
+    from velithon.datastructures import _TempRequestContext
+
     print("\n🧪 Testing Request ID Generation Strategies:\n")
-    
+
     # Test 1: Trace ID
     mock_scope = Mock()
     mock_scope.headers = [('x-trace-id', 'f47ac10b-58cc-4372-a567-0e02b2c3d479')]
     mock_scope.method = "GET"
     mock_scope.path = "/api/test"
     mock_scope.client = "192.168.1.100"
-    
+
     temp_request = _TempRequestContext(mock_scope)
     request_id = production_request_id_generator(temp_request)
     print(f"1. With Trace ID: {request_id}")
-    
+
     # Test 2: Correlation ID
     mock_scope.headers = [('x-correlation-id', 'user-session-12345')]
     temp_request = _TempRequestContext(mock_scope)
     request_id = production_request_id_generator(temp_request)
     print(f"2. With Correlation ID: {request_id}")
-    
+
     # Test 3: API endpoint (no special headers)
     mock_scope.headers = []
     mock_scope.path = "/api/users/123"
     temp_request = _TempRequestContext(mock_scope)
     request_id = production_request_id_generator(temp_request)
     print(f"3. API endpoint: {request_id}")
-    
+
     # Test 4: Regular endpoint
     mock_scope.path = "/health"
     temp_request = _TempRequestContext(mock_scope)
     request_id = production_request_id_generator(temp_request)
     print(f"4. Regular endpoint: {request_id}")
-    
+
     print("\n🌟 To test with real HTTP requests, run:")
     print("velithon run --app real_world_example:app --reload")
     print("\nThen try these curl commands:")
@@ -257,7 +252,7 @@ def demonstrate_request_id_generation():
     print("curl -H 'X-Trace-ID: f47ac10b-58cc-4372-a567-0e02b2c3d479' http://localhost:8000/demo/trace")
     print("curl -H 'X-Correlation-ID: my-session-id' http://localhost:8000/demo/trace")
     print("curl -X POST -H 'Content-Type: application/json' -d '{\"name\":\"John\"}' http://localhost:8000/api/users")
-    
+
     print("\n" + "=" * 80)
 
 

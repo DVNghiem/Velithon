@@ -46,11 +46,11 @@ def set_thread_pool() -> None:
         if _thread_pool is None:
             # Optimized thread count: I/O bound (higher), CPU bound (lower)
             cpu_count = os.cpu_count() or 1
-            
+
             # Performance-optimized worker count based on workload type
             # For web applications, I/O bound operations are more common
             max_workers = min(64, cpu_count * 8)  # Increased multiplier for I/O tasks
-            
+
             # Enhanced thread pool with performance optimizations
             _thread_pool = concurrent.futures.ThreadPoolExecutor(
                 max_workers=max_workers,
@@ -106,13 +106,13 @@ async def run_in_threadpool(func: Callable, *args, **kwargs) -> Any:
     global _thread_pool
     if _thread_pool is None:
         set_thread_pool()
-    
+
     loop = asyncio.get_running_loop()
 
     # Fast path for simple functions without arguments
     if not args and not kwargs:
         return await loop.run_in_executor(_thread_pool, func)
-    
+
     # Memory-efficient parameter passing for large kwargs
     if len(kwargs) > 10 or any(
         hasattr(v, '__len__') and len(v) > 1000
@@ -121,7 +121,7 @@ async def run_in_threadpool(func: Callable, *args, **kwargs) -> Any:
         # For large parameter sets, use partial to avoid lambda closure overhead
         partial_func = functools.partial(func, *args, **kwargs)
         return await loop.run_in_executor(_thread_pool, partial_func)
-    
+
     # Standard path with lambda (most common case)
     # Use more efficient lambda creation for small parameter sets
     if args and kwargs:
