@@ -27,6 +27,15 @@ class WebSocketRoute(BaseRoute):
         | type[WebSocketEndpoint],
         name: str | None = None,
     ) -> None:
+        """
+        Initialize a WebSocketRoute.
+
+        Args:
+            path: The route path pattern for the WebSocket endpoint.
+            endpoint: The async function or class-based endpoint handling the WebSocket connection.
+            name: Optional name for the route.
+
+        """  # noqa: E501
         self.path = path
         self.endpoint = endpoint
         self.name = name or getattr(endpoint, '__name__', 'websocket')
@@ -74,6 +83,7 @@ class WebSocketRoute(BaseRoute):
         return {}, {}
 
     def __eq__(self, other: typing.Any) -> bool:
+        """Determine equality with another WebSocketRoute instance."""
         return (
             isinstance(other, WebSocketRoute)
             and self.path == other.path
@@ -81,13 +91,14 @@ class WebSocketRoute(BaseRoute):
         )
 
     def __repr__(self) -> str:
+        """Return a string representation of the WebSocketRoute instance."""
         class_name = self.__class__.__name__
         path, name = self.path, self.name
         return f'{class_name}(path={path!r}, name={name!r})'
 
 
 def websocket_route(path: str, name: str | None = None) -> typing.Callable:
-    """Decorator for creating WebSocket routes.
+    """Create a WebSocket route decorator.
 
     Args:
         path: The WebSocket path pattern

@@ -24,11 +24,18 @@ logger = logging.getLogger(__name__)
 
 
 class WorkerType(IntEnum):
+    """Enumeration of worker types for VSP manager."""
+
     ASYNCIO = 1
     MULTICORE = 2
 
 
 class VSPManager:
+    """Manager for Velithon Service Protocol (VSP).
+
+    Manages service endpoints, client connections, and worker coordination.
+    """
+
     def __init__(
         self,
         name: str,
@@ -39,6 +46,19 @@ class VSPManager:
         max_transports: int = 10,
         batch_size: int = 10,
     ):
+        """
+        Initialize the VSPManager.
+
+        Args:
+            name (str): The name of the service.
+            service_mesh (ServiceMesh | None): Optional service mesh instance.
+            num_workers (int): Number of worker tasks to spawn.
+            worker_type (WorkerType): Type of worker (ASYNCIO or MULTICORE).
+            max_queue_size (int): Maximum size of the message queue.
+            max_transports (int): Maximum number of transport connections.
+            batch_size (int): Number of messages to process per batch.
+
+        """
         assert isinstance(
             worker_type, WorkerType
         ), 'worker_type must be an instance of WorkerType'
@@ -97,6 +117,8 @@ class VSPManager:
         return decorator
 
     def vsp_call(self, service_name: str, endpoint: str) -> Callable:
+        """Call a VSP service endpoint with automatic serialization."""
+
         def decorator(func: Callable) -> Callable:
             async def wrapper(**kwargs) -> dict[str, Any]:
                 logger.debug(f'Calling {service_name}.{endpoint} with {kwargs}')
@@ -137,7 +159,7 @@ class VSPManager:
 
         async with server:
             logger.info(
-                f'VSP server started on {host}:{port} with {self.num_workers} workers (reuse_port={reuse_port})'
+                f'VSP server started on {host}:{port} with {self.num_workers} workers (reuse_port={reuse_port})'  # noqa: E501
             )
             __serving_forever_fut = loop.create_future()
             try:
@@ -167,7 +189,7 @@ class VSPManager:
             await self.message_queue.put((message, protocol))
             self.stats['messages_queued'] += 1
             logger.debug(f'Enqueued message {message.header["request_id"]}')
-        except asyncio.QueueFull:
+        except asyncio.QueueFull as e:
             self.stats['queue_full_errors'] += 1
             logger.error(
                 f'Message queue full, dropping message {message.header["request_id"]}'
@@ -180,12 +202,12 @@ class VSPManager:
                 is_response=True,
             )
             protocol.send_message(error_msg)
-            raise VSPError('Message queue full')
+            raise VSPError('Message queue full') from e
 
     async def optimized_worker(self, worker_id: int) -> None:
         """Worker with batch processing and priority handling."""
         logger.info(
-            f'Worker {worker_id} ({self.worker_type.name.lower()}) started for {self.name}'
+            f'Worker {worker_id} ({self.worker_type.name.lower()}) started for {self.name}'  # noqa: E501
         )
 
         batch = []
@@ -384,7 +406,7 @@ class VSPManager:
     def _process_batch_sync(
         message_data: list[tuple[dict, dict]], handler: Callable
     ) -> list[Any]:
-        """Synchronously process a batch of messages."""
+        """Process a batch of messages synchronously."""
         results = []
         for _header, body in message_data:
             try:
@@ -454,7 +476,7 @@ class VSPManager:
             return response
         except Exception as e:
             logger.error(f'Error handling endpoint {endpoint}: {e}')
-            raise VSPError(f'Endpoint execution failed: {e}')
+            raise VSPError(f'Endpoint execution failed: {e}') from e
 
     def close(self) -> None:
         """Close manager and clean up resources."""

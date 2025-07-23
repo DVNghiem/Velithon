@@ -297,7 +297,7 @@ class Channel:
 
         self._connection_subscriptions[connection_id].add(event)
         logger.debug(
-            f"Connection '{connection_id}' subscribed to '{event}' in channel '{self.name}'"
+            f"Connection '{connection_id}' subscribed to '{event}' in channel '{self.name}'"  # noqa: E501
         )
         return True
 
@@ -319,7 +319,7 @@ class Channel:
         if event in subscriptions:
             subscriptions.remove(event)
             logger.debug(
-                f"Connection '{connection_id}' unsubscribed from '{event}' in channel '{self.name}'"
+                f"Connection '{connection_id}' unsubscribed from '{event}' in channel '{self.name}'"  # noqa: E501
             )
             return True
 

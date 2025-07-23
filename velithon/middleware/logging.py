@@ -17,11 +17,24 @@ logger = get_logger(__name__)
 
 
 class LoggingMiddleware(BaseHTTPMiddleware):
+    """Middleware for logging HTTP requests and responses in Velithon.
+
+    This middleware logs request details, response status, and processing time.
+    It also handles exceptions and logs error details if an exception occurs.
+    """
+
     def __init__(self, app):
+        """Initialize the logging middleware with the given application.
+
+        Args:
+            app: The next RSGI application in the middleware chain.
+
+        """
         super().__init__(app)
         self._logger = get_logger(__name__)
 
     async def process_http_request(self, scope: Scope, protocol: Protocol) -> None:
+        """Process HTTP request and log details including performance metrics."""
         # Check if logging is enabled at INFO level first to avoid timing calculations
         # if we're not going to log anything
         if not self._logger.isEnabledFor(20):  # INFO level = 20

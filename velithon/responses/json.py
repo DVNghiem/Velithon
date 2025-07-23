@@ -4,13 +4,12 @@ from __future__ import annotations
 
 import typing
 
-from velithon._utils import get_json_encoder, get_response_cache
+from velithon._utils import get_json_encoder
 from velithon.background import BackgroundTask
 
 from .base import Response
 
 _optimized_json_encoder = get_json_encoder()
-_response_cache = get_response_cache()
 
 
 class JSONResponse(Response):

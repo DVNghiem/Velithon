@@ -16,7 +16,30 @@ from velithon.responses import JSONResponse, Response
 
 
 class HTTPEndpoint:
+    """
+    Base class for HTTP endpoints in the Velithon framework.
+
+    Attributes
+    ----------
+    scope : Scope
+        The ASGI scope for the request.
+    protocol : Protocol
+        The protocol instance for communication.
+
+    """
+
     def __init__(self, scope: Scope, protocol: Protocol) -> None:
+        """
+        Initialize an HTTPEndpoint instance with the given ASGI scope and protocol.
+
+        Parameters
+        ----------
+        scope : Scope
+            The ASGI scope for the request.
+        protocol : Protocol
+            The protocol instance for communication.
+
+        """
         assert scope.proto == 'http'
         self.scope = scope
         self.protocol = protocol
@@ -27,10 +50,15 @@ class HTTPEndpoint:
         ]
 
     def __await__(self) -> typing.Generator[typing.Any, None, None]:
+        """
+        Awaitable method to handle the endpoint dispatching.
+
+        This method is called when the endpoint is awaited in an async context.
+        """
         return self.dispatch().__await__()
 
     async def dispatch(self) -> Response:
-        # Use singleton request pattern - try to get from context first
+        """Use singleton request pattern - try to get from context first."""
         if has_request_context():
             request = get_or_create_request(self.scope, self.protocol)
         else:
@@ -49,6 +77,7 @@ class HTTPEndpoint:
         await response(self.scope, self.protocol)
 
     def method_not_allowed(self, request: Request) -> Response:
+        """Handle method not allowed responses."""
         return JSONResponse(
             content={'message': 'Method Not Allowed', 'error_code': 'METHOD_NOT_ALLOW'},
             status_code=405,

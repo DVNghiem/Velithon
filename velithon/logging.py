@@ -46,7 +46,9 @@ from velithon._velithon import (
 
 
 class RustLoggingHandler(logging.Handler):
-    """Python logging Handler that forwards log records to the Rust logging implementation.
+    """Python logging Handler that forwards log records to the Rust logging.
+
+    implementation.
     This allows standard Python logging calls to use the high-performance Rust backend.
     """
 
@@ -139,11 +141,18 @@ class RustLoggingHandler(logging.Handler):
 
 class RustLogger:
     """A Python wrapper around the Rust logging implementation.
+
     Provides compatibility with Python's logging interface while leveraging
     Rust's performance for the actual logging operations.
     """
 
     def __init__(self, name: str = 'velithon'):
+        """Initialize the RustLogger instance.
+
+        Args:
+            name: The name of the logger.
+
+        """
         self.name = name
         self._configured = False
 

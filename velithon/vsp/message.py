@@ -29,6 +29,8 @@ logger = logging.getLogger(__name__)
 
 
 class VSPError(Exception):
+    """Base class for VSP protocol errors."""
+
     pass
 
 
@@ -43,6 +45,17 @@ class VSPMessage:
         body: dict[str, Any],
         is_response: bool = False,
     ):
+        """
+        Initialize a VSPMessage instance.
+
+        Args:
+            request_id (str): Unique identifier for the request.
+            service (str): Name of the target service.
+            endpoint (str): Endpoint being called.
+            body (dict[str, Any]): Message payload.
+            is_response (bool, optional): Indicates if this message is a response. Defaults to False.
+
+        """  # noqa: E501
         self.header = {
             'request_id': request_id,
             'service': service,
@@ -66,7 +79,7 @@ class VSPMessage:
         }
 
     def to_bytes(self) -> bytes:
-        """Serialization with caching and fast backends."""
+        """Serialize with caching and fast backends."""
         if self._serialized_cache is not None:
             return self._serialized_cache
 
@@ -90,7 +103,7 @@ class VSPMessage:
             return result
         except Exception as e:
             logger.error(f'Failed to serialize message: {e}')
-            raise VSPError(f'Message serialization failed: {e}')
+            raise VSPError(f'Message serialization failed: {e}') from e
 
     @classmethod
     def from_bytes(cls, data: bytes) -> 'VSPMessage':
@@ -112,13 +125,14 @@ class VSPMessage:
             )
         except Exception as e:
             logger.error(f'Failed to deserialize message: {e}')
-            raise VSPError(f'Message deserialization failed: {e}')
+            raise VSPError(f'Message deserialization failed: {e}') from e
 
     def clear_cache(self) -> None:
         """Clear serialization cache."""
         self._serialized_cache = None
 
     def __repr__(self) -> str:
+        """Return string representation of the VSPMessage."""
         return (
             f'VSPMessage(request_id={self.header["request_id"]}, '
             f'service={self.header["service"]}, '

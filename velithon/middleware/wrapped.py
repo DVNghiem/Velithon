@@ -18,11 +18,13 @@ class WrappedRSGITypeMiddleware:
     """A middleware that wraps a given RSGI type middleware."""
 
     def __init__(self, app):
+        """Initialize the wrapped middleware with the given RSGI application."""
         self.app = app
 
     async def __call__(
         self, scope: RSGIScope, protocol: HTTPProtocol
     ) -> typing.Callable:
+        """Call the wrapped RSGI application with the given scope and protocol."""
         wrapped_scope = Scope(scope=scope)
         wrapped_protocol = Protocol(protocol=protocol)
         await self.app(wrapped_scope, wrapped_protocol)

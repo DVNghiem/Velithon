@@ -63,7 +63,7 @@ class GatewayRoute(BaseRoute):
             path_rewrite: Rewrite the path before forwarding (supports regex patterns)
             middleware: Middleware to apply to this route
 
-        """
+        """  # noqa: E501
         self.path = path
         self.methods = list(methods) if methods else None
         self.name = name or f'gateway_{path}'
@@ -278,6 +278,7 @@ class Gateway:
     """
 
     def __init__(self):
+        """Initialize the gateway with empty routes and load balancers."""
         self.routes: list[GatewayRoute] = []
         self.load_balancers: dict[str, ProxyLoadBalancer] = {}
 

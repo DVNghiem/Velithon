@@ -57,9 +57,9 @@ class HTTPBasic(SecurityBase):
             username, password = decoded.split(':', 1)
             return f'{username}:{password}'
 
-        except (ValueError, UnicodeDecodeError):
+        except (ValueError, UnicodeDecodeError) as e:
             if self.auto_error:
-                raise AuthenticationError('Invalid Basic authentication format')
+                raise AuthenticationError('Invalid Basic authentication format') from e
             return None
 
     def get_openapi_security_definition(self) -> dict[str, Any]:
@@ -97,9 +97,9 @@ class HTTPBearer(SecurityBase):
 
             return token
 
-        except ValueError:
+        except ValueError as e:
             if self.auto_error:
-                raise AuthenticationError('Invalid Bearer token format')
+                raise AuthenticationError('Invalid Bearer token format') from e
             return None
 
     def get_openapi_security_definition(self) -> dict[str, Any]:

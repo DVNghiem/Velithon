@@ -21,7 +21,7 @@ class ComparableDataStructure(ABC):
         pass
 
     def __eq__(self, other: typing.Any) -> bool:
-        """Generic equality comparison using comparison key."""
+        """Return generic equality comparison using comparison key."""
         if not isinstance(other, self.__class__):
             return False
         return self._get_comparison_key() == other._get_comparison_key()
@@ -92,7 +92,7 @@ class RepresentableDataStructure(ABC):
         pass
 
     def __repr__(self) -> str:
-        """Generic representation showing class name and key attributes."""
+        """Return generic representation showing class name and key attributes."""
         class_name = self.__class__.__name__
         attrs = self._get_repr_attrs()
 
@@ -123,7 +123,7 @@ class UrlDataStructure(DataStructureBase):
     """Base class for URL-like data structures."""
 
     def __str__(self) -> str:
-        """String representation should return the URL string."""
+        """Return the URL string representation."""
         return self._get_url_string()
 
     @abstractmethod

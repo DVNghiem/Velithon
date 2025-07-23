@@ -31,14 +31,26 @@ class AppContext:
     """
 
     def __init__(self, app: 'Velithon') -> None:
+        """Initialize the AppContext with the given Velithon application.
+
+        Args:
+            app (Velithon): The Velithon application instance.
+
+        """
         self.app = app
         self._token: Optional[contextvars.Token] = None
 
     def __enter__(self) -> 'AppContext':
+        """Enter the application context."""
         self._token = _app_ctx_stack.set(self)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        """Exit the application context and reset the context variable.
+
+        This method is called when exiting the context manager and ensures
+        the application context variable is properly reset.
+        """
         if self._token is not None:
             _app_ctx_stack.reset(self._token)
             self._token = None
@@ -58,11 +70,20 @@ class AppContext:
 class RequestContext:
     """Request context for Velithon requests.
 
-    This holds request-specific information that needs to be accessible during request processing.
-    Implements singleton pattern for Request objects to ensure only one instance per request.
+    This holds request-specific information that needs 
+        to be accessible during request processing.
+    Implements singleton pattern for Request objects 
+        to ensure only one instance per request.
     """
 
     def __init__(self, app: 'Velithon', request: 'Request') -> None:
+        """Initialize the RequestContext with the given application and request.
+
+        Args:
+            app (Velithon): The Velithon application instance.
+            request (Request): The current request object.
+
+        """
         self.app = app
         self.request = request
         self._token: Optional[contextvars.Token] = None
@@ -77,17 +98,23 @@ class RequestContext:
         """Create a RequestContext with a singleton Request object.
 
         This method ensures that only one Request instance is created per request context.
-        """
+        """  # noqa: E501
         from velithon.requests import Request
 
         request = Request(scope, protocol)
         return cls(app, request)
 
     def __enter__(self) -> 'RequestContext':
+        """Enter the request context."""
         self._token = _request_ctx_stack.set(self)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        """Exit the request context and reset the context variable.
+
+        This method is called when exiting the context manager and ensures
+        the request context variable is properly reset.
+        """
         if self._token is not None:
             _request_ctx_stack.reset(self._token)
             self._token = None
@@ -108,9 +135,16 @@ class SimpleNamespace:
     """Simple namespace for storing arbitrary data."""
 
     def __init__(self, **kwargs):
+        """Initialize the SimpleNamespace with arbitrary keyword arguments.
+
+        Args:
+            **kwargs: Arbitrary keyword arguments to set as attributes.
+
+        """
         self.__dict__.update(kwargs)
 
     def __repr__(self) -> str:
+        """Return a string representation of the SimpleNamespace object."""
         keys = sorted(self.__dict__)
         items = (f'{k}={self.__dict__[k]!r}' for k in keys)
         return '{}({})'.format(type(self).__name__, ', '.join(items))
@@ -120,6 +154,13 @@ class LocalProxy:
     """A proxy object that forwards all operations to a context-local object."""
 
     def __init__(self, local: Callable[[], Any], name: Optional[str] = None) -> None:
+        """Initialize the LocalProxy with a callable to retrieve the context-local object.
+
+        Args:
+            local (Callable[[], Any]): A callable that returns the context-local object.
+            name (Optional[str]): Optional name for the proxy object.
+
+        """  # noqa: E501
         object.__setattr__(self, '_LocalProxy__local', local)
         object.__setattr__(self, '__name__', name)
 
@@ -128,36 +169,47 @@ class LocalProxy:
         return self._LocalProxy__local()
 
     def __getattr__(self, name: str) -> Any:
+        """Return the attribute of the proxied context-local object."""
         return getattr(self._get_current_object(), name)
 
     def __setattr__(self, name: str, value: Any) -> None:
+        """Set an attribute on the proxied context-local object."""
         setattr(self._get_current_object(), name, value)
 
     def __delattr__(self, name: str) -> None:
+        """Delete an attribute from the proxied context-local object."""
         delattr(self._get_current_object(), name)
 
     def __str__(self) -> str:
+        """Return a string representation of the proxied context-local object."""
         return str(self._get_current_object())
 
     def __repr__(self) -> str:
+        """Return a string representation of the proxied context-local object."""
         return repr(self._get_current_object())
 
     def __bool__(self) -> bool:
+        """Return True if the proxied context-local object is truthy."""
         return bool(self._get_current_object())
 
     def __len__(self) -> int:
+        """Return the length of the proxied context-local object if it supports len()."""  # noqa: E501
         return len(self._get_current_object())
 
     def __getitem__(self, key: Any) -> Any:
+        """Return an item from the proxied context-local object."""
         return self._get_current_object()[key]
 
     def __setitem__(self, key: Any, value: Any) -> None:
+        """Set an item on the proxied context-local object."""
         self._get_current_object()[key] = value
 
     def __delitem__(self, key: Any) -> None:
+        """Delete an item from the proxied context-local object."""
         del self._get_current_object()[key]
 
     def __call__(self, *args, **kwargs) -> Any:
+        """Call the proxied context-local object as a function."""
         return self._get_current_object()(*args, **kwargs)
 
 
@@ -250,6 +302,12 @@ class RequestIDManager:
     """Manager for request ID generation with context awareness."""
 
     def __init__(self, app: 'Velithon') -> None:
+        """Initialize the RequestIDManager with the given Velithon application.
+
+        Args:
+            app (Velithon): The Velithon application instance.
+
+        """
         self.app = app
         self._default_generator = None
 

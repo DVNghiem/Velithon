@@ -18,9 +18,22 @@ class BaseHTTPMiddleware(ABC):
     """
 
     def __init__(self, app: RSGIApp):
+        """Initialize the middleware with the given RSGI application.
+
+        Args:
+            app: The next RSGI application in the middleware chain.
+
+        """
         self.app = app
 
     async def __call__(self, scope: Scope, protocol: Protocol) -> None:
+        """Handle incoming requests and delegate to HTTP-specific processing if applicable.
+
+        Args:
+            scope: The request scope containing protocol and request information.
+            protocol: The protocol handler for the request.
+
+        """  # noqa: E501
         if scope.proto != 'http':
             return await self.app(scope, protocol)
 
@@ -48,16 +61,17 @@ class PassThroughMiddleware(BaseHTTPMiddleware):
     """
 
     async def process_http_request(self, scope: Scope, protocol: Protocol) -> None:
+        """Process the HTTP request and always call the next app."""
         await self.before_request(scope, protocol)
         await self.app(scope, protocol)
         await self.after_request(scope, protocol)
 
     async def before_request(self, scope: Scope, protocol: Protocol) -> None:
-        """Called before the request is processed by the next app."""
+        """Call before the request is processed by the next app."""
         pass
 
     async def after_request(self, scope: Scope, protocol: Protocol) -> None:
-        """Called after the request is processed by the next app."""
+        """Call after the request is processed by the next app."""
         pass
 
 
@@ -70,6 +84,13 @@ class ConditionalMiddleware(BaseHTTPMiddleware):
     """
 
     async def process_http_request(self, scope: Scope, protocol: Protocol) -> None:
+        """Process the HTTP request and conditionally call the next app.
+
+        Args:
+            scope: The request scope
+            protocol: The protocol handler
+
+        """
         should_continue = await self.should_process_request(scope, protocol)
         if should_continue:
             await self.app(scope, protocol)
@@ -95,6 +116,7 @@ class ProtocolWrapperMiddleware(BaseHTTPMiddleware):
     """
 
     async def process_http_request(self, scope: Scope, protocol: Protocol) -> None:
+        """Process the HTTP request and wrap the protocol for response interception."""
         wrapped_protocol = self.create_wrapped_protocol(scope, protocol)
         await self.app(scope, wrapped_protocol)
 

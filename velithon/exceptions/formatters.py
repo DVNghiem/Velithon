@@ -12,7 +12,21 @@ from .base import HTTPException, ResponseFormatter
 
 
 class SimpleFormatter(ResponseFormatter):
+    """A simple response formatter for HTTP exceptions.
+
+    Returns a minimal error response containing only the error code and message.
+    """
+
     def format_error(self, exception: HTTPException) -> dict[str, Any]:
+        """Format an HTTPException into a minimal error response.
+
+        Args:
+            exception (HTTPException): The exception to format.
+
+        Returns:
+            dict[str, Any]: The formatted error response containing code and message.
+
+        """
         return {
             'code': exception.error.code if exception.error else 'UNKNOWN_ERROR',
             'message': exception.error.message
@@ -22,7 +36,25 @@ class SimpleFormatter(ResponseFormatter):
 
 
 class DetailedFormatter(ResponseFormatter):
+    """A detailed response formatter for HTTP exceptions.
+
+    Returns a comprehensive error response including status, error details,
+    timestamp, and request information.
+    """
+
     def format_error(self, exception: HTTPException) -> dict[str, Any]:
+        """Format an HTTPException into a detailed error response.
+
+        Returns a dictionary containing status, error details,
+            timestamp, and request info.
+
+        Args:
+            exception (HTTPException): The exception to format.
+
+        Returns:
+            dict[str, Any]: The formatted error response.
+
+        """
         return {
             'status': {
                 'code': exception.status_code,
@@ -41,7 +73,24 @@ class DetailedFormatter(ResponseFormatter):
 
 
 class LocalizedFormatter(ResponseFormatter):
+    """A response formatter that provides localized error messages.
+
+    This formatter translates error codes into human-readable messages
+    based on the specified language.
+
+    Attributes:
+        language (str): The language code for localization.
+        translations (dict): Mapping of error codes to localized messages.
+
+    """
+
     def __init__(self, language: str = 'en'):
+        """Initialize the LocalizedFormatter with a specified language.
+
+        Args:
+            language (str): The language code for localization (default is 'en').
+
+        """
         self.language = language
         self.translations = {
             'en': {
@@ -59,6 +108,15 @@ class LocalizedFormatter(ResponseFormatter):
         }
 
     def format_error(self, exception: HTTPException) -> dict[str, Any]:
+        """Format an HTTPException into a localized error response.
+
+        Args:
+            exception (HTTPException): The exception to format.
+
+        Returns:
+            dict[str, Any]: The formatted error response with localized message.
+
+        """
         error_code = exception.error.code if exception.error else 'UNKNOWN_ERROR'
         translated_message = self.translations.get(self.language, {}).get(
             error_code,

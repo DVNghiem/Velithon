@@ -28,7 +28,7 @@ class PerformanceConfig:
 
     @staticmethod
     def configure_for_maximum_performance():
-        """Configure Velithon for absolute maximum performance (no memory management)."""
+        """Configure Velithon for absolute maximum performance (no memory management)."""  # noqa: E501
         disable_memory_optimizations()
 
     @staticmethod

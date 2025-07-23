@@ -35,13 +35,23 @@ PARAM_REGEX = re.compile('{([a-zA-Z_][a-zA-Z0-9_]*)(:[a-zA-Z_][a-zA-Z0-9_]*)?}')
 
 
 def get_name(endpoint: Callable[..., Any]) -> str:
+    """Return the name of the endpoint function or class.
+
+    Args:
+        endpoint: The endpoint callable (function or class).
+
+    Returns:
+        str: The name of the endpoint.
+
+    """
     return getattr(endpoint, '__name__', endpoint.__class__.__name__)
 
 
 def request_response(
     func: Callable[[Request], Awaitable[Response] | Response],
 ) -> RSGIApp:
-    """Take a function or coroutine `func(request) -> response`,
+    """Take a function or coroutine `func(request) -> response`.
+
     and return an ARGI application.
     """
     f: Callable[[Request], Awaitable[Response]] = (
@@ -62,17 +72,37 @@ def request_response(
 
 
 class BaseRoute:
+    """Base class for defining routes in the Velithon framework.
+
+    This class provides the interface for route matching, handling requests,
+    and generating OpenAPI documentation. Subclasses should implement the
+    required methods for specific route types.
+    """
+
     def matches(self, scope: Scope) -> tuple[Match, Scope]:
+        """
+        Determine if the given scope matches this route.
+
+        Args:
+            scope (Scope): The request scope containing path and method information.
+
+        Returns:
+            tuple[Match, Scope]: A tuple containing the match type and the updated scope with path parameters.
+
+        """  # noqa: E501
         raise NotImplementedError()  # pragma: no cover
 
     async def handle(self, scope: Scope, protocol: Protocol) -> None:
+        """Handle an incoming request for this route."""
         raise NotImplementedError()  # pragma: no cover
 
     async def openapi(self) -> tuple[dict, dict]:
+        """Return the OpenAPI schema for this route."""
         raise NotImplementedError()  # pragma: no cover
 
     async def __call__(self, scope: Scope, protocol: Protocol) -> None:
-        """A route may be used in isolation as a stand-alone RSGI app.
+        """Use a route in isolation as a stand-alone RSGI app.
+
         This is a somewhat contrived case, as they'll almost always be used
         within a Router, but could be useful for some tooling and minimal apps.
         """
@@ -92,6 +122,27 @@ class BaseRoute:
 
 
 class Route(BaseRoute):
+    """
+    Route class for Velithon framework.
+
+    Represents an HTTP route, including path pattern, endpoint handler, allowed methods,
+    middleware, and OpenAPI documentation metadata.
+    Utilizes Rust-optimized path matching for high performance.
+
+    Attributes:
+        path (str): The route path pattern.
+        endpoint (Callable[..., Any]): The endpoint function or class.
+        name (str): The name of the route.
+        methods (set[str] | None): Allowed HTTP methods.
+        middleware (Sequence[Middleware] | None): Middleware stack for this route.
+        summary (str | None): Summary for documentation.
+        description (str | None): Description for documentation.
+        tags (Sequence[str] | None): Tags for grouping routes.
+        include_in_schema (bool | None): Whether to include in OpenAPI schema.
+        response_model (type | None): Response model for documentation.
+
+    """
+
     def __init__(
         self,
         path: str,
@@ -106,6 +157,22 @@ class Route(BaseRoute):
         include_in_schema: bool | None = True,
         response_model: type | None = None,
     ) -> None:
+        """
+        Initialize a Route instance.
+
+        Args:
+            path (str): The route path pattern.
+            endpoint (Callable[..., Any]): The endpoint function or class.
+            methods (Sequence[str] | None): Allowed HTTP methods.
+            name (str | None): Name of the route.
+            middleware (Sequence[Middleware] | None): Middleware stack for this route.
+            summary (str | None): Summary for documentation.
+            description (str | None): Description for documentation.
+            tags (Sequence[str] | None): Tags for grouping routes.
+            include_in_schema (bool | None): Whether to include in OpenAPI schema.
+            response_model (type | None): Response model for documentation.
+
+        """
         assert path.startswith('/'), "Routed paths must start with '/'"
         self.path = path
         self.endpoint = endpoint
@@ -120,7 +187,7 @@ class Route(BaseRoute):
         while isinstance(endpoint_handler, functools.partial):
             endpoint_handler = endpoint_handler.func
         if inspect.isfunction(endpoint_handler) or inspect.ismethod(endpoint_handler):
-            # Endpoint is function or method. Treat it as `func(request, ....) -> response`.
+            # Endpoint is function or method. Treat it as `func(request, ....) -> response`.  # noqa: E501
             self.app = request_response(endpoint)
             if methods is None:
                 methods = ['GET']
@@ -155,6 +222,17 @@ class Route(BaseRoute):
         )
 
     def matches(self, scope: Scope) -> tuple[Match, Scope]:
+        """
+        Determine if the given request scope matches this route.
+
+        Args:
+            scope (Scope): The request scope containing path and method information.
+
+        Returns:
+            tuple[Match, Scope]: A tuple containing the match type 
+                and the updated scope with path parameters.
+
+        """
         if scope.proto == 'http':
             # Use Rust-optimized matching first
             try:
@@ -222,6 +300,17 @@ class Route(BaseRoute):
         return Match.NONE, {}
 
     async def handle(self, scope: Scope, protocol: Protocol) -> None:
+        """
+        Handle an incoming request for this route.
+
+        Args:
+            scope (Scope): The request scope containing path and method information.
+            protocol (Protocol): The protocol instance for sending responses.
+
+        Returns:
+            None
+
+        """
         if self.methods and scope.method not in self.methods:
             headers = {'Allow': ', '.join(self.methods)}
             response = PlainTextResponse(
@@ -232,7 +321,11 @@ class Route(BaseRoute):
             await self.app(scope, protocol)
 
     def openapi(self) -> tuple[dict, dict]:
-        """Return the OpenAPI schema for this route, handling both function-based and class-based endpoints."""
+        """
+        Return the OpenAPI schema for this route, handling both function-based
+        and class-based endpoints.
+
+        """  # noqa: D205
         paths = {}
         schemas = {}
         http_methods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS']
@@ -287,6 +380,7 @@ class Route(BaseRoute):
         return paths, schemas
 
     def __eq__(self, other: Any) -> bool:
+        """Check equality based on path, endpoint, and methods."""
         return (
             isinstance(other, Route)
             and self.path == other.path
@@ -295,6 +389,7 @@ class Route(BaseRoute):
         )
 
     def __repr__(self) -> str:
+        """Return a string representation of the Route instance."""
         class_name = self.__class__.__name__
         methods = sorted(self.methods or [])
         path, name = self.path, self.name
@@ -302,6 +397,25 @@ class Route(BaseRoute):
 
 
 class Router:
+    """
+    Router class for Velithon framework.
+
+    The Router manages a collection of routes, including HTTP and WebSocket routes,
+    and provides efficient request dispatching using Rust-optimized matching.
+    It supports middleware, route grouping, and integration with sub-routers.
+
+    Attributes:
+        path (str): Path prefix for all routes in this router.
+        redirect_slashes (bool): Whether to redirect requests with trailing slashes.
+        default (RSGIApp): Default handler for unmatched routes.
+        on_startup (list): Startup event handlers.
+        on_shutdown (list): Shutdown event handlers.
+        middleware_stack (Callable): Middleware stack for request processing.
+        route_class (type): Route class used for HTTP routes.
+        routes (list): List of registered routes.
+
+    """
+
     def __init__(
         self,
         routes: Sequence[BaseRoute] | None = None,
@@ -314,6 +428,20 @@ class Router:
         middleware: Sequence[Middleware] | None = None,
         route_class: type[BaseRoute] = Route,
     ):
+        """
+        Initialize a Router instance.
+
+        Args:
+            routes (Sequence[BaseRoute] | None): Initial list of routes to register.
+            path (str): Path prefix for all routes in this router.
+            redirect_slashes (bool): Whether to redirect requests with trailing slashes.
+            default (RSGIApp | None): Default handler for unmatched routes.
+            on_startup (Sequence[Callable[[], Any]] | None): Startup event handlers.
+            on_shutdown (Sequence[Callable[[], Any]] | None): Shutdown event handlers.
+            middleware (Sequence[Middleware] | None): Middleware stack for request processing.
+            route_class (type[BaseRoute]): Route class used for HTTP routes.
+
+        """  # noqa: E501
         self.path = path.rstrip('/') if path else ''
         self.redirect_slashes = redirect_slashes
         self.default = self.not_found if default is None else default
@@ -421,10 +549,27 @@ class Router:
             pass
 
     async def not_found(self, scope: Scope, protocol: Protocol) -> None:
+        """
+        Send a 404 Not Found response for unmatched routes.
+
+        Args:
+            scope (Scope): The request scope containing path and method information.
+            protocol (Protocol): The protocol instance for sending responses.
+
+        """
         response = PlainTextResponse('Not Found', status_code=404)
         await response(scope, protocol)
 
     async def app(self, scope: Scope, protocol: Protocol) -> None:
+        """Handle incoming requests and dispatch to the appropriate route handler.
+
+        This method matches requests against registered routes and dispatches them.
+
+        Args:
+            scope (Scope): The request scope containing path and method information.
+            protocol (Protocol): The protocol instance for sending responses.
+
+        """
         assert scope.proto in ('http', 'websocket')
 
         # Try Rust-optimized routing first
@@ -514,7 +659,7 @@ class Router:
         await self.default(scope, protocol)
 
     async def __call__(self, scope: Scope, protocol: Protocol) -> None:
-        """The main entry point to the Router class."""
+        """Call the main entry point to the Router class."""
         await self.middleware_stack(scope, protocol)
 
     def add_route(
@@ -528,6 +673,20 @@ class Router:
         description: str | None = None,
         tags: Sequence[str] | None = None,
     ) -> None:  # pragma: no cover
+        """
+        Add a new HTTP route to the router.
+
+        Args:
+            path (str): The route path pattern.
+            endpoint (Callable): The endpoint function or coroutine to handle requests.
+            methods (list[str] | None): List of HTTP methods allowed for this route.
+            name (str | None): Optional name for the route.
+            include_in_schema (bool): Whether to include this route in the OpenAPI schema.
+            summary (str | None): Optional summary for documentation.
+            description (str | None): Optional description for documentation.
+            tags (Sequence[str] | None): Optional tags for grouping routes.
+
+        """  # noqa: E501
         full_path = self._get_full_path(path)
         route = Route(
             full_path,
@@ -557,6 +716,26 @@ class Router:
         route_class_override: type[BaseRoute] | None = None,
         response_model: type | None = None,
     ) -> None:
+        """
+        Add an API route to the router.
+
+        This method registers a new route with the specified path, endpoint, HTTP methods,
+        and additional metadata such as middleware, summary, description, tags, and response model.
+
+        Args:
+            path (str): The route path pattern.
+            endpoint (Callable[..., Any]): The endpoint function or class to handle requests.
+            methods (Sequence[str] | None): List of HTTP methods allowed for this route.
+            name (str | None): Optional name for the route.
+            middleware (Sequence[Middleware] | None): Optional middleware stack for this route.
+            summary (str | None): Optional summary for documentation.
+            description (str | None): Optional description for documentation.
+            tags (Sequence[str] | None): Optional tags for grouping routes.
+            include_in_schema (bool | None): Whether to include this route in the OpenAPI schema.
+            route_class_override (type[BaseRoute] | None): Optional custom route class to use.
+            response_model (type | None): Optional response model for documentation.
+
+        """  # noqa: E501
         route_class = route_class_override or self.route_class
         full_path = self._get_full_path(path)
         route = route_class(
@@ -588,6 +767,27 @@ class Router:
         route_class_override: type[BaseRoute] | None = None,
         response_model: type | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+        """Decorator to register an API route with the router.
+
+        This method allows you to decorate a function or class to register it as an API route,
+        specifying the path, HTTP methods, middleware, documentation, and response model.
+
+        Args:
+            path (str): The route path pattern.
+            methods (Sequence[str] | None): List of HTTP methods allowed for this route.
+            name (str | None): Optional name for the route.
+            middleware (Sequence[Middleware] | None): Optional middleware stack for this route.
+            summary (str | None): Optional summary for documentation.
+            description (str | None): Optional description for documentation.
+            tags (Sequence[str] | None): Optional tags for grouping routes.
+            include_in_schema (bool | None): Whether to include this route in the OpenAPI schema.
+            route_class_override (type[BaseRoute] | None): Optional custom route class to use.
+            response_model (type | None): Optional response model for documentation.
+
+        Returns:
+            Callable[[Callable[..., Any]], Callable[..., Any]]: A decorator that registers the route.
+
+        """ # noqa
         def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
             self.add_api_route(
                 path,
@@ -618,9 +818,10 @@ class Router:
         include_in_schema: bool = True,
         response_model: type | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-        """Generic factory method for creating HTTP method decorators.
+        """Create a generic factory method for HTTP method decorators.
+
         Eliminates code duplication across get, post, put, delete, patch, options methods.
-        """
+        """  # noqa: E501
         return self.api_route(
             path=path,
             tags=tags,
@@ -834,7 +1035,7 @@ class Router:
         *,
         name: str | None = None,
     ) -> Callable[[Any], Any]:
-        """Decorator to add a WebSocket route.
+        """Add a WebSocket route decorator.
 
         Args:
             path: The WebSocket path pattern
@@ -874,7 +1075,7 @@ class Router:
                 # Start with the route's original path
                 new_path = route.path
 
-                # If the router being added has a path prefix, that's already included in the route path
+                # If the router being added has a path prefix, that's already included in the route path  # noqa: E501
                 # So we only need to apply the additional prefix if provided
                 if prefix:
                     # If prefix is provided, prepend it to the route path

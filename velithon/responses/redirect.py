@@ -21,6 +21,7 @@ class RedirectResponse(Response):
         headers: typing.Mapping[str, str] | None = None,
         background: BackgroundTask | None = None,
     ) -> None:
+        """Initialize a RedirectResponse instance."""
         super().__init__(
             content=b'', status_code=status_code, headers=headers, background=background
         )

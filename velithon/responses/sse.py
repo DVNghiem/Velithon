@@ -35,7 +35,7 @@ class SSEResponse(Response):
 
             return SSEResponse(generate())
 
-    """
+    """  # noqa: E501
 
     media_type = 'text/event-stream'
 
@@ -57,7 +57,7 @@ class SSEResponse(Response):
             ping_interval: Interval in seconds to send ping events (keeps connection alive)
             background: Background task to run after streaming
 
-        """
+        """  # noqa: E501
         if isinstance(content, typing.AsyncIterable):
             self.body_iterator = content
         else:
@@ -88,7 +88,7 @@ class SSEResponse(Response):
         Returns:
             Formatted SSE event string
 
-        """
+        """  # noqa: E501
         if isinstance(event_data, str):
             return f'data: {event_data}\n\n'
 

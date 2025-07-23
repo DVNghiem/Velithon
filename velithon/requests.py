@@ -29,12 +29,28 @@ T_co = typing.TypeVar('T_co', covariant=True)
 
 class AwaitableOrContextManager(
     typing.Awaitable[T_co], typing.AsyncContextManager[T_co], typing.Protocol[T_co]
-): ...
+):
+    """Protocol for objects that are both awaitable and async context managers.
+
+    This is used to type objects that can be awaited or used in an async with statement.
+    """
+
+    ...
 
 
 class SupportsAsyncClose(typing.Protocol):
-    async def close(self) -> None: ...  # pragma: no cover
+    """Protocol for objects that support asynchronous close operations.
 
+    Classes implementing this protocol must provide an async close() method.
+    """
+
+    async def close(self) -> None:
+        """Asynchronously close the connection or resource.
+
+        This method should be implemented to release any resources or perform cleanup
+        when the object is no longer needed.
+        """
+        ... 
 
 SupportsAsyncCloseType = typing.TypeVar(
     'SupportsAsyncCloseType', bound=SupportsAsyncClose, covariant=False
@@ -42,25 +58,36 @@ SupportsAsyncCloseType = typing.TypeVar(
 
 
 class AwaitableOrContextManagerWrapper(typing.Generic[SupportsAsyncCloseType]):
+    """
+    Wraps an awaitable object to provide both await and async context manager capabilities.
+
+    This class allows an awaitable object that supports asynchronous closing to be used
+    with 'await' or 'async with' syntax, ensuring proper resource cleanup.
+    """  # noqa: E501
+
     __slots__ = ('aw', 'entered')
 
     def __init__(self, aw: typing.Awaitable[SupportsAsyncCloseType]) -> None:
+        """Initialize the wrapper with an awaitable object."""
         self.aw = aw
 
     def __await__(self) -> typing.Generator[typing.Any, None, SupportsAsyncCloseType]:
+        """Await the wrapped awaitable object."""
         return self.aw.__await__()
 
     async def __aenter__(self) -> SupportsAsyncCloseType:
+        """Enter the async context manager, awaiting the wrapped object."""
         self.entered = await self.aw
         return self.entered
 
     async def __aexit__(self, *args: typing.Any) -> None | bool:
+        """Exit the async context manager, closing the entered object."""
         await self.entered.close()
         return None
 
 
 def cookie_parser(cookie_string: str) -> dict[str, str]:
-    """This function parses a ``Cookie`` HTTP header into a dict of key/value pairs.
+    """Parse a ``Cookie`` HTTP header into a dict of key/value pairs.
 
     It attempts to mimic browser cookie parsing behavior: browsers and web servers
     frequently disregard the spec (RFC 6265) when setting and reading cookies,
@@ -86,24 +113,29 @@ def cookie_parser(cookie_string: str) -> dict[str, str]:
 
 
 class HTTPConnection(typing.Mapping[str, typing.Any]):
-    """A base class for incoming HTTP connections, that is used to provide
+    """A base class for incoming HTTP connections, that is used to provide.
+
     any functionality that is common to both `Request` and `WebSocket`.
     """
 
     __slots__ = ('protocol', 'scope')
 
     def __init__(self, scope: Scope, protocol: Protocol) -> None:
+        """Initialize the HTTPConnection with scope and protocol."""
         assert scope.proto in ('http', 'websocket')
         self.scope = scope
         self.protocol = protocol
 
     def __getitem__(self, key: str) -> typing.Any:
+        """Get an item from the scope by key."""
         return self.scope[key]
 
     def __iter__(self) -> typing.Iterator[str]:
+        """Return an iterator over the keys in the scope."""
         return iter(self.scope)
 
     def __len__(self) -> int:
+        """Return the number of items in the scope."""
         return len(self.scope)
 
     # Don't use the `abc.Mapping.__eq__` implementation.
@@ -114,28 +146,45 @@ class HTTPConnection(typing.Mapping[str, typing.Any]):
 
     @property
     def url(self) -> URL:
+        """Return the URL object for this connection."""
         if not hasattr(self, '_url'):  # pragma: no branch
             self._url = URL(scope=self.scope)
         return self._url
 
     @property
     def headers(self) -> Headers:
+        """Return the headers for this connection as a Headers object."""
         if not hasattr(self, '_headers'):
             self._headers = Headers(headers=self.scope.headers.items())
         return self._headers
 
     @property
     def query_params(self) -> QueryParams:
+        """Return the query parameters for this connection as a QueryParams object.
+
+        This property parses the query string from the scope and returns a QueryParams instance
+        representing all query parameters included in the request URL.
+        """  # noqa: E501
         if not hasattr(self, '_query_params'):  # pragma: no branch
             self._query_params = QueryParams(self.scope.query_string)
         return self._query_params
 
     @property
     def path_params(self) -> dict[str, typing.Any]:
+        """Return the path parameters extracted from the request URL.
+
+        This property provides a dictionary of path parameters parsed from the route,
+        allowing access to dynamic segments defined in the URL pattern.
+        """
         return self.scope.path_params
 
     @property
     def cookies(self) -> dict[str, str]:
+        """Return the cookies sent by the client as a dictionary.
+
+        This property parses the 'Cookie' HTTP header and returns a dictionary
+        of cookie key-value pairs provided by the client.
+        """
         if not hasattr(self, '_cookies'):
             cookies: dict[str, str] = {}
             cookie_header = self.headers.get('cookie')
@@ -147,6 +196,11 @@ class HTTPConnection(typing.Mapping[str, typing.Any]):
 
     @property
     def client(self) -> Address | None:
+        """Return the client address as an Address object or None if missing.
+
+        This property parses the client information from the scope and returns
+        an Address instance containing the host and port, or None if unavailable.
+        """
         # client is a 2 item tuple of (host, port), None if missing
         host_port = self.scope.client.split(':')
         if host_port is not None:
@@ -155,19 +209,43 @@ class HTTPConnection(typing.Mapping[str, typing.Any]):
 
 
 class Request(HTTPConnection):
+    """Represents an HTTP request in the Velithon framework.
+
+    This class provides methods and properties for accessing request data,
+    including headers, cookies, query parameters, body, form data, files,
+    and session information. It extends HTTPConnection to offer additional
+    request-specific functionality.
+    """
+
     _form: FormData | None
 
     def __init__(self, scope: Scope, protocol: Protocol) -> None:
+        """Initialize a Request instance with the given scope and protocol.
+
+        Args:
+            scope (Scope): The ASGI scope containing request information.
+            protocol (Protocol): The protocol handler for the request.
+
+        """
         super().__init__(scope, protocol)
         assert scope.proto == 'http'
         self._form = None
 
     @property
     def request_id(self) -> str:
+        """Return the unique request ID for this HTTP request.
+
+        This property provides the identifier assigned to the request, which can be used
+        for tracing, logging, or correlation purposes.
+        """
         return self.scope._request_id
 
     @property
     def method(self) -> str:
+        """Return the HTTP method used for this request.
+
+        This property provides the HTTP method (e.g., 'GET', 'POST', etc.) of the incoming request.
+        """  # noqa: E501
         return self.scope.method
 
     @property
@@ -181,10 +259,19 @@ class Request(HTTPConnection):
         return Session()
 
     async def stream(self) -> typing.AsyncGenerator[bytes, None]:
+        """Asynchronously yield chunks of the request body.
+
+        This method provides an async generator that yields bytes objects representing
+        the incoming request body data as it is received from the client.
+        """
         async for chunk in self.protocol:
             yield chunk
 
     async def body(self) -> bytes:
+        """Asynchronously read and return the entire request body as bytes.
+
+        This method collects all chunks from the request stream and returns the complete body.
+        """  # noqa: E501
         if not hasattr(self, '_body'):
             chunks: list[bytes] = []
             async for chunk in self.stream():
@@ -193,6 +280,11 @@ class Request(HTTPConnection):
         return self._body
 
     async def json(self) -> typing.Any:
+        """Asynchronously parse and return the request body as JSON.
+
+        This method reads the request body and deserializes it using orjson,
+        returning the parsed JSON object.
+        """
         if not hasattr(self, '_json'):  # pragma: no branch
             body = await self.body()
             self._json = orjson.loads(body)
@@ -238,6 +330,20 @@ class Request(HTTPConnection):
         max_fields: int | float = 1000,
         max_part_size: int = 1024 * 1024,
     ) -> AwaitableOrContextManager[FormData]:
+        """Return an awaitable or async context manager for parsing form data.
+
+        This method provides an interface to parse form data from the request body,
+        supporting both 'application/x-www-form-urlencoded' and 'multipart/form-data' content types.
+
+        Args:
+            max_files (int | float, optional): Maximum number of files to accept. Defaults to 1000.
+            max_fields (int | float, optional): Maximum number of fields to accept. Defaults to 1000.
+            max_part_size (int, optional): Maximum size of each part in bytes. Defaults to 1MB.
+
+        Returns:
+            AwaitableOrContextManager[FormData]: An awaitable or async context manager yielding FormData.
+
+        """  # noqa: E501
         return AwaitableOrContextManagerWrapper(
             self._get_form(
                 max_files=max_files, max_fields=max_fields, max_part_size=max_part_size
@@ -245,6 +351,12 @@ class Request(HTTPConnection):
         )
 
     async def files(self) -> dict[str, list[UploadFile]]:
+        """Asynchronously retrieve uploaded files from the request form data.
+
+        Returns:
+            dict[str, list[UploadFile]]: A dictionary mapping form field names to lists of UploadFile objects.
+
+        """  # noqa: E501
         form = await self._get_form()
         files: dict[str, list[UploadFile]] = {}
         for field_name, field_value in form.multi_items():
@@ -257,5 +369,9 @@ class Request(HTTPConnection):
         return files
 
     async def close(self) -> None:
+        """Asynchronously close any resources associated with the request.
+
+        This method closes the form data if it has been initialized, releasing any resources held.
+        """  # noqa: E501
         if self._form is not None:  # pragma: no branch
             await self._form.close()

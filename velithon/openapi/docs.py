@@ -22,6 +22,10 @@ from pydantic_core import PydanticUndefined
 from velithon.datastructures import FormData, Headers, UploadFile
 from velithon.di import Provide
 from velithon.params.params import Body, Cookie, File, Form, Header, Path, Query
+from velithon.requests import Request
+from velithon.responses import PlainTextResponse
+
+from .constants import REF_TEMPLATE
 
 
 def _get_param_name_for_docs(param_name: str, param_metadata: Any) -> str:
@@ -39,13 +43,8 @@ def _get_param_name_for_docs(param_name: str, param_metadata: Any) -> str:
     return param_name
 
 
-from velithon.requests import Request
-from velithon.responses import PlainTextResponse
-
-from .constants import REF_TEMPLATE
-
-
 def join_url_paths(*parts) -> str:
+    """Join multiple URL path parts into a single path string."""
     first = parts[0]
     parts = [part.strip('/') for part in parts]
     starts_with_slash = first.startswith('/') if first else False
@@ -88,8 +87,11 @@ def pydantic_to_swagger(
 
 
 class SchemaProcessor:
+    """Helper class to process Pydantic fields and annotations into OpenAPI schemas."""
+
     @staticmethod
     def process_union(args: tuple, schemas: dict[str, Any]) -> dict[str, Any]:
+        """Process a Union type into OpenAPI schema."""
         if type(None) in args:
             inner_type = next(arg for arg in args if arg is not type(None))
             schema = SchemaProcessor._process_field('', inner_type, schemas)
@@ -101,6 +103,7 @@ class SchemaProcessor:
 
     @staticmethod
     def process_enum(annotation: type[Enum]) -> dict[str, Any]:
+        """Process an Enum type into OpenAPI schema."""
         return {
             'type': 'string',
             'enum': [e.value for e in annotation.__members__.values()],
@@ -108,11 +111,13 @@ class SchemaProcessor:
 
     @staticmethod
     def process_primitive(annotation: type) -> dict[str, str]:
+        """Process primitive types into OpenAPI schema."""
         type_mapping = {int: 'integer', float: 'number', str: 'string', bool: 'boolean'}
         return {'type': type_mapping.get(annotation, 'object')}
 
     @staticmethod
     def process_list(annotation: type, schemas: dict[str, Any]) -> dict[str, Any]:
+        """Process a list type into OpenAPI schema."""
         schema = {'type': 'array'}
         args = get_args(annotation)
         if args:
@@ -124,6 +129,7 @@ class SchemaProcessor:
 
     @staticmethod
     def process_dict(annotation: type, schemas: dict[str, Any]) -> dict[str, Any]:
+        """Process a dict type into OpenAPI schema."""
         schema = {'type': 'object'}
         args = get_args(annotation)
         if args:
@@ -136,18 +142,21 @@ class SchemaProcessor:
 
     @staticmethod
     def process_file(annotation: type, schemas: dict[str, Any]) -> dict[str, Any]:
+        """Process a file type into OpenAPI schema."""
         if annotation is UploadFile:
             return {'type': 'string', 'format': 'binary'}
         return {'type': 'object'}  # Fallback for unsupported file types
 
     @staticmethod
     def process_form_data(annotation: type, schemas: dict[str, Any]) -> dict[str, Any]:
+        """Process a form data type into OpenAPI schema."""
         if annotation is FormData:
             return {'type': 'object', 'additionalProperties': True}
         return SchemaProcessor._process_field('', annotation, schemas)
 
     @staticmethod
     def process_headers(annotation: type, schemas: dict[str, Any]) -> dict[str, Any]:
+        """Process headers type into OpenAPI schema."""
         if annotation is Headers:
             return {'type': 'object', 'additionalProperties': {'type': 'string'}}
         return {'type': 'object'}
@@ -276,6 +285,7 @@ def process_model_params(
     request_method: str,
     schemas: dict[str, Any],
 ) -> str:
+    """Process a single parameter and update the OpenAPI docs."""
     name = param.name
     annotation = param.annotation
     default = param.default

@@ -57,7 +57,7 @@ def import_from_string(import_str: Any) -> Any:
         if exc.name != module_str:
             raise exc from None
         message = 'Could not import module "{module_str}".'
-        raise ImportFromStringError(message.format(module_str=module_str))
+        raise ImportFromStringError(message.format(module_str=module_str)) from None
 
     instance = module
     try:
@@ -67,7 +67,7 @@ def import_from_string(import_str: Any) -> Any:
         message = 'Attribute "{attrs_str}" not found in module "{module_str}".'
         raise ImportFromStringError(
             message.format(attrs_str=attrs_str, module_str=module_str)
-        )
+        ) from None
 
     return instance
 
@@ -144,7 +144,7 @@ def cli() -> None:
     '--task-impl',
     default='asyncio',
     type=click.Choice(['asyncio', 'rust']),
-    help='Task implementation to use. **Note**: `rust` is only support in python <= 3.12',
+    help='Task implementation to use. **Note**: `rust` is only support in python <= 3.12',  # noqa: E501
 )
 @click.option(
     '--http',
@@ -172,7 +172,7 @@ def cli() -> None:
 @click.option(
     '--http1-pipeline-flush/--no-http1-pipeline-flush',
     default=granian.http.HTTP1Settings.pipeline_flush,
-    help='Aggregates HTTP/1 flushes to better support pipelined responses (experimental)',
+    help='Aggregates HTTP/1 flushes to better support pipelined responses (experimental)',  # noqa: E501
 )
 @click.option(
     '--http2-adaptive-window/--no-http2-adaptive-window',
@@ -189,19 +189,19 @@ def cli() -> None:
     '--http2-initial-stream-window-size',
     type=click.IntRange(1024),
     default=granian.http.HTTP2Settings.initial_stream_window_size,
-    help='Sets the `SETTINGS_INITIAL_WINDOW_SIZE` option for HTTP2 stream-level flow control',
+    help='Sets the `SETTINGS_INITIAL_WINDOW_SIZE` option for HTTP2 stream-level flow control',  # noqa: E501
 )
 @click.option(
     '--http2-keep-alive-interval',
     type=click.IntRange(1, 60_000),
     default=granian.http.HTTP2Settings.keep_alive_interval,
-    help='Sets an interval (in milliseconds) for HTTP2 Ping frames should be sent to keep a connection alive',
+    help='Sets an interval (in milliseconds) for HTTP2 Ping frames should be sent to keep a connection alive',  # noqa: E501
 )
 @click.option(
     '--http2-keep-alive-timeout',
     type=click.IntRange(1),
     default=granian.http.HTTP2Settings.keep_alive_timeout,
-    help='Sets a timeout (in seconds) for receiving an acknowledgement of the HTTP2 keep-alive ping',
+    help='Sets a timeout (in seconds) for receiving an acknowledgement of the HTTP2 keep-alive ping',  # noqa: E501
 )
 @click.option(
     '--http2-max-concurrent-streams',

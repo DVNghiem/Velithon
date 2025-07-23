@@ -19,6 +19,7 @@ class ConnectionPool:
     def __init__(
         self, max_connections_per_service: int = 10, connection_timeout: float = 30.0
     ):
+        """Initialize the connection pool with limits and timeouts."""
         self.max_connections_per_service = max_connections_per_service
         self.connection_timeout = connection_timeout
 

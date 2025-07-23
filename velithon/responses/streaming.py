@@ -30,6 +30,7 @@ class StreamingResponse(Response):
         media_type: str | None = None,
         background: BackgroundTask | None = None,
     ) -> None:
+        """Initialize a StreamingResponse instance."""
         if isinstance(content, typing.AsyncIterable):
             self.body_iterator = content
         else:

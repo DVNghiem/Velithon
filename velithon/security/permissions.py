@@ -17,7 +17,7 @@ class Permission:
         self.description = description
 
     def __str__(self) -> str:
-        """String representation of permission."""
+        """Return string representation of permission."""
         return self.name
 
     def __repr__(self) -> str:
@@ -85,7 +85,7 @@ class PermissionChecker:
 def require_permissions(
     permissions: str | Permission | Sequence[str | Permission], require_all: bool = True
 ) -> Callable:
-    """Decorator to require specific permissions for endpoints."""
+    """Require specific permissions for endpoints."""
     if isinstance(permissions, (str, Permission)):
         permissions = [permissions]
 

@@ -77,8 +77,14 @@ def _warm_up_thread():
 def is_async_callable(obj: Any) -> bool:
     if isinstance(obj, functools.partial):
         obj = obj.func
-    return asyncio.iscoroutinefunction(obj) or (
-        callable(obj) and asyncio.iscoroutinefunction(getattr(obj, '__call__', None))
+    return (
+        asyncio.iscoroutinefunction(obj)
+        or (
+            callable(obj)
+            and asyncio.iscoroutinefunction(
+                obj.__call__ if callable(obj) else None
+            )
+        )
     )
 
 
@@ -216,7 +222,7 @@ class SimpleMiddlewareOptimizer:
 
     @staticmethod
     def optimize_middleware_stack(middlewares: list) -> list:
-        """Simple middleware optimization - just remove duplicates."""
+        """Remove duplicates from the middleware stack."""
         if not middlewares:
             return []
 

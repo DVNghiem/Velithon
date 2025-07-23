@@ -5,7 +5,7 @@ import hmac
 import secrets
 
 try:
-    from passlib.context import CryptContext
+    from passlib.context import CryptContext  # type: ignore
 
     PASSLIB_AVAILABLE = True
 

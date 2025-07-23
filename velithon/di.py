@@ -32,10 +32,12 @@ current_scope: ContextVar[Scope | None] = ContextVar('current_scope', default=No
 
 class ServiceContainer:
     """Enhanced ServiceContainer with automatic provider registration.
+
     Uses Rust implementation for high-performance dependency resolution.
     """
 
     def __init__(self):
+        """Initialize the service container with Rust backend."""
         self._rust_container = _RustServiceContainer()
         # Auto-register providers from class attributes (Python compatibility)
         for name, value in self.__class__.__dict__.items():

@@ -1,5 +1,8 @@
-#  @Copyright (c) 2025 Starlette
-from __future__ import annotations
+"""Velithon Middleware Package.
+
+This package provides middleware components for authentication, security, compression, CORS, logging, metrics, proxying, session management, and more.
+All middleware classes are designed for high performance and seamless integration with the Velithon framework.
+"""  # noqa: E501
 
 import sys
 from collections.abc import Iterator
@@ -76,21 +79,37 @@ class _MiddlewareFactory(Protocol[P]):
 
 
 class Middleware:
+    """Middleware wrapper for Velithon.
+
+    Encapsulates a middleware factory and its arguments for easy instantiation and configuration.
+    Used to manage and represent middleware components within the Velithon framework.
+    """  # noqa: E501
+
     def __init__(
         self,
         cls: _MiddlewareFactory[P],
         *args: P.args,
         **kwargs: P.kwargs,
     ) -> None:
+        """Initialize the Middleware wrapper with a middleware factory and its arguments.
+
+        Args:
+            cls: The middleware factory class or callable.
+            *args: Positional arguments to pass to the middleware factory.
+            **kwargs: Keyword arguments to pass to the middleware factory.
+
+        """  # noqa: E501
         self.cls = cls
         self.args = args
         self.kwargs = kwargs
 
     def __iter__(self) -> Iterator[Any]:
+        """Return an iterator over the middleware class, args, and kwargs."""
         as_tuple = (self.cls, self.args, self.kwargs)
         return iter(as_tuple)
 
     def __repr__(self) -> str:
+        """Return a string representation of the Middleware instance."""
         class_name = self.__class__.__name__
         args_strings = [f'{value!r}' for value in self.args]
         option_strings = [f'{key}={value!r}' for key, value in self.kwargs.items()]

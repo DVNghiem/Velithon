@@ -35,10 +35,10 @@ class CompressionMiddleware(BaseHTTPMiddleware):
         compression_level: Compression level to use (default: CompressionLevel.BALANCED)
         compressible_types: Set of content types that should be compressed
 
-    """
+    """  # noqa: E501
 
     # Default content types that benefit from compression
-    DEFAULT_COMPRESSIBLE_TYPES = {
+    DEFAULT_COMPRESSIBLE_TYPES: typing.ClassVar[set[str]] = {
         'text/html',
         'text/plain',
         'text/css',
@@ -59,13 +59,14 @@ class CompressionMiddleware(BaseHTTPMiddleware):
         compression_level: CompressionLevel = CompressionLevel.BALANCED,
         compressible_types: set[str] | None = None,
     ) -> None:
+        """Initialize the CompressionMiddleware with the given parameters."""
         super().__init__(app)
         self.minimum_size = minimum_size
         self.compression_level = compression_level.value
         self.compressible_types = compressible_types or self.DEFAULT_COMPRESSIBLE_TYPES
 
     async def process_http_request(self, scope: Scope, protocol: Protocol) -> None:
-        # Check if client accepts gzip encoding
+        """Process the HTTP request and check if compression is needed."""
         accept_encoding = scope.headers.get('accept-encoding', '')
         if 'gzip' not in accept_encoding.lower():
             return await self.app(scope, protocol)
@@ -75,7 +76,8 @@ class CompressionMiddleware(BaseHTTPMiddleware):
         await self.app(scope, wrapped_protocol)
 
     def should_compress(self, content_type: str, content_length: int) -> bool:
-        """Determine if the response should be compressed based on content type and size.
+        """
+        Determine if the response should be compressed based on content type and size.
 
         Args:
             content_type: The response content type
@@ -97,6 +99,7 @@ class CompressionProtocol:
     """Protocol wrapper that handles response compression."""
 
     def __init__(self, protocol: Protocol, middleware: CompressionMiddleware):
+        """Initialize the CompressionProtocol with the original protocol and middleware."""  # noqa: E501
         self.protocol = protocol
         self.middleware = middleware
         self._response_started = False
@@ -110,7 +113,7 @@ class CompressionProtocol:
         return getattr(self.protocol, name)
 
     async def response_start(self, status: int, headers: list[tuple[str, str]]) -> None:
-        """Handle response start, examining headers to determine if compression should be applied."""
+        """Handle response start, examining headers to determine if compression should be applied."""  # noqa: E501
         self._response_started = True
 
         # Convert headers to a more manageable format

@@ -46,10 +46,17 @@ class MemorySessionInterface(SessionInterface):
     """In-memory session storage. Not recommended for production."""
 
     def __init__(self, max_age: int = 3600):
+        """Initialize the in-memory session interface with an optional max age for sessions."""  # noqa: E501
         self._sessions: dict[str, tuple[dict[str, typing.Any], float]] = {}
         self.max_age = max_age
 
     async def load_session(self, session_id: str | None) -> dict[str, typing.Any]:
+        """Load session data from in-memory storage.
+
+        Args:
+            session_id: The session ID to load.
+
+        """
         if session_id is None:
             return {}
 
@@ -66,9 +73,22 @@ class MemorySessionInterface(SessionInterface):
     async def save_session(
         self, session_id: str, session_data: dict[str, typing.Any]
     ) -> None:
+        """Save session data to in-memory storage.
+
+        Args:
+            session_id: The session ID to save.
+            session_data: The session data to store.
+
+        """
         self._sessions[session_id] = (session_data.copy(), time.time())
 
     async def delete_session(self, session_id: str) -> None:
+        """Delete session data from in-memory storage.
+
+        Args:
+            session_id: The session ID to delete.
+
+        """
         self._sessions.pop(session_id, None)
 
 
@@ -76,6 +96,13 @@ class SignedCookieSessionInterface(SessionInterface):
     """Cookie-based session storage with signing for security."""
 
     def __init__(self, secret_key: str, max_age: int = 3600):
+        """Initialize the signed cookie session interface.
+
+        Args:
+            secret_key: The secret key used for signing session cookies.
+            max_age: The maximum age (in seconds) for session validity.
+
+        """
         if not secret_key:
             raise ValueError('secret_key is required for signed cookie sessions')
         self.secret_key = (
@@ -132,6 +159,7 @@ class SignedCookieSessionInterface(SessionInterface):
             return {}
 
     async def load_session(self, session_id: str | None) -> dict[str, typing.Any]:
+        """Load session data from signed cookie."""
         if session_id is None:
             return {}
         return self._decode_session(session_id)
@@ -139,11 +167,11 @@ class SignedCookieSessionInterface(SessionInterface):
     async def save_session(
         self, session_id: str, session_data: dict[str, typing.Any]
     ) -> None:
-        # For cookie sessions, the session_id is actually the encoded session data
+        """Save session data to signed cookie."""
         pass
 
     async def delete_session(self, session_id: str) -> None:
-        # For cookie sessions, deletion is handled by clearing the cookie
+        """Delete session data from signed cookie."""
         pass
 
 
@@ -151,31 +179,42 @@ class Session(dict[str, typing.Any]):
     """Session object that tracks modifications."""
 
     def __init__(self, session_data: dict[str, typing.Any] | None = None):
+        """Initialize the session with optional initial data.
+
+        No arguments are required.
+
+        """
         super().__init__(session_data or {})
         self._modified = False
         self._new = session_data is None or len(session_data) == 0
 
     def __setitem__(self, key: str, value: typing.Any) -> None:
+        """Set a session item and mark the session as modified."""
         super().__setitem__(key, value)
         self._modified = True
 
     def __delitem__(self, key: str) -> None:
+        """Delete a session item and mark the session as modified."""
         super().__delitem__(key)
         self._modified = True
 
     def clear(self) -> None:
+        """Clear all items from the session and mark it as modified."""
         super().clear()
         self._modified = True
 
     def pop(self, key: str, default: typing.Any = None) -> typing.Any:
+        """Remove a session item and mark the session as modified."""
         self._modified = True
         return super().pop(key, default)
 
     def update(self, *args: typing.Any, **kwargs: typing.Any) -> None:
+        """Update the session with new items and mark it as modified."""
         super().update(*args, **kwargs)
         self._modified = True
 
     def setdefault(self, key: str, default: typing.Any = None) -> typing.Any:
+        """Set a default value for a session item and mark the session as modified."""
         if key not in self:
             self._modified = True
         return super().setdefault(key, default)
@@ -197,6 +236,7 @@ class SessionProtocol:
     def __init__(
         self, protocol: Protocol, session: Session, middleware: SessionMiddleware
     ):
+        """Initialize the SessionProtocol with the original protocol, session, and middleware."""  # noqa: E501
         self.protocol = protocol
         self.session = session
         self.middleware = middleware
@@ -268,6 +308,7 @@ class SessionMiddleware(ProtocolWrapperMiddleware):
         secret_key: str | None = None,
         max_age: int = 3600,
     ):
+        """Initialize the session middleware."""
         super().__init__(app)
         self.cookie_name = cookie_name
         self.cookie_params = cookie_params or {
@@ -287,7 +328,7 @@ class SessionMiddleware(ProtocolWrapperMiddleware):
             self.session_interface = MemorySessionInterface(max_age)
 
     async def process_http_request(self, scope: Scope, protocol: Protocol) -> None:
-        # Load session
+        """Process HTTP request and load session data."""
         request = Request(scope, protocol)
         session_id = request.cookies.get(self.cookie_name)
         session_data = await self.session_interface.load_session(session_id)
@@ -340,7 +381,7 @@ class SessionMiddleware(ProtocolWrapperMiddleware):
                             session, '_id', self.session_interface.generate_session_id()
                         )
 
-                    # Save session data (async operation needs to be handled differently)
+                    # Save session data (async operation needs to be handled differently)  # noqa: E501
                     # For now, we'll store the data and ID for later processing
                     session._id = session_id
                     session._needs_save = True

@@ -24,6 +24,8 @@ select = [
 ignore = [
     "D203", # Disable conflicting docstring rule (1 blank line before class docstring)
     "D213", # Disable multi-line docstring summary placement rule
+    "W291", # Ignore trailing whitespace warnings
+    "D212", # Ignore docstring indentation rule (Velithon uses 4 spaces)
 ]
 
 # Per-file ignore rules for specific contexts

@@ -16,6 +16,7 @@ class ProxyResponse(Response):
         status_code: int = 200,
         headers: dict[str, str] | None = None,
     ):
+        """Initialize a ProxyResponse instance."""
         self.body = content
         self.status_code = status_code
         self.headers = headers or {}

@@ -86,7 +86,10 @@ _TYPE_CONVERTERS = {
 
 
 class ParameterResolver:
+    """Parameter resolver for Velithon request handlers."""
+
     def __init__(self, request: Request):
+        """Initialize the ParameterResolver with the request."""
         self.request = request
         self.data_cache = {}
         self.type_handlers = {
@@ -141,7 +144,8 @@ class ParameterResolver:
     def _get_param_value_with_alias(
         self, data: Any, param_name: str, param_metadata: Any = None
     ) -> Any:
-        """Get parameter value from data, trying the actual parameter name,
+        """Get parameter value from data, trying the actual parameter name.
+
         explicit alias, and auto-generated alias (underscore to hyphen).
         """
         # First try explicit alias if provided
@@ -165,7 +169,7 @@ class ParameterResolver:
         return None
 
     async def _get_form_data(self):
-        """Helper to get form data from cached form."""
+        """Return form data from cached form."""
         form = await self.request._get_form()
         # Convert form data to a dictionary for Pydantic parsing
         return dict(form)
@@ -316,7 +320,7 @@ class ParameterResolver:
                     {'field': get(item, 'loc')[0], 'msg': get(item, 'msg')}
                     for item in invalid_fields
                 ]
-            )
+            ) from e
 
     async def _parse_special(
         self,
@@ -392,7 +396,7 @@ class ParameterResolver:
     def _resolve_param_metadata(
         self, param: inspect.Parameter
     ) -> tuple[Any, str, Any, bool, Any]:
-        """Cache parameter metadata (annotation, param_type, default, is_required, param_metadata)."""
+        """Cache parameter metadata (annotation, param_type, default, is_required, param_metadata)."""  # noqa: E501
         annotation = param.annotation
         default = (
             param.default if param.default is not inspect.Parameter.empty else None
@@ -567,8 +571,12 @@ class ParameterResolver:
 
 
 class InputHandler:
+    """Input handler for resolving parameters from a request."""
+
     def __init__(self, request: Request):
+        """Initialize the InputHandler with the request."""
         self.resolver = ParameterResolver(request)
 
     async def get_input(self, signature: inspect.Signature) -> dict[str, Any]:
+        """Resolve parameters from the request based on the function signature."""
         return await self.resolver.resolve(signature)

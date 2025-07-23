@@ -77,7 +77,7 @@ class ProxyMiddleware(BaseHTTPMiddleware):
             upstream_path_prefix: Path prefix to add to upstream requests
             enable_health_checks: Whether to enable background health checking
 
-        """
+        """  # noqa: E501
         super().__init__(app)
 
         # Normalize targets
@@ -336,7 +336,7 @@ class ProxyMiddleware(BaseHTTPMiddleware):
                 if not loop.is_closed():
                     self._health_check_task.cancel()
             except RuntimeError:
-                # Event loop is already closed or not running, task will be cleaned up automatically
+                # Event loop is already closed or not running, task will be cleaned up automatically  # noqa: E501
                 pass
             except Exception:
                 # Any other exception, just ignore

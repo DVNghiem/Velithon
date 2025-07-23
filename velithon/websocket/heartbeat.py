@@ -622,7 +622,7 @@ class HeartbeatManager:
         logger.info(f'Connection {heartbeat.connection_id} disconnected')
 
         # Schedule removal
-        asyncio.create_task(self.remove_connection(heartbeat.connection_id))
+        asyncio.create_task(self.remove_connection(heartbeat.connection_id))  # noqa: RUF006
 
     async def _cleanup_loop(self) -> None:
         """Background cleanup loop."""

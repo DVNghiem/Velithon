@@ -21,11 +21,13 @@ class TCPTransport(Transport):
     """TCP implementation of Transport."""
 
     def __init__(self, manager: 'VSPManager'):
+        """Initialize TCP transport with a reference to the VSPManager."""
         self.transport: asyncio.Transport | None = None
         self.protocol: VSPProtocol | None = None
         self.manager = manager
 
     async def connect(self, host: str, port: int) -> None:
+        """Establish a TCP connection to the specified host and port."""
         try:
             loop = asyncio.get_event_loop()
             self.transport, self.protocol = await loop.create_connection(
@@ -37,6 +39,7 @@ class TCPTransport(Transport):
             raise
 
     def send(self, data: bytes) -> None:
+        """Send data over the TCP transport."""
         if self.transport is None or self.transport.is_closing():
             logger.error('Cannot send: TCP transport is closed or not connected')
             raise RuntimeError('Transport closed')
@@ -45,6 +48,7 @@ class TCPTransport(Transport):
         logger.debug(f'TCP sent data of length {len(data)}')
 
     def close(self) -> None:
+        """Close the TCP transport."""
         if self.transport and not self.transport.is_closing():
             self.transport.close()
             logger.debug('TCP transport closed')
@@ -52,4 +56,5 @@ class TCPTransport(Transport):
         self.protocol = None
 
     def is_closed(self) -> bool:
+        """Check if the TCP transport is closed."""
         return self.transport is None or self.transport.is_closing()

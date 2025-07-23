@@ -14,6 +14,8 @@ from velithon.status import WS_1000_NORMAL_CLOSURE
 
 
 class WebSocketState(IntEnum):
+    """Enumeration for WebSocket connection states."""
+
     CONNECTING = 0
     CONNECTED = 1
     DISCONNECTED = 2
@@ -23,6 +25,7 @@ class WebSocketDisconnect(Exception):
     """Raised when WebSocket connection is disconnected."""
 
     def __init__(self, code: int = WS_1000_NORMAL_CLOSURE, reason: str = '') -> None:
+        """Initialize WebSocketDisconnect with code and reason."""
         self.code = code
         self.reason = reason
         super().__init__(f'WebSocket disconnected with code {code}: {reason}')
@@ -32,6 +35,7 @@ class WebSocket:
     """WebSocket connection class for handling WebSocket communications."""
 
     def __init__(self, scope: Scope, protocol: Protocol) -> None:
+        """Initialize WebSocket with scope and protocol."""
         assert scope.proto == 'websocket'
         self.scope = scope
         self.protocol = protocol
@@ -169,13 +173,13 @@ class WebSocket:
 
     async def _send_message(self, message: dict[str, typing.Any]) -> None:
         """Send a message through the protocol."""
-        # This is a placeholder - in practice, this would interface with Granian's WebSocket protocol
+        # This is a placeholder - in practice, this would interface with Granian's WebSocket protocol  # noqa: E501
         # For now, we'll assume the protocol handles WebSocket messages
         pass
 
     async def _receive_message(self) -> dict[str, typing.Any]:
         """Receive a message from the protocol."""
-        # This is a placeholder - in practice, this would interface with Granian's WebSocket protocol
+        # This is a placeholder - in practice, this would interface with Granian's WebSocket protocol  # noqa: E501
         # For now, we'll return a dummy message
         return {'type': 'websocket.receive', 'text': ''}
 

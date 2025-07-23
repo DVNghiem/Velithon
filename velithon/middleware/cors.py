@@ -15,6 +15,12 @@ SAFELISTED_HEADERS = {'Accept', 'Accept-Language', 'Content-Language', 'Content-
 
 
 class CORSMiddleware(ConditionalMiddleware):
+    """CORS middleware for handling cross-origin requests.
+
+    This middleware adds CORS headers to responses based on the configured
+    allowed origins, methods, and headers.
+    """
+
     def __init__(
         self,
         app: typing.Any,
@@ -24,6 +30,17 @@ class CORSMiddleware(ConditionalMiddleware):
         allow_credentials: bool = False,
         max_age: int = 600,
     ) -> None:
+        """Initialize the CORS middleware with the given parameters.
+
+        Args:
+            app: The next RSGI application in the middleware chain.
+            allow_origins: List of allowed origins for CORS requests.
+            allow_methods: List of allowed HTTP methods for CORS requests.
+            allow_headers: List of allowed headers for CORS requests.
+            allow_credentials: Whether to allow credentials in CORS requests.
+            max_age: Maximum age for preflight requests in seconds.
+
+        """ 
         super().__init__(app)
 
         if '*' in allow_methods:
@@ -86,6 +103,12 @@ class CORSMiddleware(ConditionalMiddleware):
             return True  # Continue processing
 
     def is_allowed_origin(self, origin: str) -> bool:
+        """Check if the origin is allowed based on the configured settings.
+
+        Args:
+            origin: The origin to check for allowance.
+
+        """
         if self.allow_all_origins:
             return True
 
@@ -97,6 +120,12 @@ class CORSMiddleware(ConditionalMiddleware):
         return origin in self.allow_origins
 
     def preflight_response(self, request_headers: Headers) -> Response:
+        """Generate a preflight response for CORS requests.
+
+        Args:
+            request_headers: The headers from the preflight request.
+
+        """
         requested_origin = request_headers.get('origin') or ''
         requested_method = request_headers.get('access-control-request-method') or ''
         requested_headers = request_headers.get('access-control-request-headers') or ''

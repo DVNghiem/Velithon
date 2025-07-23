@@ -36,9 +36,11 @@ class StaticDiscovery(Discovery):
     """Static discovery using pre-configured services."""
 
     def __init__(self):
+        """Initialize static discovery with an empty service registry."""
         self.services: dict[str, list[ServiceInfo]] = {}
 
     def register(self, service: ServiceInfo) -> None:
+        """Register a service with its name, host, port, and weight."""
         if service.name not in self.services:
             self.services[service.name] = []
         if not any(
@@ -51,11 +53,13 @@ class StaticDiscovery(Discovery):
             )
 
     async def query(self, service_name: str) -> list[ServiceInfo]:
+        """Query for instances of a service by its name."""
         instances = self.services.get(service_name, [])
         logger.debug(f'Static queried {service_name}: found {len(instances)} instances')
         return instances
 
     def close(self) -> None:
+        """Close the static discovery service."""
         logger.debug('Static discovery closed')
 
 
@@ -63,6 +67,7 @@ class MDNSDiscovery(Discovery):
     """mDNS discovery using zeroconf."""
 
     def __init__(self):
+        """Initialize mDNS discovery with Zeroconf."""
         if Zeroconf is None:
             raise ImportError('zeroconf package is required for mDNS discovery')
         self.zeroconf = Zeroconf()
@@ -70,6 +75,7 @@ class MDNSDiscovery(Discovery):
         self.service_type = '_vsp._tcp.local.'
 
     def register(self, service: ServiceInfo) -> None:
+        """Register a service with mDNS."""
         service_name = f'{service.name}.{self.service_type}'
         info = ZeroconfServiceInfo(
             type_=self.service_type,
@@ -85,6 +91,7 @@ class MDNSDiscovery(Discovery):
         logger.info(f'mDNS registered {service.name} at {service.host}:{service.port}')
 
     async def query(self, service_name: str) -> list[ServiceInfo]:
+        """Query for instances of a service by its name using mDNS."""
         instances = []
         service_name_full = f'{service_name}.{self.service_type}'
         try:
@@ -102,6 +109,7 @@ class MDNSDiscovery(Discovery):
         return instances
 
     def close(self) -> None:
+        """Close the mDNS discovery service."""
         self.zeroconf.close()
         logger.debug('mDNS discovery closed')
 
@@ -110,12 +118,14 @@ class ConsulDiscovery(Discovery):
     """Consul discovery using consul client."""
 
     def __init__(self, host: str = 'localhost', port: int = 8500):
+        """Initialize Consul discovery with the specified host and port."""
         if consul is None:
             raise ImportError('consul package is required for Consul discovery')
         self.consul = consul.Consul(host=host, port=port)
         self.services: dict[str, list[ServiceInfo]] = {}
 
     def register(self, service: ServiceInfo) -> None:
+        """Register a service with Consul."""
         service_id = f'{service.name}-{service.host}:{service.port}'
         self.consul.agent.service.register(
             name=service.name,
@@ -133,6 +143,7 @@ class ConsulDiscovery(Discovery):
         )
 
     async def query(self, service_name: str) -> list[ServiceInfo]:
+        """Query for instances of a service by its name using Consul."""
         try:
             _, services = self.consul.catalog.service(service_name)
             instances = []
@@ -153,4 +164,5 @@ class ConsulDiscovery(Discovery):
             return []
 
     def close(self) -> None:
+        """Close the Consul discovery service."""
         logger.debug('Consul discovery closed')

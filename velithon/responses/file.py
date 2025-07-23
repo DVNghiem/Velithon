@@ -33,6 +33,7 @@ class FileResponse(Response):
         method: str | None = None,
         background: BackgroundTask | None = None,
     ) -> None:
+        """Initialize a FileResponse instance."""
         self.path = Path(path)
         self.status_code = status_code
         self.filename = filename

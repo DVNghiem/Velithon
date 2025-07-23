@@ -2,7 +2,7 @@
 
 This module contains the main Velithon application class and server startup functionality.
 It provides the core RSGI application interface and server configuration.
-"""
+"""  # noqa: E501
 
 import asyncio
 import logging
@@ -10,7 +10,6 @@ from collections.abc import Awaitable, Callable, Sequence
 from typing import (
     Annotated,
     Any,
-    Callable,
 )
 
 import granian
@@ -43,6 +42,14 @@ logger = logging.getLogger(__name__)
 
 
 class Velithon:
+    """Core Velithon application class.
+
+    This class provides the main interface for building
+        and configuring Velithon web applications,
+    including route registration, middleware management, 
+        OpenAPI documentation, and server startup.
+    """
+
     def __init__(
         self: RSGIApp,
         *,
@@ -253,8 +260,8 @@ class Velithon:
                 * `name`: (`str`) **REQUIRED** (if a `license_info` is set). The
                     license name used for the API.
                 * `identifier`: (`str`) An [SPDX](https://spdx.dev/) license expression
-                    for the API. The `identifier` field is mutually exclusive of the `url`
-                    field
+                    for the API. The `identifier` field is mutually exclusive
+                    of the `url` field
                 * `url`: (`str`) A URL to the license used for the API. This MUST be
                     the format of a URL.
 
@@ -295,8 +302,8 @@ class Velithon:
                 system request ID generator will be used.
 
                 Example:
-                    def custom_request_id(request):
-                        return f"custom-{request.headers.get('x-correlation-id', 'default')}"
+                def custom_request_id(request):
+                    return f"custom-{request.headers.get('x-id', 'default')}"
                 """
             ),
         ] = None,
@@ -313,6 +320,36 @@ class Velithon:
             ),
         ] = False,
     ):
+        """Initialize the Velithon application instance.
+
+        This constructor sets up the application's routing, 
+            middleware, OpenAPI documentation,
+        logging configuration, and other core settings.
+
+        Args:
+            routes: A sequence of BaseRoute objects to register with the application.
+            middleware: A sequence of Middleware objects to apply to the application.
+            on_startup: A sequence of callables to execute on application startup.
+            on_shutdown: A sequence of callables to execute on application shutdown.
+            openapi_version: The OpenAPI specification version string.
+            title: The title of the application (used in documentation).
+            summary: A short summary of the API.
+            description: A description of the API (supports Markdown).
+            version: The version of the API/application.
+            openapi_url: The URL where the OpenAPI schema will be served.
+            swagger_ui_oauth2_redirect_url: OAuth2 redirect endpoint for Swagger UI.
+            swagger_ui_init_oauth: OAuth2 configuration for Swagger UI.
+            openapi_tags: List of OpenAPI tags for documentation.
+            servers: List of server connectivity information.
+            docs_url: Path to the interactive API documentation.
+            terms_of_service: URL to the Terms of Service for the API.
+            contact: Dictionary with contact information for the API.
+            license_info: Dictionary with license information for the API.
+            tags: List of tags used by OpenAPI.
+            request_id_generator: Custom function to generate request IDs.
+            include_security_middleware: Whether to include default security middleware.
+
+        """
         self.router = Router(routes, on_startup=on_startup, on_shutdown=on_shutdown)
         self.container = None
 
@@ -486,6 +523,13 @@ class Velithon:
     def get_openapi(
         self: RSGIApp,
     ) -> dict[str, Any]:
+        """
+        Generate and return the OpenAPI schema for the Velithon application.
+
+        Returns:
+            dict[str, Any]: The OpenAPI schema as a dictionary.
+
+        """
         from velithon.openapi.docs import get_security_schemes
 
         main_docs = {
@@ -529,6 +573,20 @@ class Velithon:
         description: str | None = None,
         tags: list[str] | None = None,
     ) -> None:  # pragma: no cover
+        """
+        Add a route to the application.
+
+        Args:
+            path: The URL path for the route.
+            route: The handler function for the route.
+            methods: List of HTTP methods accepted by the route.
+            name: Optional name for the route.
+            include_in_schema: Whether to include the route in the OpenAPI schema.
+            summary: Optional summary for documentation.
+            description: Optional description for documentation.
+            tags: Optional list of tags for documentation.
+
+        """
         self.router.add_route(
             path,
             route,
@@ -602,7 +660,7 @@ class Velithon:
         include_in_schema: bool = True,
         response_model: type | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-        """Decorator to add a GET route to the application.
+        """Add a GET route to the application.
 
         Args:
             path: The path pattern
@@ -639,7 +697,7 @@ class Velithon:
         include_in_schema: bool = True,
         response_model: type | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-        """Decorator to add a POST route to the application.
+        """Add a POST route to the application.
 
         Args:
             path: The path pattern
@@ -676,7 +734,7 @@ class Velithon:
         include_in_schema: bool = True,
         response_model: type | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-        """Decorator to add a PUT route to the application.
+        """Add a PUT route to the application.
 
         Args:
             path: The path pattern
@@ -713,7 +771,7 @@ class Velithon:
         include_in_schema: bool = True,
         response_model: type | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-        """Decorator to add a DELETE route to the application.
+        """Add a DELETE route to the application.
 
         Args:
             path: The path pattern
@@ -722,6 +780,7 @@ class Velithon:
             description: Optional description for documentation
             name: Optional name for the route
             include_in_schema: Whether to include in OpenAPI schema
+            response_model: Optional Pydantic model for response documentation
 
         Returns:
             Decorator function
@@ -749,7 +808,7 @@ class Velithon:
         include_in_schema: bool = True,
         response_model: type | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-        """Decorator to add a PATCH route to the application.
+        """Add a PATCH route to the application.
 
         Args:
             path: The path pattern
@@ -758,6 +817,7 @@ class Velithon:
             description: Optional description for documentation
             name: Optional name for the route
             include_in_schema: Whether to include in OpenAPI schema
+            response_model: Optional Pydantic model for response documentation
 
         Returns:
             Decorator function
@@ -785,7 +845,7 @@ class Velithon:
         include_in_schema: bool = True,
         response_model: type | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-        """Decorator to add an OPTIONS route to the application.
+        """Add an OPTIONS route to the application.
 
         Args:
             path: The path pattern
@@ -794,6 +854,7 @@ class Velithon:
             description: Optional description for documentation
             name: Optional name for the route
             include_in_schema: Whether to include in OpenAPI schema
+            response_model: Optional Pydantic model for response documentation
 
         Returns:
             Decorator function
@@ -816,7 +877,7 @@ class Velithon:
         *,
         name: str | None = None,
     ) -> Callable[[Any], Any]:
-        """Decorator to add a WebSocket route to the application.
+        """Add a WebSocket route to the application.
 
         Args:
             path: The WebSocket path pattern
@@ -829,7 +890,8 @@ class Velithon:
         return self.router.websocket(path, name=name)
 
     def on_startup(self, priority: int = 0) -> None:
-        """This decorator is used to register a function to be called on startup.
+        """Register a function to be called on application startup.
+
         The function can be either synchronous or asynchronous.
         The function will be called with the application instance as the first
         argument.
@@ -854,7 +916,8 @@ class Velithon:
         return decorator
 
     def on_shutdown(self, priority: int = 0) -> None:
-        """This decorator is used to register a function to be called on shutdown.
+        """Register a function to be called on application shutdown.
+
         The function can be either synchronous or asynchronous.
         The function will be called with the application instance as the first
         argument.
@@ -879,6 +942,12 @@ class Velithon:
         return decorator
 
     def config_logger(self) -> None:
+        """
+        Configure the logging system for the Velithon application.
+
+        This method sets up the logger with the specified file, level, 
+            format, and rotation settings.
+        """
         configure_logger(
             log_file=self.log_file,
             level=self.log_level,
@@ -889,15 +958,18 @@ class Velithon:
         )
 
     def __rsgi_init__(self, loop: asyncio.AbstractEventLoop) -> None:
-        """This method is called when the server is initialized.
-        It is used to set up the server and perform any necessary
-        Arg:
+        """Initialize the server when it starts.
+
+        Set up the server and perform any necessary initialization tasks.
+
+        Args:
             loop: The event loop to be used by the server.
 
         ```python
         some_sync_init_task()
         loop.run_until_complete(some_async_init_task())
         ```
+
         """
         # configure the logger
         self.config_logger()
@@ -921,14 +993,19 @@ class Velithon:
         del self.startup_functions
 
     def __rsgi_del__(self, loop: asyncio.AbstractEventLoop) -> None:
-        """This method is called when the server is shutting down.
-        It is used to clean up the server and perform any necessary
-        Arg:
+        """Clean up the server and perform any necessary shutdown tasks.
+
+        This method is called when the server is shutting down.
+
+        Args:
             loop: The event loop to be used by the server.
-        ```python
-        some_sync_init_task()
-        loop.run_until_complete(some_async_init_task())
-        ```.
+
+        Example:
+            ```python
+            some_sync_init_task()
+            loop.run_until_complete(some_async_init_task())
+            ```
+
         """
         for function_info in self.shutdown_functions:
             loop.run_until_complete(function_info())
@@ -1028,31 +1105,42 @@ class Velithon:
         # check log level is debug then log all the parameters
         if log_level == 'DEBUG':
             logger.debug(
-                f'\n App: {app} \n Host: {host} \n Port: {port} \n Workers: {workers} \n '
-                f'Log File: {log_file} \n Log Level: {log_level} \n Log Format: {log_format} \n '
-                f'Log to File: {log_to_file} \n Max Bytes: {max_bytes} \n Backup Count: {backup_count} \n '
-                f'Blocking Threads: {blocking_threads} \n Blocking Threads Idle Timeout: {blocking_threads_idle_timeout} \n '
-                f'Runtime Threads: {runtime_threads} \n Runtime Blocking Threads: {runtime_blocking_threads} \n '
-                f'Runtime Mode: {runtime_mode} \n Loop: {loop} \n Task Impl: {task_impl} \n '
-                f'HTTP: {http} \n HTTP1 Buffer Size: {http1_buffer_size} \n '
-                f'HTTP1 Header Read Timeout: {http1_header_read_timeout} \n '
-                f'HTTP1 Keep Alive: {http1_keep_alive} \n HTTP1 Pipeline Flush: {http1_pipeline_flush} \n '
-                f'HTTP2 Adaptive Window: {http2_adaptive_window} \n '
-                f'HTTP2 Initial Connection Window Size: {http2_initial_connection_window_size} \n '
-                f'HTTP2 Initial Stream Window Size: {http2_initial_stream_window_size} \n '
-                f'HTTP2 Keep Alive Interval: {http2_keep_alive_interval} \n '
-                f'HTTP2 Keep Alive Timeout: {http2_keep_alive_timeout} \n '
-                f'HTTP2 Max Concurrent Streams: {http2_max_concurrent_streams} \n '
-                f'HTTP2 Max Frame Size: {http2_max_frame_size} \n '
-                f'HTTP2 Max Headers Size: {http2_max_headers_size} \n '
-                f'HTTP2 Max Send Buffer Size: {http2_max_send_buffer_size} \n '
-                f'SSL Certificate: {ssl_certificate} \n SSL Keyfile: {ssl_keyfile} \n '
-                f'SSL Keyfile Password: {"*" * len(ssl_keyfile_password) if ssl_keyfile_password else None} \n '
+                f'\n App: {app} \n Host: {host} \n Port: {port} \n Workers: {workers} \n '  # noqa: E501
+                f'Log Level: {log_level} \n'
+                f'Log Format: {log_format} \n'
+                f'Log to File: {log_to_file} \n'
+                f'Max Bytes: {max_bytes} \n'
+                f'Backup Count: {backup_count} \n'
+                f'Blocking Threads: {blocking_threads} \n'
+                f'Blocking Threads Idle Timeout: {blocking_threads_idle_timeout} \n'
+                f'Runtime Threads: {runtime_threads} \n'
+                f'Runtime Blocking Threads: {runtime_blocking_threads} \n'
+                f'Runtime Mode: {runtime_mode} \n'
+                f'Loop: {loop} \n'
+                f'Task Impl: {task_impl} \n'
+                f'HTTP: {http} \n'
+                f'HTTP1 Buffer Size: {http1_buffer_size} \n'
+                f'HTTP1 Header Read Timeout: {http1_header_read_timeout} \n'
+                f'HTTP1 Keep Alive: {http1_keep_alive} \n'
+                f'HTTP1 Pipeline Flush: {http1_pipeline_flush} \n'
+                f'HTTP2 Adaptive Window: {http2_adaptive_window} \n'
+                f'HTTP2 Initial Connection Window Size: {http2_initial_connection_window_size} \n'  # noqa: E501
+                f'HTTP2 Initial Stream Window Size: {http2_initial_stream_window_size} \n'  # noqa: E501
+                f'HTTP2 Keep Alive Interval: {http2_keep_alive_interval} \n'
+                f'HTTP2 Keep Alive Timeout: {http2_keep_alive_timeout} \n'
+                f'HTTP2 Max Concurrent Streams: {http2_max_concurrent_streams} \n'
+                f'HTTP2 Max Frame Size: {http2_max_frame_size} \n'
+                f'HTTP2 Max Headers Size: {http2_max_headers_size} \n'
+                f'HTTP2 Max Send Buffer Size: {http2_max_send_buffer_size} \n'
+                f'SSL Certificate: {ssl_certificate} \n'
+                f'SSL Keyfile: {ssl_keyfile} \n'
+                f'SSL Keyfile Password: '
+                f'{"*" * len(ssl_keyfile_password) if ssl_keyfile_password else None} \n'  # noqa: E501
                 f'Backpressure: {backpressure}'
             )
 
         logger.info(
-            f'Starting Velithon server at http://{host}:{port} with {workers} workers...'
+            f'Starting Velithon server at http://{host}:{port} with {workers} workers...'  # noqa: E501
         )
         if reload:
             logger.debug('Auto-reload enabled.')
@@ -1070,8 +1158,10 @@ class Velithon:
         include_in_schema: bool = True,
         response_model: type | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-        """Generic factory method for creating HTTP method decorators.
-        Eliminates code duplication across get, post, put, delete, patch, options methods.
+        """Create HTTP method decorators.
+
+        Eliminate code duplication across get, post, put, delete,
+        patch, and options methods.
         """
         # Special case for OPTIONS method - use api_route directly
         if method.upper() == 'OPTIONS':
@@ -1107,7 +1197,7 @@ class Velithon:
         description: str | None = None,
         tags: list[str] | None = None,
     ) -> Callable[[Callable[..., Any]], None]:
-        """Decorator to add a route to the application.
+        """Add a route to the application.
 
         Args:
             path: The path pattern

@@ -16,6 +16,13 @@ class WebSocketEndpoint:
     """Base class for WebSocket endpoints."""
 
     def __init__(self, scope: Scope, protocol: Protocol) -> None:
+        """Initialize the WebSocketEndpoint with the given scope and protocol.
+
+        Args:
+            scope (Scope): The connection scope, must be of protocol 'websocket'.
+            protocol (Protocol): The protocol instance for the connection.
+
+        """
         assert scope.proto == 'websocket'
         self.scope = scope
         self.protocol = protocol
@@ -50,30 +57,30 @@ class WebSocketEndpoint:
         await self.on_receive(websocket, message)
 
     async def on_connect(self, websocket: WebSocket) -> None:
-        """Called when a client connects to the WebSocket."""
+        """Handle client connection to the WebSocket."""
         pass
 
     async def on_connect_complete(self, websocket: WebSocket) -> None:
-        """Called after the WebSocket connection is accepted."""
+        """Call after the WebSocket connection is accepted."""
         pass
 
     async def on_receive(self, websocket: WebSocket, data: typing.Any) -> None:
-        """Called when a message is received from the WebSocket."""
+        """Handle when a message is received from the WebSocket."""
         pass
 
     async def on_disconnect(self, websocket: WebSocket) -> None:
-        """Called when the WebSocket connection is closed."""
+        """Call when the WebSocket connection is closed."""
         pass
 
     async def on_error(self, websocket: WebSocket, error: Exception) -> None:
-        """Called when an error occurs in the WebSocket connection."""
+        """Call when an error occurs in the WebSocket connection."""
         pass
 
 
 def websocket_response(
     func: typing.Callable[[WebSocket], typing.Awaitable[None]],
 ) -> typing.Callable[[Scope, Protocol], typing.Awaitable[None]]:
-    """Decorator to convert a WebSocket handler function into a WebSocket application.
+    """Convert a WebSocket handler function into a WebSocket application.
 
     Args:
         func: A function that takes a WebSocket and returns None
@@ -100,6 +107,14 @@ class WebSocketRoute:
         | type[WebSocketEndpoint],
         name: str | None = None,
     ) -> None:
+        """Initialize a WebSocketRoute with the given path, endpoint, and optional name.
+
+        Args:
+            path (str): The route path for the WebSocket connection.
+            endpoint (Callable or type): The handler function or class for the WebSocket.
+            name (str, optional): The name of the route. Defaults to the endpoint's name or 'websocket'.
+
+        """  # noqa: E501
         self.path = path
         self.endpoint = endpoint
         self.name = name or getattr(endpoint, '__name__', 'websocket')

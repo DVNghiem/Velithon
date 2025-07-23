@@ -12,6 +12,8 @@ from velithon.datastructures import Headers, Protocol, Scope
 
 
 class Response:
+    """Base class for HTTP responses in Velithon framework."""
+
     media_type = None
     charset = 'utf-8'
 
@@ -23,6 +25,7 @@ class Response:
         media_type: str | None = None,
         background: BackgroundTask | None = None,
     ) -> None:
+        """Initialize the response with content, status code, headers, media type, and background task."""  # noqa: E501
         self.status_code = status_code
         if media_type is not None:
             self.media_type = media_type
@@ -31,6 +34,7 @@ class Response:
         self.init_headers(headers)
 
     def render(self, content: typing.Any) -> bytes | memoryview:
+        """Render the content to bytes or memoryview."""
         if content is None:
             return b''
         if isinstance(content, (bytes, memoryview)):
@@ -38,6 +42,7 @@ class Response:
         return content.encode(self.charset)  # type: ignore
 
     def init_headers(self, headers: typing.Mapping[str, str] | None = None) -> None:
+        """Initialize response headers, setting content length and content type if not provided."""  # noqa: E501
         if headers is None:
             raw_headers: list[tuple[str, str]] = []
             populate_content_length = True
@@ -70,6 +75,7 @@ class Response:
 
     @property
     def headers(self) -> Headers:
+        """Return the response headers as a Headers object."""
         if not hasattr(self, '_headers'):
             self._headers = Headers(headers=self.raw_headers)
         return self._headers
@@ -86,6 +92,7 @@ class Response:
         httponly: bool = False,
         samesite: typing.Literal['lax', 'strict', 'none'] | None = 'lax',
     ) -> None:
+        """Set a cookie in the response headers."""
         cookie: http.cookies.BaseCookie[str] = http.cookies.SimpleCookie()
         cookie[key] = value
         if max_age is not None:
@@ -122,6 +129,7 @@ class Response:
         httponly: bool = False,
         samesite: typing.Literal['lax', 'strict', 'none'] | None = 'lax',
     ) -> None:
+        """Delete a cookie by setting its max-age and expires to 0."""
         self.set_cookie(
             key,
             max_age=0,
@@ -134,6 +142,7 @@ class Response:
         )
 
     async def __call__(self, scope: Scope, protocol: Protocol) -> None:
+        """Call the response to send it over the protocol."""
         protocol.response_bytes(
             self.status_code,
             self.raw_headers,
