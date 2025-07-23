@@ -17,7 +17,7 @@ from velithon.ctx import (
     has_request_context,
     request,
 )
-from velithon.datastructures import Scope, _TempRequestContext
+from velithon.datastructures import Scope, TempRequestContext
 from velithon.middleware.context import RequestContextMiddleware
 from velithon.requests import Request
 from velithon.responses import JSONResponse
@@ -83,18 +83,18 @@ class TestCustomRequestIDGeneration:
         mock_scope.client = '127.0.0.1'
         mock_scope.query_string = b''
 
-        temp_request = _TempRequestContext(mock_scope)
+        temp_request = TempRequestContext(mock_scope)
         result_id = custom_generator(temp_request)
         assert result_id == 'corr-test-123'
 
         # Test without correlation ID
         mock_scope.headers = []
-        temp_request = _TempRequestContext(mock_scope)
+        temp_request = TempRequestContext(mock_scope)
         result_id = custom_generator(temp_request)
         assert result_id.startswith('custom-get-')
 
     def test_temp_request_context(self):
-        """Test _TempRequestContext provides correct request information."""
+        """Test TempRequestContext provides correct request information."""
 
         mock_scope = Mock()
         mock_scope.headers = [('content-type', 'application/json'), ('x-test', 'value')]
@@ -103,7 +103,7 @@ class TestCustomRequestIDGeneration:
         mock_scope.client = '192.168.1.100'
         mock_scope.query_string = b'param=value'
 
-        temp_request = _TempRequestContext(mock_scope)
+        temp_request = TempRequestContext(mock_scope)
 
         assert temp_request.method == 'POST'
         assert temp_request.path == '/api/users'
@@ -277,7 +277,7 @@ class TestRequestContextMiddleware:
         # Process request through middleware
         # Note: This is a simplified test - in reality, the middleware would
         # need proper request/response handling
-        temp_request = _TempRequestContext(mock_rsgi_scope)
+        temp_request = TempRequestContext(mock_rsgi_scope)
         custom_id = custom_generator(temp_request)
 
         assert custom_id == 'processed-get'

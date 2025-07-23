@@ -26,7 +26,7 @@ from velithon.base_datastructures import (
 request_id_generator = RequestIDGenerator()
 
 
-class _TempRequestContext:
+class TempRequestContext:
     """Temporary request context for custom request ID generation.
 
     This class provides a minimal request-like interface that can be used

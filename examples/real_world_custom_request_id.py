@@ -233,7 +233,7 @@ def demonstrate_request_id_generation():
     # Test the generator function directly
     from unittest.mock import Mock
 
-    from velithon.datastructures import _TempRequestContext
+    from velithon.datastructures import TempRequestContext
 
     print('\n🧪 Testing Request ID Generation Strategies:\n')
 
@@ -244,26 +244,26 @@ def demonstrate_request_id_generation():
     mock_scope.path = '/api/test'
     mock_scope.client = '192.168.1.100'
 
-    temp_request = _TempRequestContext(mock_scope)
+    temp_request = TempRequestContext(mock_scope)
     request_id = production_request_id_generator(temp_request)
     print(f'1. With Trace ID: {request_id}')
 
     # Test 2: Correlation ID
     mock_scope.headers = [('x-correlation-id', 'user-session-12345')]
-    temp_request = _TempRequestContext(mock_scope)
+    temp_request = TempRequestContext(mock_scope)
     request_id = production_request_id_generator(temp_request)
     print(f'2. With Correlation ID: {request_id}')
 
     # Test 3: API endpoint (no special headers)
     mock_scope.headers = []
     mock_scope.path = '/api/users/123'
-    temp_request = _TempRequestContext(mock_scope)
+    temp_request = TempRequestContext(mock_scope)
     request_id = production_request_id_generator(temp_request)
     print(f'3. API endpoint: {request_id}')
 
     # Test 4: Regular endpoint
     mock_scope.path = '/health'
-    temp_request = _TempRequestContext(mock_scope)
+    temp_request = TempRequestContext(mock_scope)
     request_id = production_request_id_generator(temp_request)
     print(f'4. Regular endpoint: {request_id}')
 
