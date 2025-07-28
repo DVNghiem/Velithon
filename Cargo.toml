@@ -12,21 +12,21 @@ name = "_velithon"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "=0.25", features = ["extension-module", "generate-import-lib", "experimental-async"] }
+pyo3 = { version = "0.25.1", features = ["extension-module", "generate-import-lib", "experimental-async"] }
 pyo3-async-runtimes = { version = "0.25", features = ["tokio-runtime"] }
 regex = "1.10"
 uuid = { version = "1.8", features = ["v4", "serde"] }
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-tokio = { version = "1.0", features = ["full"] }
-rand = "0.9.1"
-mimalloc = { version = "0.1", optional = true }
+serde_json = "1.0.141"
+tokio = { version = "1.47.0", features = ["full"] }
+rand = "0.9.2"
+mimalloc = { version = "0.1.47", optional = true }
 chrono = { version = "0.4", features = ["serde"] }
-flate2 = "1.0"
+flate2 = "1.1.2"
 crossbeam-channel = "0.5"
 parking_lot = "0.12"
 hyper = { version = "1.0", features = ["full"] }
-hyper-util = { version = "0.1", features = ["full"] }
+hyper-util = { version = "0.1.16", features = ["full"] }
 http-body-util = "0.1"
 url = "2.5"
 urlencoding = "2.1"
@@ -35,7 +35,7 @@ async-trait = "0.1.88"
 thiserror = "2.0.12"
 ahash = "0.8"
 handlebars = "6.2"
-serde_yaml = "0.9"
+serde_yaml = "0.9.34-deprecated"
 rayon = "1.8"
 percent-encoding = "2.3"
 httparse = "1.8"
