@@ -355,11 +355,6 @@ if __name__ == "__main__":
     print("  - API: http://localhost:8000/")
 """
 
-# requirements.txt
-REQUIREMENTS_CONTENT = """
-velithon>=0.5.0
-"""
-
 if __name__ == '__main__':
     print('Production Deployment Example with Prometheus Monitoring')
     print('=' * 60)

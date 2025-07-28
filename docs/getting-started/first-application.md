@@ -502,16 +502,10 @@ if __name__ == "__main__":
 
 ## 🔧 Step 8: Run the Application
 
-Create a requirements file:
-
-```txt title="requirements.txt"
-velithon>=0.5.0
-```
-
 Install dependencies and run:
 
 ```bash
-pip install -r requirements.txt
+pip install velithon
 velithon run --app app.main:app --reload --log-level DEBUG
 ```
 
