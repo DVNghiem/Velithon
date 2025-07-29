@@ -34,7 +34,6 @@ from velithon.requests import Request
 from velithon.responses import HTMLResponse, JSONResponse, Response
 from velithon.routing import BaseRoute, Router
 from velithon.types import RSGIApp
-from velithon.vsp import VSPManager
 
 _middleware_optimizer = get_middleware_optimizer()
 
@@ -393,15 +392,6 @@ class Velithon:
 
         """
         self.container = container
-
-    def register_vps(self, vsp_manager: VSPManager) -> None:
-        """Register a VSPManager for managing VSP services.
-
-        Args:
-            vsp_manager: The VSPManager instance to be used by the application.
-
-        """
-        self.vsp_manager = vsp_manager
 
     def build_middleware_stack(self) -> RSGIApp:
         """Build the middleware stack for the application.
@@ -973,18 +963,6 @@ class Velithon:
         """
         # configure the logger
         self.config_logger()
-
-        # internal server startup
-        if hasattr(self, 'vsp_manager'):
-            loop.create_task(
-                self.vsp_manager.start_server(
-                    self.vsp_host,
-                    self.vsp_port,
-                    loop=loop,
-                    reuse_port=True,  # Enable port reuse for multi-worker support
-                )
-            )
-
         # run all the startup functions from user setup
         for function_info in self.startup_functions:
             loop.run_until_complete(function_info())
@@ -1048,8 +1026,6 @@ class Velithon:
         ssl_keyfile,
         ssl_keyfile_password,
         backpressure,
-        vsp_host,
-        vsp_port,
     ) -> None:
         # Set up logging configuration
         self.log_file = log_file
@@ -1059,9 +1035,6 @@ class Velithon:
         self.max_bytes = max_bytes
         self.backup_count = backup_count
         self.config_logger()
-
-        self.vsp_host = vsp_host
-        self.vsp_port = vsp_port
 
         # Configure Granian server
         server = granian.Granian(

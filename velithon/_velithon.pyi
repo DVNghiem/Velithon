@@ -215,50 +215,6 @@ def log_critical_with_extra(
 ) -> None: ...
 def is_enabled_for(level: str) -> bool: ...
 
-# Block for VSP service management.
-
-class HealthStatus(str, enum.Enum):
-    Healthy = 'HealthStatus.Healthy'
-    Unhealthy = 'HealthStatus.Unhealthy'
-    Unknown = 'HealthStatus.Unknown'
-
-    def __repr__(self) -> str: ...
-
-@dataclass(frozen=True)
-class ServiceInfo:
-    name: str
-    host: str
-    port: int
-    weight: int = 1
-    health_status: bool = True
-    last_health_check: float = 0.0
-
-    def mark_unhealthy(self) -> None: ...
-    def mark_healthy(self) -> None: ...
-    def is_healthy(self) -> bool: ...
-    def endpoint(self) -> str: ...
-
-class LoadBalancer:
-    """Abstract Load Balancer interface."""
-
-    def select(self, instances: list[ServiceInfo]) -> ServiceInfo:
-        """Select a service instance."""
-        ...
-
-@dataclass(frozen=True)
-class RoundRobinBalancer(LoadBalancer):
-    """Round-Robin Load Balancer."""
-
-    index: int = 0
-
-    def select(self, instances: list[ServiceInfo]) -> ServiceInfo: ...
-
-@dataclass(frozen=True)
-class WeightedBalancer(LoadBalancer):
-    """Weighted Load Balancer based on instance weight."""
-
-    def select(self, instances: list[ServiceInfo]) -> ServiceInfo: ...
-
 # Block for Background tasks management.
 @dataclass(frozen=True)
 class BackgroundTask:

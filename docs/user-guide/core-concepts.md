@@ -428,4 +428,4 @@ Now that you understand the core concepts, explore the specific guides:
 - **[Dependency Injection](dependency-injection.md)** - Advanced DI patterns
 - **[Security](../security/index.md)** - Authentication and authorization
 - **[WebSocket Support](websocket.md)** - Real-time communication
-- **[Advanced Features](../advanced/gateway.md)** - Gateway, VSP, and performance features
+- **[Advanced Features](../advanced/gateway.md)** - Gateway, and performance features

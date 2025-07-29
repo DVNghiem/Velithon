@@ -176,7 +176,6 @@ Unlike traditional ASGI frameworks, Velithon leverages RSGI for:
 - **Advanced Dependency Injection** - Enterprise-grade DI system
 - **Optimized JSON Processing** - Rust-based parallel serialization
 - **Native WebSocket Support** - Real-time applications made easy
-- **VSP Protocol** - High-performance microservices communication
 
 ### 📊 **Framework Comparison**
 

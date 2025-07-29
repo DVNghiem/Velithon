@@ -30,37 +30,6 @@ async def api_proxy(request: Request):
 
 **Learn More**: [Gateway & Proxy Guide](../advanced/gateway.md)
 
-## 🔗 VSP (Velithon Service Protocol)
-
-VSP is a high-performance, distributed communication protocol designed for microservices communication. It provides efficient service discovery, message passing, load balancing, and fault tolerance.
-
-### Key Features
-- **High Performance**: Rust-based implementation with zero-copy operations
-- **Service Discovery**: Automatic service registration and discovery
-- **Load Balancing**: Built-in intelligent load balancing
-- **Fault Tolerance**: Circuit breakers and health monitoring
-- **Message Passing**: Efficient binary protocol
-- **Streaming Support**: Bidirectional streaming communication
-
-### Quick Example
-
-```python
-from velithon import Velithon
-from velithon.vsp import VSPManager
-
-app = Velithon()
-
-# Create VSP manager
-vsp_manager = VSPManager(
-    service_name="user-service",
-    service_version="1.0.0",
-    host="0.0.0.0",
-    port=9090
-)
-```
-
-**Learn More**: [VSP Protocol Guide](../advanced/vsp.md)
-
 ## ⚡ High-Performance JSON Serialization
 
 Velithon includes a Rust-based JSON serialization system that provides significant performance improvements for large JSON responses through parallel processing and intelligent caching.

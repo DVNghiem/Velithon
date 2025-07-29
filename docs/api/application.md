@@ -299,29 +299,6 @@ class DatabaseContainer(ServiceContainer):
 
 app.register_container(DatabaseContainer)
 ```
-
-## VSP Integration
-
-VSP (Velithon Service Protocol) is configured through CLI options and startup events.
-
-**Example:**
-```python
-from velithon.vsp import VSPManager
-
-vsp_manager = VSPManager()
-
-@app.on_startup()
-async def setup_vsp():
-    await vsp_manager.start("my-service", "1.0.0", "0.0.0.0", 9090)
-
-@app.on_shutdown()
-async def teardown_vsp():
-    await vsp_manager.stop()
-
-# Or use CLI options:
-# velithon run --app main:app --vsp-host 0.0.0.0 --vsp-port 9090
-```
-
 ## Lifecycle Events
 
 ### on_startup()
@@ -423,8 +400,6 @@ def run(
     ssl_keyfile: str | None = None,
     ssl_keyfile_password: str | None = None,
     backpressure: int | None = None,
-    vsp_host: str | None = None,
-    vsp_port: int | None = None
 ) -> None
 ```
 

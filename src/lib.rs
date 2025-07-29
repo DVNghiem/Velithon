@@ -22,7 +22,6 @@ mod performance;
 mod proxy;
 mod routing;
 mod templates;
-mod vsp;
 mod error;
 mod formparsers;
 
@@ -53,9 +52,6 @@ fn _velithon(m: &Bound<'_, PyModule>) -> PyResult<()> {
     
     // Register template engine functions and classes
     templates::register_templates(m.py(), m)?;
-    
-    // Register VSP (Velithon Service Protocol) components
-    vsp::register_vsp(m.py(), m)?;
     
     // Register form parsers for high-performance form parsing
     formparsers::register_formparsers(m.py(), m)?;

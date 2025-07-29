@@ -76,8 +76,6 @@ Velithon is far more than a simple web framework. It's a comprehensive platform 
 
     ---
 
-    **VSP (Velithon Service Protocol)** - Service mesh, discovery, load balancing
-    
     **Microservices** - Service communication, circuit breakers, distributed tracing
     
     **Deployment** - Docker, Kubernetes, cloud-native architectures
@@ -120,24 +118,6 @@ async def get_user(
 ):
     # Services are automatically injected
     return await db.get_user(user_id)
-```
-
-### VSP Service Protocol
-
-Velithon includes **VSP (Velithon Service Protocol)** for microservices:
-
-```python
-from velithon.vsp import VSPManager, ServiceMesh
-
-# Service discovery and load balancing
-vsp = VSPManager()
-mesh = ServiceMesh()
-
-# Register service
-await vsp.register_service("user-service", "localhost:8001")
-
-# Call remote service
-response = await mesh.call("user-service", "/api/users", method="GET")
 ```
 
 ## 🔥 Key Features Deep Dive
@@ -238,18 +218,16 @@ Before diving into the user guide, you should have:
 | **Performance** | 70k req/s | 65k req/s | 15k req/s | 20k req/s |
 | **WebSockets** | Advanced (Rooms/Channels) | Basic | Channels | Extensions |
 | **DI System** | Native Advanced | Basic | Manual | Manual |
-| **Service Mesh** | Built-in VSP | External | External | External |
 | **Security** | Comprehensive | Good | Excellent | Basic |
 | **Learning Curve** | Moderate | Easy | Steep | Easy |
 
 ## 🚀 What Makes Velithon Unique
 
 1. **RSGI Performance** - 5-10x faster than traditional frameworks
-2. **VSP Protocol** - Built-in service mesh and discovery
-3. **Advanced WebSockets** - Channels, rooms, heartbeat monitoring
-4. **Enterprise DI** - Production-ready dependency injection
-5. **Security First** - Comprehensive auth/authz system
-6. **Microservice Ready** - Native distributed systems support
+2. **Advanced WebSockets** - Channels, rooms, heartbeat monitoring
+3. **Enterprise DI** - Production-ready dependency injection
+4. **Security First** - Comprehensive auth/authz system
+5. **Microservice Ready** - Native distributed systems support
 
 Ready to master Velithon? Start with **[Application Concepts](core-concepts.md)** and work your way through the comprehensive guides.
 
