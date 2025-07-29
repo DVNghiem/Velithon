@@ -99,7 +99,6 @@ nav:
     - 'Advanced Features':
       - 'Overview': 'advanced/index.md'
       - 'Gateway & Proxy': 'advanced/gateway.md'
-      - 'VSP Protocol': 'advanced/vsp.md'
       - 'Connection Pooling': 'advanced/connection-pooling.md'
       - 'Load Balancing': 'advanced/load-balancing.md'
       - 'Circuit Breaker': 'advanced/circuit-breaker.md'
@@ -125,7 +124,6 @@ nav:
       - 'WebSocket': 'api/websocket.md'
       - 'Templates': 'api/templates.md'
       - 'DI Container': 'api/di.md'
-      - 'VSP': 'api/vsp.md'
     - 'CLI Reference':
       - 'Overview': 'cli/index.md'
       - 'Run Command': 'cli/run.md'

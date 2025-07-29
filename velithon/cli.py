@@ -257,17 +257,6 @@ def cli() -> None:
     help=' Maximum number of requests to process concurrently (per worker)',
 )
 @click.option('--reload', is_flag=True, help='Enable auto-reload for development.')
-@click.option(
-    '--vsp-host',
-    default='127.0.0.1',
-    help='Host for the Velithon Server Protocol (VSP) server.',
-)
-@click.option(
-    '--vsp-port',
-    default=8001,
-    type=int,
-    help='Port for the Velithon Server Protocol (VSP) server.',
-)
 def run(
     app,
     host,
@@ -305,8 +294,6 @@ def run(
     ssl_keyfile,
     ssl_keyfile_password,
     backpressure,
-    vsp_host,
-    vsp_port,
 ):
     """Run the Velithon application."""
     try:
@@ -352,8 +339,6 @@ def run(
             ssl_keyfile,
             ssl_keyfile_password,
             backpressure,
-            vsp_host,
-            vsp_port,
         )
 
     except ValueError as e:

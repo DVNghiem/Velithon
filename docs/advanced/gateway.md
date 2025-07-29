@@ -597,7 +597,6 @@ async def efficient_proxy(request: Request):
 
 ## 📚 Next Steps
 
-- **[VSP Protocol](vsp.md)** - Inter-service communication protocol
 - **[Load Balancing](load-balancing.md)** - Advanced load balancing strategies
 - **[Circuit Breaker](circuit-breaker.md)** - Detailed circuit breaker patterns
 - **[Health Checks](health-checks.md)** - Health monitoring strategies

@@ -98,13 +98,6 @@ velithon export-docs [OPTIONS]
 | `--ssl-keyfile` | `str` | `None` | SSL private key file |
 | `--ssl-keyfile-password` | `str` | `None` | SSL key password |
 
-### VSP Configuration
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `--vsp-host` | `str` | `None` | VSP service host |
-| `--vsp-port` | `int` | `None` | VSP service port |
-
 ## 📝 Configuration Files
 
 ### Using Configuration Files
