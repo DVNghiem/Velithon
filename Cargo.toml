@@ -28,17 +28,13 @@ parking_lot = "0.12"
 hyper = { version = "1.0", features = ["full"] }
 hyper-util = { version = "0.1.16", features = ["full"] }
 http-body-util = "0.1"
-url = "2.5"
 urlencoding = "2.1"
 bytes = "1.0"
-async-trait = "0.1.88"
 thiserror = "2.0.12"
 ahash = "0.8"
 handlebars = "6.2"
-serde_yaml = "0.9.34-deprecated"
 rayon = "1.8"
 percent-encoding = "2.3"
-httparse = "1.8"
 tempfile = "3.8"
 
 [target.'cfg(not(any(target_env = "musl", target_os = "freebsd", target_os = "openbsd", target_os = "windows")))'.dependencies]
