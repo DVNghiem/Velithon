@@ -6,7 +6,8 @@ All middleware classes are designed for high performance and seamless integratio
 
 import sys
 from collections.abc import Iterator
-from typing import Any, Protocol
+from typing import Any, Protocol, Callable
+from collections.abc import Awaitable
 
 if sys.version_info >= (3, 10):  # pragma: no cover
     from typing import ParamSpec
@@ -14,6 +15,7 @@ else:  # pragma: no cover
     from typing_extensions import ParamSpec
 
 # Import middleware classes for easier discovery
+from velithon.datastructures import Protocol as _Protocol, Scope
 from velithon.middleware.auth import AuthenticationMiddleware, SecurityMiddleware
 from velithon.middleware.base import (
     BaseHTTPMiddleware,
@@ -39,7 +41,6 @@ from velithon.middleware.session import (
     SignedCookieSessionInterface,
     get_session,
 )
-from velithon.types import RSGIApp
 
 P = ParamSpec('P')
 
@@ -74,8 +75,12 @@ __all__ = [
 
 class _MiddlewareFactory(Protocol[P]):
     def __call__(
-        self, app: RSGIApp, /, *args: P.args, **kwargs: P.kwargs
-    ) -> RSGIApp: ...  # pragma: no cover
+        self,
+        app: Callable[[Scope, _Protocol], Awaitable[None]],
+        /,
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> Callable[[Scope, _Protocol], Awaitable[None]]: ...  # pragma: no cover
 
 
 class Middleware:

@@ -106,10 +106,3 @@ def parser_cache(maxsize: int | None = None) -> Callable:
 def response_cache(maxsize: int | None = None) -> Callable:
     """Create a response-specific cache."""
     return create_lru_cache(maxsize, 'response')
-
-
-# Standard cache size constants for backward compatibility
-DEFAULT_CACHE_SIZE = CacheConfig.DEFAULT_CACHE_SIZE
-LARGE_CACHE_SIZE = CacheConfig.LARGE_CACHE_SIZE
-SMALL_CACHE_SIZE = CacheConfig.SMALL_CACHE_SIZE
-RESPONSE_CACHE_SIZE = CacheConfig.RESPONSE_CACHE_SIZE

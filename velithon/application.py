@@ -6,6 +6,7 @@ It provides the core RSGI application interface and server configuration.
 
 import asyncio
 import logging
+import typing
 from collections.abc import Awaitable, Callable, Sequence
 from typing import (
     Annotated,
@@ -33,12 +34,12 @@ from velithon.openapi.ui import get_swagger_ui_html
 from velithon.requests import Request
 from velithon.responses import HTMLResponse, JSONResponse, Response
 from velithon.routing import BaseRoute, Router
-from velithon.types import RSGIApp
 
 _middleware_optimizer = get_middleware_optimizer()
 
 logger = logging.getLogger(__name__)
 
+RSGIApp = typing.Callable[[Scope, Protocol], typing.Awaitable[None]]
 
 class Velithon:
     """Core Velithon application class.
