@@ -63,7 +63,6 @@ from .status import (
 from .memory_management import (
     enable_memory_optimizations,
     disable_memory_optimizations,
-    get_memory_stats,
     manual_memory_cleanup,
     get_memory_optimizer,
     RequestMemoryContext,
@@ -76,11 +75,7 @@ from .memory_management import (
 # Memory management middleware
 from .middleware.memory_management import (
     MemoryManagementMiddleware,
-    MemoryMonitoringMiddleware,
     GCTuningMiddleware,
-    add_memory_management,
-    add_memory_monitoring,
-    add_gc_tuning,
 )
 
 # Performance configuration
@@ -125,7 +120,6 @@ __all__ = [
     'JSONResponse',
     # Memory management middleware
     'MemoryManagementMiddleware',
-    'MemoryMonitoringMiddleware',
     'Middleware',
     'NotFoundException',
     # Performance configuration
@@ -149,9 +143,6 @@ __all__ = [
     'WebSocket',
     'WebSocketEndpoint',
     'WebSocketRoute',
-    'add_gc_tuning',
-    'add_memory_management',
-    'add_memory_monitoring',
     'configure_performance',
     'current_app',
     'disable_memory_optimizations',
@@ -164,7 +155,6 @@ __all__ = [
     'get_current_request',
     'get_memory_context',
     'get_memory_optimizer',
-    'get_memory_stats',
     'get_or_create_request',
     'has_app_context',
     'has_request_context',

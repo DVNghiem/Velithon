@@ -259,22 +259,6 @@ def get_middleware_optimizer() -> SimpleMiddlewareOptimizer:
     """Get the global simplified middleware optimizer."""
     return _middleware_optimizer
 
-
-def get_cache_stats() -> dict:
-    """Get simplified cache statistics."""
-    stats = {
-        'json_encoder': _json_encoder.get_stats(),
-    }
-
-    # Add cache manager stats if available
-    try:
-        stats.update(cache_manager.get_cache_stats())
-    except Exception:
-        pass  # Ignore cache manager errors
-
-    return stats
-
-
 def clear_all_caches() -> None:
     """Clear all framework caches."""
     # Clear JSON encoder cache
@@ -295,11 +279,8 @@ def initialize_memory_management() -> None:
     except Exception:
         pass  # Ignore if memory optimizations are not available
 
-
-def cleanup_framework_memory() -> dict[str, Any]:
+def cleanup_framework_memory():
     """Perform basic framework memory cleanup."""
-    stats = {'cleaned': True}
-
     # Clear framework caches
     clear_all_caches()
 
@@ -308,17 +289,12 @@ def cleanup_framework_memory() -> dict[str, Any]:
     if _thread_pool:
         _thread_pool.shutdown(wait=False)
         _thread_pool = None
-        stats['thread_pool_cleared'] = True
 
     # Basic memory cleanup if available
     try:
-        memory_stats = manual_memory_cleanup()
-        stats.update(memory_stats)
+        manual_memory_cleanup()
     except Exception:
         pass  # Ignore if memory management is not available
-
-    return stats
-
 
 def optimized_json_encode(obj: Any) -> bytes:
     """Simplified JSON encoding."""

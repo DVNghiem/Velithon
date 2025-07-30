@@ -14,7 +14,7 @@ import threading
 import time
 import weakref
 from collections import deque
-from typing import Any, Callable, Generic, Optional, TypeVar
+from typing import Callable, Generic, Optional, TypeVar
 
 logger = logging.getLogger(__name__)
 
@@ -86,10 +86,8 @@ class GarbageCollectionOptimizer:
         with self._lock:
             self._cleanup_callbacks.append(callback)
 
-    def manual_collection(self, generation: int = 2) -> dict[str, int]:
+    def manual_collection(self, generation: int = 2):
         """Perform manual garbage collection with statistics."""
-        start_time = time.perf_counter()
-
         # Call cleanup callbacks before collection
         for callback in self._cleanup_callbacks:
             try:
@@ -98,47 +96,8 @@ class GarbageCollectionOptimizer:
                 logger.warning(f'Cleanup callback failed: {e}')
 
         # Perform collection
-        collected = gc.collect(generation)
+        gc.collect(generation)
 
-        collection_time = time.perf_counter() - start_time
-
-        stats = {
-            'collected_objects': collected,
-            'collection_time_ms': collection_time * 1000,
-            'generation': generation,
-            'objects_remaining': len(gc.get_objects()),
-        }
-
-        if collected > 100:  # Only log significant collections
-            logger.debug(
-                f'GC collected {collected} objects in {collection_time*1000:.2f}ms '
-                f'(gen {generation})'
-            )
-
-        return stats
-
-    def get_memory_stats(self) -> dict[str, Any]:
-        """Get comprehensive memory and GC statistics."""
-        # Use cached object count if available and fresh
-        current_time = time.time()
-        cache_valid = (
-            current_time - self._cache_time
-        ) < self._cache_duration and self._cached_object_count > 0
-        if cache_valid:
-            total_objects = self._cached_object_count
-        else:
-            total_objects = len(gc.get_objects())
-            self._cached_object_count = total_objects
-            self._cache_time = current_time
-
-        return {
-            'gc_enabled': gc.isenabled(),
-            'gc_thresholds': gc.get_threshold(),
-            'gc_counts': gc.get_count(),
-            'gc_stats': gc.get_stats(),
-            'total_objects': total_objects,
-            'optimization_enabled': self._optimization_enabled,
-        }
 
     def periodic_cleanup(self, interval_seconds: float = 30.0) -> None:
         """Start a background thread for periodic garbage collection."""
@@ -206,22 +165,6 @@ class ObjectPool(Generic[T]):
         with self._lock:
             self._pool.clear()
 
-    def get_stats(self) -> dict[str, int]:
-        """Get pool statistics."""
-        with self._lock:
-            return {
-                'pool_size': len(self._pool),
-                'max_size': self._max_size,
-                'created_count': self._created_count,
-                'reused_count': self._reused_count,
-                'reuse_ratio': (
-                    self._reused_count / (self._created_count + self._reused_count)
-                    if (self._created_count + self._reused_count) > 0
-                    else 0.0
-                ),
-            }
-
-
 class FastWeakRefCache(Generic[K, V]):
     """High-performance cache using weak references with minimal locking."""
 
@@ -263,19 +206,6 @@ class FastWeakRefCache(Generic[K, V]):
     def clear(self) -> None:
         """Clear the cache."""
         self._cache.clear()
-
-    def get_stats(self) -> dict[str, Any]:
-        """Get cache statistics."""
-        total_requests = self._hits + self._misses
-        hit_ratio = self._hits / total_requests if total_requests > 0 else 0.0
-
-        return {
-            'size': len(self._cache),
-            'max_size': self._max_size,
-            'hits': self._hits,
-            'misses': self._misses,
-            'hit_ratio': hit_ratio,
-        }
 
 
 class LightweightMemoryMonitor:
@@ -405,52 +335,15 @@ class MemoryOptimizer:
         # Force garbage collection
         self.gc_optimizer.manual_collection(2)
 
-    def get_comprehensive_stats(self) -> dict[str, Any]:
-        """Get comprehensive memory and optimization statistics."""
-        stats = {
-            'gc_stats': self.gc_optimizer.get_memory_stats(),
-            'enabled': self._enabled,
-            'object_pools': {
-                name: pool.get_stats() for name, pool in self._object_pools.items()
-            },
-            'weak_caches': {
-                name: cache.get_stats() for name, cache in self._weak_caches.items()
-            },
-        }
-
-        # Add system memory info if available
-        try:
-            import psutil
-
-            process = psutil.Process()
-            memory_info = process.memory_info()
-            stats['system_memory'] = {
-                'rss_mb': memory_info.rss / 1024 / 1024,
-                'vms_mb': memory_info.vms / 1024 / 1024,
-            }
-        except ImportError:
-            pass
-
-        return stats
-
-    def manual_cleanup(self) -> dict[str, Any]:
+    def manual_cleanup(self) -> None:
         """Perform manual cleanup and return statistics."""
-        start_time = time.perf_counter()
-
         # Cleanup pools and caches
         self._cleanup_pools()
         for cache in self._weak_caches.values():
             cache.clear()
 
         # Perform garbage collection
-        gc_stats = self.gc_optimizer.manual_collection(2)
-
-        cleanup_time = time.perf_counter() - start_time
-
-        return {
-            'cleanup_time_ms': cleanup_time * 1000,
-            'gc_stats': gc_stats,
-        }
+        self.gc_optimizer.manual_collection(2)
 
 
 # Global memory optimizer instance
@@ -488,14 +381,9 @@ def set_lightweight_mode(enabled: bool = True) -> None:
     _LIGHTWEIGHT_MODE = enabled
 
 
-def get_memory_stats() -> dict[str, Any]:
-    """Get comprehensive memory statistics."""
-    return _memory_optimizer.get_comprehensive_stats()
-
-
-def manual_memory_cleanup() -> dict[str, Any]:
+def manual_memory_cleanup() -> None:
     """Perform manual memory cleanup."""
-    return _memory_optimizer.manual_cleanup()
+    _memory_optimizer.manual_cleanup()
 
 
 # Context manager for request-scoped memory optimization

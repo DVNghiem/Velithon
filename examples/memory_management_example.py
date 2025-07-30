@@ -16,7 +16,6 @@ from velithon import (
     StreamingResponse,
     Velithon,
     enable_memory_optimizations,
-    get_memory_stats,
     manual_memory_cleanup,
     with_memory_optimization,
 )
@@ -63,13 +62,6 @@ async def heavy_computation():
     return JSONResponse(result)
 
 
-@app.get('/memory-stats')
-async def memory_stats_endpoint():
-    """Endpoint to check current memory optimization statistics."""
-    stats = get_memory_stats()
-    return JSONResponse(stats)
-
-
 @app.get('/manual-cleanup')
 async def manual_cleanup_endpoint():
     """Endpoint to trigger manual memory cleanup."""
@@ -111,16 +103,6 @@ async def cache_heavy_operation():
             'sample_value': cache_data.get('key_100', {}),
         }
     )
-
-
-@app.on_startup
-async def startup_event():
-    """Startup event handler with memory optimization setup."""
-    logger.info('Starting Velithon app with memory optimizations enabled')
-
-    # Log initial memory stats
-    initial_stats = get_memory_stats()
-    logger.info(f'Initial memory stats: {initial_stats}')
 
 
 @app.on_shutdown
