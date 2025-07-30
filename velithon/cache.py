@@ -65,25 +65,6 @@ class SimpleCacheManager:
         self._lru_caches[name] = cache_func
         logger.debug(f'Registered LRU cache function: {name}')
 
-    def get_cache_stats(self) -> dict[str, Any]:
-        """Get statistics for registered caches."""
-        stats = {}
-
-        for name, cache_func in self._lru_caches.items():
-            if hasattr(cache_func, 'cache_info'):
-                info = cache_func.cache_info()
-                stats[name] = {
-                    'hits': info.hits,
-                    'misses': info.misses,
-                    'current_size': info.currsize,
-                    'max_size': info.maxsize,
-                    'hit_rate': info.hits / (info.hits + info.misses)
-                    if (info.hits + info.misses) > 0
-                    else 0,
-                }
-
-        return stats
-
     def clear_all_caches(self) -> None:
         """Clear all registered caches."""
         cleared_count = 0
