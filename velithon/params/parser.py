@@ -516,18 +516,18 @@ class ParameterResolver:
             ) = self._resolve_param_metadata(param)
             name = param.name
 
+            # If annotation is inspect._empty, treat as str for parsing
+            if annotation is inspect._empty:
+                annotation = str
+
             if param_type == 'provide':
                 # If the default is a callable (authentication function), call it
                 if callable(default):
-                    # Check if the function expects the request
                     import inspect as func_inspect
-
                     func_sig = func_inspect.signature(default)
                     if len(func_sig.parameters) > 0:
-                        # Pass the request to the authentication function
                         kwargs[name] = await default(self.request)
                     else:
-                        # Call without arguments
                         kwargs[name] = await default()
                 else:
                     kwargs[name] = default  # Provide dependency injection
