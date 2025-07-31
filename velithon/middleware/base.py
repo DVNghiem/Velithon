@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
+import typing
 from abc import ABC, abstractmethod
 
 from velithon.datastructures import Protocol, Scope
-from velithon.types import RSGIApp
 
 
 class BaseHTTPMiddleware(ABC):
@@ -17,7 +17,7 @@ class BaseHTTPMiddleware(ABC):
     3. Providing abstract methods for HTTP-specific processing
     """
 
-    def __init__(self, app: RSGIApp):
+    def __init__(self, app: typing.Callable[[Scope, Protocol], typing.Awaitable[None]]):
         """Initialize the middleware with the given RSGI application.
 
         Args:

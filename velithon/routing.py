@@ -27,7 +27,6 @@ from velithon.openapi import swagger_generate
 from velithon.params.dispatcher import dispatch
 from velithon.requests import Request
 from velithon.responses import PlainTextResponse, Response
-from velithon.types import RSGIApp
 
 T = TypeVar('T')
 # Match parameters in URL paths, eg. '{param}', and '{param:int}'
@@ -49,7 +48,7 @@ def get_name(endpoint: Callable[..., Any]) -> str:
 
 def request_response(
     func: Callable[[Request], Awaitable[Response] | Response],
-) -> RSGIApp:
+) -> Callable[[Scope, Protocol], Awaitable[None]]:
     """Take a function or coroutine `func(request) -> response`.
 
     and return an ARGI application.
@@ -407,7 +406,7 @@ class Router:
     Attributes:
         path (str): Path prefix for all routes in this router.
         redirect_slashes (bool): Whether to redirect requests with trailing slashes.
-        default (RSGIApp): Default handler for unmatched routes.
+        default (RSGI app): Default handler for unmatched routes.
         on_startup (list): Startup event handlers.
         on_shutdown (list): Shutdown event handlers.
         middleware_stack (Callable): Middleware stack for request processing.
@@ -422,7 +421,7 @@ class Router:
         *,
         path: str = '',
         redirect_slashes: bool = True,
-        default: RSGIApp | None = None,
+        default: Callable[[Scope, Protocol], Awaitable[None]] | None = None,
         on_startup: Sequence[Callable[[], Any]] | None = None,
         on_shutdown: Sequence[Callable[[], Any]] | None = None,
         middleware: Sequence[Middleware] | None = None,
@@ -435,7 +434,7 @@ class Router:
             routes (Sequence[BaseRoute] | None): Initial list of routes to register.
             path (str): Path prefix for all routes in this router.
             redirect_slashes (bool): Whether to redirect requests with trailing slashes.
-            default (RSGIApp | None): Default handler for unmatched routes.
+            default (Callable[[Scope, Protocol], Awaitable[None]] | None): Default handler for unmatched routes.
             on_startup (Sequence[Callable[[], Any]] | None): Startup event handlers.
             on_shutdown (Sequence[Callable[[], Any]] | None): Shutdown event handlers.
             middleware (Sequence[Middleware] | None): Middleware stack for request processing.
