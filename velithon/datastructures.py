@@ -4,7 +4,6 @@ This module provides essential data structures for HTTP handling including
 Headers, QueryParams, URL handling, and protocol interfaces.
 """
 
-#  @copyright (c) 2025 Starlette
 from __future__ import annotations
 
 import typing

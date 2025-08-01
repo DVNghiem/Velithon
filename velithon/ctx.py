@@ -275,27 +275,10 @@ def has_request_context() -> bool:
 
 # Proxy objects for convenient access to current app and request
 current_app: 'Velithon' = LocalProxy(get_current_app, name='current_app')
+# Proxy for the current request, ensuring it is always the singleton instance
 request: 'Request' = LocalProxy(get_current_request, name='request')
+# Global context for request-specific data
 g: SimpleNamespace = LocalProxy(lambda: _lookup_req_object('g'), name='g')
-
-
-__all__ = [
-    'AppContext',
-    'LocalProxy',
-    'RequestContext',
-    'RequestIDManager',
-    'SimpleNamespace',
-    'copy_current_app_context',
-    'copy_current_request_context',
-    'current_app',
-    'g',
-    'get_current_app',
-    'get_current_request',
-    'get_or_create_request',
-    'has_app_context',
-    'has_request_context',
-    'request',
-]
 
 
 class RequestIDManager:
@@ -331,18 +314,18 @@ class RequestIDManager:
             if ctx and hasattr(ctx.request, '_request_id'):
                 ctx.request._request_id = request_id
 
-
-def copy_current_app_context() -> AppContext:
-    """Copy the current application context."""
-    ctx = _app_ctx_stack.get()
-    if ctx is None:
-        raise RuntimeError('No application context to copy')
-    return AppContext(ctx.app)
-
-
-def copy_current_request_context() -> RequestContext:
-    """Copy the current request context."""
-    ctx = _request_ctx_stack.get()
-    if ctx is None:
-        raise RuntimeError('No request context to copy')
-    return RequestContext(ctx.app, ctx.request)
+__all__ = [
+    'AppContext',
+    'LocalProxy',
+    'RequestContext',
+    'RequestIDManager',
+    'SimpleNamespace',
+    'current_app',
+    'g',
+    'get_current_app',
+    'get_current_request',
+    'get_or_create_request',
+    'has_app_context',
+    'has_request_context',
+    'request',
+]
