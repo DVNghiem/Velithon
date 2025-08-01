@@ -209,8 +209,6 @@ class ParameterResolver:
             converter = _TYPE_CONVERTERS.get(annotation)
             if converter:
                 return converter(value)
-            if annotation is bytes:
-                return value[0] if isinstance(value, tuple) else value
             return annotation(value)
         except (ValueError, TypeError) as e:
             raise ValidationException(
@@ -219,6 +217,7 @@ class ParameterResolver:
                     'msg': f'Invalid value for type {annotation.__name__}: {e!s}',
                     'expected_type': annotation.__name__,
                     'received_value': str(value)[:100],
+                    'request': f'{self.request.method} {self.request.url}',
                 }
             ) from e
 
@@ -327,7 +326,7 @@ class ParameterResolver:
         is_required: bool,
         param_metadata: Any = None,
     ) -> Any:
-        """Parse union types by trying each type in order."""
+        """Parse union types by trying each type in order, including nested unions."""
         value = self._get_param_value_with_alias(data, param_name, param_metadata)
         if value is None:
             if default is not None and default is not ...:
@@ -341,6 +340,20 @@ class ParameterResolver:
         for typ in get_args(annotation):
             if typ is type(None):
                 continue
+            if get_origin(typ) in (Union, Optional):
+                # Recursively parse nested unions
+                try:
+                    return await self._parse_union(
+                        param_name,
+                        typ,
+                        data,
+                        default,
+                        is_required,
+                        param_metadata,
+                    )
+                except (ValidationException, BadRequestException) as e:
+                    errors.append(str(e))
+                    continue
             handler = self.type_handlers.get(
                 self._get_type_key(typ),
                 self._parse_primitive,
@@ -361,9 +374,10 @@ class ParameterResolver:
             details={
                 'field': param_name,
                 'msg': (
-                    f'Could not parse value as any of {get_args(annotation)}: '
+                    f'Failed to parse value as any of {get_args(annotation)}: '
                     f'{errors}'
                 ),
+                'request': f'{self.request.method} {self.request.url}',
             }
         )
 
@@ -444,10 +458,10 @@ class ParameterResolver:
                 )
 
         if isinstance(files, UploadFile):
-            if get_origin(annotation) is list:
-                return [files]
-            return files
+            return [files] if get_origin(annotation) is list else files
         if isinstance(files, list):
+            if not files:
+                return default if default is not None and default is not ... else None
             if not all(isinstance(f, UploadFile) for f in files):
                 raise BadRequestException(
                     details={
@@ -456,10 +470,7 @@ class ParameterResolver:
                         )
                     }
                 )
-            if get_origin(annotation) is not list:
-                return files[0] if files else None
-            return files
-
+            return files if get_origin(annotation) is list else files[0]
         raise BadRequestException(
             details={'message': f'Invalid file data for parameter: {param_name}'}
         )
@@ -525,12 +536,14 @@ class ParameterResolver:
                     .strip()
                 )
                 expected_media_type = param_metadata.media_type.split(';')[0].strip()
-                if not content_type.startswith(expected_media_type):
+                if (
+                    content_type != expected_media_type
+                    and not content_type.startswith(expected_media_type + '/')
+                ):
                     raise InvalidMediaTypeException(
                         details={
                             'message': (
-                                f'Expected media type {expected_media_type}, '
-                                f'got {content_type}'
+                                f'Expected media type {expected_media_type}, got {content_type}'  # noqa: E501
                             )
                         }
                     )
