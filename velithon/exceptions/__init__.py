@@ -1,3 +1,9 @@
+"""Velithon exceptions package.
+
+This package provides exception classes, error definitions, and response formatters
+used throughout the Velithon framework for robust error handling and reporting.
+"""
+
 from .base import HTTPException, ResponseFormatter, VelithonError
 from .errors import ErrorDefinitions
 from .formatters import DetailedFormatter, LocalizedFormatter, SimpleFormatter

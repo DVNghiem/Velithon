@@ -37,7 +37,8 @@ dependencies = [
     "msgpack (>=1.1.0,<2.0.0)",
     "markdown (>=3.6,<4.0.0)",
     "weasyprint (>=62.0,<63.0.0)",
-    "jinja2 (>=3.1.0,<4.0.0)"
+    "jinja2 (>=3.1.0,<4.0.0)",
+    "jsonschema (>=4.25.0,<5.0.0)"
 ]
 [tool.poetry.dependencies]
 python = ">=3.10,<4.0"

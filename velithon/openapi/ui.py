@@ -29,6 +29,32 @@ def get_swagger_ui_html(
     oauth2_redirect_url: str | None = None,
     init_oauth: dict[str, Any] | None = None,
 ) -> HTMLResponse:
+    """
+    Generate an HTMLResponse containing the Swagger UI for interactive OpenAPI documentation.
+
+    Parameters
+    ----------
+    openapi_url : str
+        The URL to the OpenAPI schema.
+    title : str
+        The title for the Swagger UI page.
+    swagger_js_url : str, optional
+        The URL to the Swagger UI JavaScript bundle.
+    swagger_css_url : str, optional
+        The URL to the Swagger UI CSS file.
+    swagger_favicon_url : str, optional
+        The URL to the favicon for the Swagger UI page.
+    oauth2_redirect_url : str | None, optional
+        The OAuth2 redirect URL for authentication flows.
+    init_oauth : dict[str, Any] | None, optional
+        Initialization parameters for OAuth2.
+
+    Returns
+    -------
+    HTMLResponse
+        An HTMLResponse object containing the Swagger UI HTML.
+
+    """  # noqa: E501
     html = f"""
     <!DOCTYPE html>
     <html>

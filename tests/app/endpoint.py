@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 class TestEndpoint(HTTPEndpoint):
-    async def get(self, request: Request):
+    def get(self):
         return PlainTextResponse('success')
 
     async def post(self, request: Request):

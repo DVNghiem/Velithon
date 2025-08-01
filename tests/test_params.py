@@ -52,7 +52,7 @@ def test_inject_path_fail(session):
 # InjectBodyEndpoint
 @pytest.mark.benchmark
 def test_inject_body_success(session):
-    res = post('/inject/body', data={'name': 'test', 'age': 20})
+    res = post('/inject/body', data={'name': 'test', 'age': 10})
     assert 200 == res.status_code
 
 
@@ -65,7 +65,7 @@ def test_inject_body_fail(session):
 # InjectHeadersEndpoint
 @pytest.mark.benchmark
 def test_inject_headers_success(session):
-    res = get('/inject/headers', headers={'name': 'test', 'description': 'test'})
+    res = get('/inject/headers', headers={'X-Custom-Header': 'CustomValue',})
     assert 200 == res.status_code
 
 
