@@ -96,25 +96,6 @@ class SecurityProtocol:
         """Delegate client disconnect to the wrapped protocol."""
         await self.protocol.client_disconnect()
 
-    async def send(self, message: dict) -> None:
-        """Intercept send method to add security headers to response.start."""
-        if (
-            message.get('type') == 'http.response.start'
-            and self.middleware.add_security_headers
-        ):
-            # Add security headers to the response
-            headers = list(message.get('headers', []))
-
-            # Add security headers
-            for name, value in self.middleware.security_headers.items():
-                headers.append([name.lower().encode(), value.encode()])
-
-            # Update the message with new headers
-            message = {**message, 'headers': headers}
-
-        # Send the message through the original protocol
-        await self.protocol.send(message)
-
     def update_headers(self, headers: list[tuple[str, str]]) -> None:
         """Delegate header updates to the wrapped protocol."""
         self.protocol.update_headers(headers)
