@@ -292,7 +292,7 @@ class Velithon:
             ),
         ] = None,
         request_id_generator: Annotated[
-            Callable[[Any], str] | None,
+            Callable[[Request], str] | None,
             Doc(
                 """
                 Custom function to generate request IDs.
@@ -392,7 +392,6 @@ class Velithon:
             container: The ServiceContainer instance containing providers.
 
         """
-        print("Registering container:", container)
         self.container = container
 
     def build_middleware_stack(self) -> RSGIApp:

@@ -178,3 +178,5 @@ test_app_2.py
 # Added by cargo
 
 /target
+.codspeed
+.idea
