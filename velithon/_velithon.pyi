@@ -80,7 +80,7 @@ class Provider:
 
     def get(
         self,
-        scope: typing.Any | None = None,
+        container: typing.Any | None = None,
         resolution_stack: typing.Any | None = None,
     ) -> typing.Any: ...
 
@@ -95,7 +95,7 @@ class SingletonProvider(Provider):
     ) -> None: ...
     def get(
         self,
-        scope: typing.Any | None = None,
+        container: typing.Any | None = None,
         resolution_stack: typing.Any | None = None,
     ) -> typing.Any: ...
 
@@ -109,7 +109,7 @@ class FactoryProvider(Provider):
     ) -> None: ...
     def get(
         self,
-        scope: typing.Any | None = None,
+        container: typing.Any | None = None,
         resolution_stack: typing.Any | None = None,
     ) -> typing.Any: ...
 
@@ -123,7 +123,7 @@ class AsyncFactoryProvider(Provider):
     ) -> None: ...
     async def get(
         self,
-        scope: typing.Any | None = None,
+        container: typing.Any | None = None,
         resolution_stack: typing.Any | None = None,
     ) -> typing.Any: ...
 
@@ -134,7 +134,7 @@ class ServiceContainer:
     def resolve(
         self,
         provide: typing.Any,
-        scope: typing.Any | None = None,
+        container: typing.Any | None = None,
         resolution_stack: typing.Any | None = None,
     ) -> typing.Any: ...
 
