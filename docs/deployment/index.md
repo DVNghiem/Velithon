@@ -1,79 +1,116 @@
 # Deployment
 
-Velithon applications can be deployed in various environments from development to production. This guide covers deployment strategies, configuration, and best practices.
+This guide covers deploying Velithon applications to various environments, from development to production.
 
 ## Overview
 
-Velithon is built on Granian (RSGI) for high-performance deployment. This section covers different deployment scenarios and optimization strategies.
+Velithon applications can be deployed using multiple strategies:
 
-## Development Deployment
+- **Direct Deployment**: Run directly with Granian RSGI server
+- **Container Deployment**: Docker and Kubernetes
+- **Cloud Deployment**: AWS, Google Cloud, Azure
+- **Serverless**: Function-as-a-Service platforms
+- **Reverse Proxy**: Nginx, Apache, Cloudflare
 
-### Local Development Server
+## 🚀 Quick Deployment
 
-```python
-from velithon import Velithon
-
-app = Velithon()
-
-@app.get("/")
-async def hello():
-    return {"message": "Hello, World!"}
-
-# Run with CLI:
-# velithon run --app main:app --host 127.0.0.1 --port 8000 --reload --log-level DEBUG
-```
-
-### Using the CLI
+### Local Development
 
 ```bash
-# Basic development server
-velithon run --app main:app
+# Install Velithon
+pip install velithon
 
-# With custom host and port
-velithon run --app main:app --host 0.0.0.0 --port 8080
+# Create your application
+python main.py
 
-# With reload for development
-velithon run --app main:app --reload
-
-# With debug logging
-velithon run --app main:app --log-level DEBUG
-
-# Production settings
-velithon run --app main:app --workers 4 --runtime-mode mt
+# Or use CLI
+velithon run --app main:app --host 0.0.0.0 --port 8000
 ```
 
-## Production Deployment
+### Production with Granian
 
-### Docker Deployment
+```bash
+# Run with multiple workers
+velithon run --app main:app --host 0.0.0.0 --port 8000 --workers 4
 
-#### Dockerfile
+# With SSL/TLS
+velithon run --app main:app --ssl-certificate cert.pem --ssl-keyfile key.pem
+
+# With custom configuration
+velithon run \
+  --app main:app \
+  --host 0.0.0.0 \
+  --port 8000 \
+  --workers 4 \
+  --log-level INFO \
+  --http 2 \
+  --runtime-mode mt
+```
+
+## 🐳 Docker Deployment
+
+### Basic Dockerfile
 
 ```dockerfile
-FROM python:3.11-slim
+FROM python:3.12-slim
 
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV VELITHON_ENV=production
+WORKDIR /app
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# Set work directory
-WORKDIR /app
-
-# Install Python dependencies
+# Copy requirements
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy project
+# Copy application
+COPY . .
+
+# Expose port
+EXPOSE 8000
+
+# Run application
+CMD ["velithon", "run", "--app", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+### Multi-stage Dockerfile
+
+```dockerfile
+# Build stage
+FROM python:3.12-slim as builder
+
+WORKDIR /app
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Production stage
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy from builder
+COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Copy application
 COPY . .
 
 # Create non-root user
-RUN adduser --disabled-password --gecos '' appuser
-RUN chown -R appuser:appuser /app
+RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 USER appuser
 
 # Expose port
@@ -83,37 +120,34 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# Run the application
-CMD ["velithon", "run", "app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+# Run application
+CMD ["velithon", "run", "--app", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
-#### docker-compose.yml
+### Docker Compose
 
 ```yaml
 version: '3.8'
 
 services:
-  web:
+  app:
     build: .
     ports:
       - "8000:8000"
     environment:
-      - VELITHON_ENV=production
-      - DATABASE_URL=postgresql://user:password@db:5432/myapp
+      - DATABASE_URL=postgresql://user:pass@db:5432/mydb
       - REDIS_URL=redis://redis:6379
     depends_on:
       - db
       - redis
-    volumes:
-      - ./logs:/app/logs
     restart: unless-stopped
 
   db:
     image: postgres:15
     environment:
-      POSTGRES_DB: myapp
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
+      - POSTGRES_DB=mydb
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=pass
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
@@ -122,95 +156,18 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
 
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
-      - ./ssl:/etc/nginx/ssl
-    depends_on:
-      - web
-    restart: unless-stopped
-
 volumes:
   postgres_data:
 ```
 
-### Nginx Configuration
+## ☁️ Cloud Deployment
 
-```nginx
-events {
-    worker_connections 1024;
-}
+### AWS Deployment
 
-http {
-    upstream app {
-        server web:8000;
-    }
+#### AWS ECS (Elastic Container Service)
 
-    # Rate limiting
-    limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
-
-    server {
-        listen 80;
-        server_name example.com;
-        return 301 https://$server_name$request_uri;
-    }
-
-    server {
-        listen 443 ssl http2;
-        server_name example.com;
-
-        ssl_certificate /etc/nginx/ssl/cert.pem;
-        ssl_certificate_key /etc/nginx/ssl/key.pem;
-        ssl_protocols TLSv1.2 TLSv1.3;
-        ssl_ciphers ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384;
-
-        # Security headers
-        add_header X-Frame-Options DENY;
-        add_header X-Content-Type-Options nosniff;
-        add_header X-XSS-Protection "1; mode=block";
-        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
-
-        # Gzip compression
-        gzip on;
-        gzip_types text/plain text/css application/json application/javascript text/xml application/xml;
-
-        # Static files
-        location /static/ {
-            alias /app/static/;
-            expires 1y;
-            add_header Cache-Control "public, immutable";
-        }
-
-        # API requests
-        location / {
-            limit_req zone=api burst=20 nodelay;
-            
-            proxy_pass http://app;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
-            
-            # WebSocket support
-            proxy_http_version 1.1;
-            proxy_set_header Upgrade $http_upgrade;
-            proxy_set_header Connection "upgrade";
-        }
-    }
-}
-```
-
-## Cloud Deployment
-
-### AWS ECS
-
-#### Task Definition
-
-```json
+```yaml
+# task-definition.json
 {
   "family": "velithon-app",
   "networkMode": "awsvpc",
@@ -218,7 +175,6 @@ http {
   "cpu": "512",
   "memory": "1024",
   "executionRoleArn": "arn:aws:iam::account:role/ecsTaskExecutionRole",
-  "taskRoleArn": "arn:aws:iam::account:role/ecsTaskRole",
   "containerDefinitions": [
     {
       "name": "velithon-app",
@@ -231,95 +187,103 @@ http {
       ],
       "environment": [
         {
-          "name": "VELITHON_ENV",
-          "value": "production"
-        }
-      ],
-      "secrets": [
-        {
           "name": "DATABASE_URL",
-          "valueFrom": "arn:aws:ssm:region:account:parameter/app/database-url"
+          "value": "postgresql://user:pass@db:5432/mydb"
         }
       ],
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
           "awslogs-group": "/ecs/velithon-app",
-          "awslogs-region": "us-west-2",
+          "awslogs-region": "us-east-1",
           "awslogs-stream-prefix": "ecs"
         }
-      },
-      "healthCheck": {
-        "command": ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"],
-        "interval": 30,
-        "timeout": 5,
-        "retries": 3
       }
     }
   ]
 }
 ```
 
-### Google Cloud Run
+#### AWS Lambda (Serverless)
 
-#### cloudbuild.yaml
+```python
+# lambda_function.py
+from velithon import Velithon
+from velithon.responses import JSONResponse
+
+app = Velithon()
+
+@app.get("/")
+async def root():
+    return JSONResponse({"message": "Hello from Lambda!"})
+
+# Lambda handler
+def lambda_handler(event, context):
+    # Convert API Gateway event to Velithon request
+    # Implementation depends on your setup
+    pass
+```
+
+### Google Cloud Platform
+
+#### Google Cloud Run
+
+```dockerfile
+# Dockerfile for Cloud Run
+FROM python:3.12-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+# Cloud Run expects PORT environment variable
+ENV PORT=8000
+
+CMD exec velithon run --app main:app --host 0.0.0.0 --port $PORT
+```
 
 ```yaml
+# cloudbuild.yaml
 steps:
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/$PROJECT_ID/velithon-app:$COMMIT_SHA', '.']
-  
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/velithon-app', '.']
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/velithon-app:$COMMIT_SHA']
-  
+    args: ['push', 'gcr.io/$PROJECT_ID/velithon-app']
   - name: 'gcr.io/cloud-builders/gcloud'
     args:
       - 'run'
       - 'deploy'
       - 'velithon-app'
       - '--image'
-      - 'gcr.io/$PROJECT_ID/velithon-app:$COMMIT_SHA'
+      - 'gcr.io/$PROJECT_ID/velithon-app'
       - '--region'
       - 'us-central1'
       - '--platform'
       - 'managed'
-      - '--port'
-      - '8000'
-      - '--memory'
-      - '1Gi'
-      - '--cpu'
-      - '1'
-      - '--max-instances'
-      - '100'
       - '--allow-unauthenticated'
-
-images:
-  - 'gcr.io/$PROJECT_ID/velithon-app:$COMMIT_SHA'
 ```
 
-### Azure Container Instances
+### Azure
+
+#### Azure Container Instances
 
 ```yaml
+# azure-deployment.yaml
 apiVersion: 2019-12-01
 location: eastus
-name: velithon-app
 properties:
   containers:
   - name: velithon-app
     properties:
-      image: yourregistry.azurecr.io/velithon-app:latest
+      image: your-registry/velithon-app:latest
       ports:
       - port: 8000
-        protocol: TCP
-      resources:
-        requests:
-          cpu: 1
-          memoryInGB: 2
       environmentVariables:
-      - name: VELITHON_ENV
-        value: production
       - name: DATABASE_URL
-        secureValue: postgresql://user:pass@host:5432/db
+        value: "postgresql://user:pass@db:5432/mydb"
   osType: Linux
   restartPolicy: Always
   ipAddress:
@@ -327,20 +291,18 @@ properties:
     ports:
     - protocol: tcp
       port: 8000
-    dnsNameLabel: velithon-app
 ```
 
-## Kubernetes Deployment
+## 🚢 Kubernetes Deployment
 
-### Deployment YAML
+### Basic Kubernetes Deployment
 
 ```yaml
+# deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: velithon-app
-  labels:
-    app: velithon-app
 spec:
   replicas: 3
   selector:
@@ -353,12 +315,10 @@ spec:
     spec:
       containers:
       - name: velithon-app
-        image: velithon-app:latest
+        image: your-registry/velithon-app:latest
         ports:
         - containerPort: 8000
         env:
-        - name: VELITHON_ENV
-          value: "production"
         - name: DATABASE_URL
           valueFrom:
             secretKeyRef:
@@ -366,10 +326,10 @@ spec:
               key: database-url
         resources:
           requests:
-            memory: "512Mi"
+            memory: "256Mi"
             cpu: "250m"
           limits:
-            memory: "1Gi"
+            memory: "512Mi"
             cpu: "500m"
         livenessProbe:
           httpGet:
@@ -379,11 +339,10 @@ spec:
           periodSeconds: 10
         readinessProbe:
           httpGet:
-            path: /ready
+            path: /health
             port: 8000
           initialDelaySeconds: 5
           periodSeconds: 5
-
 ---
 apiVersion: v1
 kind: Service
@@ -393,26 +352,30 @@ spec:
   selector:
     app: velithon-app
   ports:
-    - protocol: TCP
-      port: 80
-      targetPort: 8000
+  - protocol: TCP
+    port: 80
+    targetPort: 8000
   type: LoadBalancer
+```
 
----
+### Kubernetes with Ingress
+
+```yaml
+# ingress.yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: velithon-app-ingress
   annotations:
-    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/rewrite-target: /
     cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   tls:
   - hosts:
-    - api.example.com
-    secretName: api-tls
+    - your-domain.com
+    secretName: velithon-app-tls
   rules:
-  - host: api.example.com
+  - host: your-domain.com
     http:
       paths:
       - path: /
@@ -424,342 +387,312 @@ spec:
               number: 80
 ```
 
-## Configuration Management
+## 🔧 Production Configuration
 
-### Environment-based Configuration
+### Environment Variables
+
+```bash
+# .env
+DATABASE_URL=postgresql://user:pass@localhost:5432/mydb
+REDIS_URL=redis://localhost:6379
+SECRET_KEY=your-secret-key-here
+LOG_LEVEL=INFO
+WORKERS=4
+```
+
+### Application Configuration
 
 ```python
+# config.py
 import os
-from typing import Optional
 from pydantic import BaseSettings
 
 class Settings(BaseSettings):
-    # App settings
-    app_name: str = "Velithon App"
-    version: str = "1.0.0"
-    debug: bool = False
-    
-    # Server settings
-    host: str = "127.0.0.1"
-    port: int = 8000
-    workers: int = 1
-    
     # Database
-    database_url: str
+    database_url: str = "postgresql://user:pass@localhost:5432/mydb"
     
     # Redis
-    redis_url: Optional[str] = None
+    redis_url: str = "redis://localhost:6379"
     
     # Security
-    secret_key: str
-    access_token_expire_minutes: int = 30
+    secret_key: str = "your-secret-key"
     
-    # External services
-    email_api_key: Optional[str] = None
-    sentry_dsn: Optional[str] = None
+    # Logging
+    log_level: str = "INFO"
+    
+    # Server
+    workers: int = 4
+    host: str = "0.0.0.0"
+    port: int = 8000
     
     class Config:
         env_file = ".env"
-        env_file_encoding = "utf-8"
 
 settings = Settings()
-
-# Application factory
-def create_app() -> Velithon:
-    app = Velithon(
-        title=settings.app_name,
-        version=settings.version,
-        debug=settings.debug
-    )
-    
-    # Configure based on environment
-    if settings.sentry_dsn:
-        import sentry_sdk
-        sentry_sdk.init(dsn=settings.sentry_dsn)
-    
-    return app
-
-app = create_app()
 ```
 
-### Environment Files
-
-#### .env.development
-
-```bash
-VELITHON_ENV=development
-DEBUG=true
-HOST=127.0.0.1
-PORT=8000
-WORKERS=1
-DATABASE_URL=sqlite:///./dev.db
-SECRET_KEY=dev-secret-key
-```
-
-#### .env.production
-
-```bash
-VELITHON_ENV=production
-DEBUG=false
-HOST=0.0.0.0
-PORT=8000
-WORKERS=4
-DATABASE_URL=postgresql://user:pass@db:5432/prod
-SECRET_KEY=super-secret-production-key
-SENTRY_DSN=https://your-sentry-dsn
-```
-
-## Health Checks
-
-### Application Health Checks
+### Production Application
 
 ```python
+# main.py
+import os
 from velithon import Velithon
+from velithon.middleware import (
+    LoggingMiddleware,
+    CORSMiddleware,
+    CompressionMiddleware,
+    PrometheusMiddleware
+)
 from velithon.responses import JSONResponse
-import asyncio
-import psutil
-from datetime import datetime
 
-app = Velithon()
+# Load configuration
+from config import settings
+
+app = Velithon(
+    title="Production API",
+    description="Production-ready Velithon application",
+    version="1.0.0",
+    middleware=[
+        LoggingMiddleware(
+            log_level=settings.log_level,
+            log_format="json"
+        ),
+        CORSMiddleware(
+            origins=["https://your-domain.com"],
+            allow_credentials=True
+        ),
+        CompressionMiddleware(),
+        PrometheusMiddleware()
+    ]
+)
 
 @app.get("/health")
 async def health_check():
-    """Basic health check endpoint"""
     return JSONResponse({
         "status": "healthy",
-        "timestamp": datetime.utcnow().isoformat(),
-        "version": "1.0.0"
+        "version": "1.0.0",
+        "environment": os.getenv("ENVIRONMENT", "development")
     })
 
-@app.get("/ready")
-async def readiness_check():
-    """Readiness check for Kubernetes"""
-    try:
-        # Check database connection
-        await check_database()
-        
-        # Check Redis connection
-        await check_redis()
-        
-        return JSONResponse({
-            "status": "ready",
-            "timestamp": datetime.utcnow().isoformat()
-        })
-    except Exception as e:
-        return JSONResponse({
-            "status": "not ready",
-            "error": str(e),
-            "timestamp": datetime.utcnow().isoformat()
-        }, status_code=503)
+@app.get("/")
+async def root():
+    return JSONResponse({"message": "Production API"})
 
-@app.get("/metrics")
-async def metrics():
-    """System metrics endpoint"""
-    return JSONResponse({
-        "cpu_percent": psutil.cpu_percent(),
-        "memory_percent": psutil.virtual_memory().percent,
-        "disk_percent": psutil.disk_usage('/').percent,
-        "load_average": psutil.getloadavg(),
-        "timestamp": datetime.utcnow().isoformat()
-    })
-
-async def check_database():
-    """Check database connectivity"""
-    # Implement your database check
-    pass
-
-async def check_redis():
-    """Check Redis connectivity"""
-    # Implement your Redis check
-    pass
+if __name__ == "__main__":
+    app._serve(
+        app="main:app",
+        host=settings.host,
+        port=settings.port,
+        workers=settings.workers,
+        log_level=settings.log_level
+    )
 ```
 
-## Monitoring and Logging
+## 🔒 Security Configuration
+
+### SSL/TLS Configuration
+
+```python
+# ssl_config.py
+import ssl
+
+ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+ssl_context.load_cert_chain(
+    certfile="path/to/cert.pem",
+    keyfile="path/to/key.pem"
+)
+
+# Run with SSL
+app._serve(
+    app="main:app",
+    ssl_certificate="path/to/cert.pem",
+    ssl_keyfile="path/to/key.pem"
+)
+```
+
+### Security Headers
+
+```python
+from velithon.middleware import SecurityMiddleware
+
+app = Velithon(
+    middleware=[
+        SecurityMiddleware(
+            add_security_headers=True,
+            content_security_policy="default-src 'self'",
+            strict_transport_security="max-age=31536000; includeSubDomains"
+        )
+    ]
+)
+```
+
+## 📊 Monitoring & Logging
+
+### Prometheus Metrics
+
+```python
+from velithon.middleware import PrometheusMiddleware
+
+app = Velithon(
+    middleware=[
+        PrometheusMiddleware(
+            metrics_path="/metrics",
+            include_http_requests_total=True,
+            include_http_request_duration_seconds=True
+        )
+    ]
+)
+```
 
 ### Structured Logging
 
 ```python
 import logging
-import json
-from datetime import datetime
-from velithon.middleware import Middleware
-
-class JSONFormatter(logging.Formatter):
-    def format(self, record):
-        log_entry = {
-            "timestamp": datetime.utcnow().isoformat(),
-            "level": record.levelname,
-            "message": record.getMessage(),
-            "module": record.module,
-            "function": record.funcName,
-            "line": record.lineno
-        }
-        
-        if hasattr(record, 'request_id'):
-            log_entry["request_id"] = record.request_id
-            
-        if hasattr(record, 'user_id'):
-            log_entry["user_id"] = record.user_id
-            
-        return json.dumps(log_entry)
+from velithon.logging import configure_logger
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(message)s',
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler('app.log')
-    ]
+configure_logger(
+    level="INFO",
+    format="json",
+    include_correlation_id=True
 )
 
 logger = logging.getLogger(__name__)
-logger.handlers[0].setFormatter(JSONFormatter())
-logger.handlers[1].setFormatter(JSONFormatter())
 
-class LoggingMiddleware:
-    def __init__(self, app):
-        self.app = app
-    
-    async def __call__(self, scope, protocol):
-        if scope["type"] == "http":
-            start_time = datetime.utcnow()
-            
-            # Add request ID
-            import uuid
-            request_id = str(uuid.uuid4())
-            scope["request_id"] = request_id
-            
-            logger.info(
-                "Request started",
-                extra={
-                    "request_id": request_id,
-                    "method": scope["method"],
-                    "path": scope["path"],
-                    "query_string": scope["query_string"].decode()
-                }
-            )
-            
-            try:
-                await self.app(scope, protocol)
-            except Exception as e:
-                logger.error(
-                    "Request failed",
-                    extra={
-                        "request_id": request_id,
-                        "error": str(e)
-                    }
-                )
-                raise
-            finally:
-                duration = (datetime.utcnow() - start_time).total_seconds()
-                logger.info(
-                    "Request completed",
-                    extra={
-                        "request_id": request_id,
-                        "duration": duration
-                    }
-                )
-        else:
-            await self.app(scope, protocol)
-
-app = Velithon(middleware=[Middleware(LoggingMiddleware)])
+@app.get("/")
+async def root():
+    logger.info("Root endpoint accessed")
+    return {"message": "Hello World"}
 ```
 
-### Application Performance Monitoring
+## 🚀 Performance Optimization
 
-```python
-import sentry_sdk
-from sentry_sdk.integrations.logging import LoggingIntegration
+### Worker Configuration
 
-# Configure Sentry
-sentry_logging = LoggingIntegration(
-    level=logging.INFO,
-    event_level=logging.ERROR
-)
+```bash
+# Calculate optimal workers
+# Formula: (2 x CPU cores) + 1
+# For 4 CPU cores: (2 x 4) + 1 = 9 workers
 
-sentry_sdk.init(
-    dsn="your-sentry-dsn",
-    integrations=[sentry_logging],
-    traces_sample_rate=0.1,
-    profiles_sample_rate=0.1,
-    environment=os.getenv("VELITHON_ENV", "development")
-)
-
-# Custom metrics middleware
-class MetricsMiddleware:
-    def __init__(self, app):
-        self.app = app
-        self.request_count = 0
-        self.error_count = 0
-    
-    async def __call__(self, scope, protocol):
-        if scope["type"] == "http":
-            self.request_count += 1
-            
-            try:
-                await self.app(scope, protocol)
-            except Exception as e:
-                self.error_count += 1
-                sentry_sdk.capture_exception(e)
-                raise
-        else:
-            await self.app(scope, protocol)
-
-app = Velithon(middleware=[Middleware(MetricsMiddleware)])
+velithon run --app main:app --workers 9
 ```
 
-## Performance Optimization
-
-### Production Optimizations
+### Memory Optimization
 
 ```python
-from velithon import Velithon
-from velithon.middleware import Middleware
-from velithon.middleware.gzip import GzipMiddleware
-from velithon.middleware.cors import CORSMiddleware
+# Enable memory management
+from velithon.memory_management import enable_memory_management
+
+enable_memory_management()
 
 app = Velithon(
-    # Disable debug mode
-    debug=False,
-    
-    # Enable response compression
-    middleware=[
-        Middleware(GzipMiddleware, minimum_size=1024),
-        Middleware(CORSMiddleware, 
-                  allow_origins=["https://yourdomain.com"],
-                  allow_methods=["GET", "POST"],
-                  allow_headers=["*"])
-    ]
+    # ... configuration
 )
-
-# Connection pooling for database
-import asyncpg
-
-async def create_db_pool():
-    return await asyncpg.create_pool(
-        settings.database_url,
-        min_size=5,
-        max_size=20,
-        command_timeout=60
-    )
-
-# Cache configuration
-import aioredis
-
-async def create_redis_pool():
-    return aioredis.from_url(
-        settings.redis_url,
-        encoding="utf-8",
-        decode_responses=True,
-        max_connections=20
-    )
 ```
 
-### Auto-scaling Configuration
+### Caching Strategy
+
+```python
+from velithon.cache import Cache
+
+cache = Cache(redis_url="redis://localhost:6379")
+
+@app.get("/cached-data")
+async def get_cached_data():
+    # Try to get from cache
+    cached = await cache.get("data_key")
+    if cached:
+        return cached
+    
+    # Generate data
+    data = {"expensive": "data"}
+    
+    # Cache for 1 hour
+    await cache.set("data_key", data, expire=3600)
+    
+    return data
+```
+
+## 🔄 CI/CD Pipeline
+
+### GitHub Actions
 
 ```yaml
-# Kubernetes HPA
+# .github/workflows/deploy.yml
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install pytest pytest-asyncio httpx
+    - name: Run tests
+      run: pytest
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build and push Docker image
+      run: |
+        docker build -t your-registry/velithon-app:${{ github.sha }} .
+        docker push your-registry/velithon-app:${{ github.sha }}
+    - name: Deploy to Kubernetes
+      run: |
+        kubectl set image deployment/velithon-app velithon-app=your-registry/velithon-app:${{ github.sha }}
+```
+
+### GitLab CI
+
+```yaml
+# .gitlab-ci.yml
+stages:
+  - test
+  - build
+  - deploy
+
+test:
+  stage: test
+  image: python:3.12
+  script:
+    - pip install -r requirements.txt
+    - pip install pytest pytest-asyncio httpx
+    - pytest
+
+build:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker build -t your-registry/velithon-app:$CI_COMMIT_SHA .
+    - docker push your-registry/velithon-app:$CI_COMMIT_SHA
+
+deploy:
+  stage: deploy
+  script:
+    - kubectl set image deployment/velithon-app velithon-app=your-registry/velithon-app:$CI_COMMIT_SHA
+```
+
+## 📈 Scaling Strategies
+
+### Horizontal Scaling
+
+```yaml
+# horizontal-pod-autoscaler.yaml
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
@@ -769,7 +702,7 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: velithon-app
-  minReplicas: 2
+  minReplicas: 3
   maxReplicas: 10
   metrics:
   - type: Resource
@@ -786,7 +719,25 @@ spec:
         averageUtilization: 80
 ```
 
-## Next Steps
+### Load Balancing
 
-- [Production Configuration →](production.md)
-- [Deployment →](development.md)
+```python
+# Load balancer configuration
+from velithon.middleware import ProxyMiddleware
+
+app = Velithon(
+    middleware=[
+        ProxyMiddleware(
+            upstream_urls=[
+                "http://backend1:8000",
+                "http://backend2:8000",
+                "http://backend3:8000"
+            ],
+            health_check_path="/health",
+            load_balancing_strategy="round_robin"
+        )
+    ]
+)
+```
+
+This comprehensive deployment guide covers all aspects of deploying Velithon applications from development to production, ensuring high performance, security, and scalability.

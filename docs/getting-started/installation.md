@@ -192,12 +192,9 @@ Velithon comes with these core dependencies:
 - **[Granian](https://github.com/emmett-framework/granian)** - High-performance RSGI server
 - **[Pydantic](https://pydantic-docs.helpmanual.io/)** - Data validation and serialization  
 - **[orjson](https://github.com/ijl/orjson)** - Fast JSON serialization
-- **[python-multipart](https://andrew-d.github.io/python-multipart/)** - File upload support
 - **[Jinja2](https://jinja.palletsprojects.com/)** - Template engine
 - **[msgpack](https://msgpack.org/)** - Efficient binary serialization
 - **[pydash](https://pydash.readthedocs.io/)** - Utility library
-- **[zeroconf](https://python-zeroconf.readthedocs.io/)** - Service discovery
-- **[python-consul](https://python-consul.readthedocs.io/)** - Consul integration
 - **[markdown](https://python-markdown.github.io/)** - Markdown processing
 - **[weasyprint](https://weasyprint.org/)** - PDF generation
 

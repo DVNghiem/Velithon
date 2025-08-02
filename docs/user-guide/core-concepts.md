@@ -34,6 +34,8 @@ The `Velithon` constructor accepts many configuration options:
 | `middleware` | `Sequence[Middleware] \| None` | Middleware stack | `None` |
 | `on_startup` | `Sequence[Callable] \| None` | Startup callbacks | `None` |
 | `on_shutdown` | `Sequence[Callable] \| None` | Shutdown callbacks | `None` |
+| `request_id_generator` | `Callable[[Request], str] \| None` | Custom request ID generator | `None` |
+| `include_security_middleware` | `bool` | Include default security middleware | `False` |
 
 ## RSGI Protocol
 
@@ -100,332 +102,361 @@ async def get_user(request: Request):
     auth_header = request.headers.get("authorization")
     
     # Access request body
-    if request.method == "POST":
-        body = await request.json()
+    body = await request.json()
     
-    return JSONResponse({"user_id": user_id})
+    return JSONResponse({"user_id": user_id, "data": body})
 ```
 
-### Response Types
+## Response Types
 
-Velithon provides multiple response types:
+Velithon provides various response types for different use cases:
+
+### JSONResponse
+
+Optimized JSON responses using orjson:
 
 ```python
-from velithon.responses import (
-    JSONResponse,
-    HTMLResponse,
-    PlainTextResponse,
-    FileResponse,
-    StreamingResponse,
-    RedirectResponse,
-    SSEResponse  # Server-Sent Events
-)
+from velithon.responses import JSONResponse
 
-@app.get("/json")
-async def json_endpoint():
-    return JSONResponse({"message": "Hello, World!"})
-
-@app.get("/html")
-async def html_endpoint():
-    return HTMLResponse("<h1>Hello, World!</h1>")
-
-@app.get("/file")
-async def file_endpoint():
-    return FileResponse("path/to/file.pdf")
+@app.get("/data")
+async def get_data():
+    return JSONResponse({
+        "message": "Hello World",
+        "timestamp": "2025-01-01T00:00:00Z"
+    })
 ```
 
-## Routing System
+### HTMLResponse
 
-### Route Definitions
-
-Velithon supports multiple ways to define routes:
-
-#### 1. Decorator Style
+HTML responses for web pages:
 
 ```python
-@app.get("/users")
-async def list_users():
-    return {"users": []}
+from velithon.responses import HTMLResponse
 
-@app.post("/users")
-async def create_user(request: Request):
-    user_data = await request.json()
-    return {"user": user_data}
-
-@app.put("/users/{user_id}")
-async def update_user(request: Request):
-    user_id = request.path_params["user_id"]
-    return {"user_id": user_id}
+@app.get("/")
+async def home():
+    return HTMLResponse("""
+    <html>
+        <head><title>Velithon</title></head>
+        <body><h1>Welcome to Velithon!</h1></body>
+    </html>
+    """)
 ```
 
-#### 2. Manual Route Addition
+### FileResponse
+
+Serve static files:
 
 ```python
-from velithon.routing import Route
+from velithon.responses import FileResponse
 
-async def user_handler(request: Request):
-    return {"method": request.method}
-
-app.add_route("/users", user_handler, methods=["GET", "POST"])
+@app.get("/files/{filename}")
+async def serve_file(filename: str):
+    return FileResponse(f"static/{filename}")
 ```
 
-#### 3. Router Integration
+### StreamingResponse
+
+Stream large responses:
 
 ```python
-from velithon.routing import Router
+from velithon.responses import StreamingResponse
 
-router = Router()
+@app.get("/stream")
+async def stream_data():
+    async def generate():
+        for i in range(1000):
+            yield f"data: {i}\n"
+    
+    return StreamingResponse(generate())
+```
 
-@router.get("/items")
-async def list_items():
-    return {"items": []}
+### SSEResponse
 
-app.include_router(router, prefix="/api/v1")
+Server-Sent Events for real-time streaming:
+
+```python
+from velithon.responses import SSEResponse
+
+@app.get("/events")
+async def stream_events():
+    async def event_generator():
+        for i in range(100):
+            yield {"event": "update", "data": f"Event {i}"}
+            await asyncio.sleep(1)
+    
+    return SSEResponse(event_generator())
+```
+
+## Routing
+
+### Basic Routes
+
+Define routes using decorators:
+
+```python
+@app.get("/")
+async def root():
+    return {"message": "Hello World"}
+
+@app.post("/items")
+async def create_item():
+    return {"message": "Item created"}
+
+@app.put("/items/{item_id}")
+async def update_item(item_id: int):
+    return {"message": f"Updated item {item_id}"}
+
+@app.delete("/items/{item_id}")
+async def delete_item(item_id: int):
+    return {"message": f"Deleted item {item_id}"}
 ```
 
 ### Path Parameters
 
-Velithon supports typed path parameters:
+Extract parameters from URLs:
 
 ```python
-@app.get("/users/{user_id:int}")
-async def get_user(request: Request):
-    user_id: int = request.path_params["user_id"]  # Automatically converted to int
+@app.get("/users/{user_id}")
+async def get_user(user_id: int):
     return {"user_id": user_id}
 
-@app.get("/files/{file_path:path}")
-async def get_file(request: Request):
-    file_path: str = request.path_params["file_path"]  # Preserves slashes
-    return {"file_path": file_path}
+@app.get("/posts/{post_id}/comments/{comment_id}")
+async def get_comment(post_id: int, comment_id: int):
+    return {"post_id": post_id, "comment_id": comment_id}
 ```
 
-### Route Matching
+### Query Parameters
 
-Routes are matched in order of definition:
-
-```python
-@app.get("/users/me")  # More specific - should come first
-async def get_current_user():
-    return {"user": "current"}
-
-@app.get("/users/{user_id}")  # Less specific - comes after
-async def get_user(request: Request):
-    return {"user_id": request.path_params["user_id"]}
-```
-
-## Dependency Injection
-
-Velithon includes a powerful dependency injection system:
-
-### Service Container
+Handle query string parameters:
 
 ```python
-from velithon.di import ServiceContainer, SingletonProvider, FactoryProvider
-
-class DatabaseService:
-    def __init__(self, url: str):
-        self.url = url
-    
-    async def get_connection(self):
-        # Return database connection
-        pass
-
-class ApiService:
-    def __init__(self, api_key: str):
-        self.api_key = api_key
-
-# Create a service container
-class AppContainer(ServiceContainer):
-    database = SingletonProvider(DatabaseService, url="postgresql://localhost/mydb")
-    api_service = SingletonProvider(ApiService, api_key="secret-key")
-
-container = AppContainer()
-
-# Register the container with the app
-app.register_container(container)
-```
-
-### Dependency Injection in Routes
-
-```python
-from velithon.di import inject
-
-@app.get("/users")
-@inject
-async def list_users(
-    database: DatabaseService = Provide[container.database],
-    api_service: ApiService = Provide[container.api_service]
-):
-    # Use injected dependencies
-    conn = await database.get_connection()
-    return {"api_key": api_service.api_key}
-```
-
-### Service Providers
-
-```python
-class DatabaseService:
-    def __init__(self, url: str):
-        self.url = url
-    
-    async def get_connection(self):
-        # Return database connection
-        pass
-
-# Register as a factory
-class AppContainer(ServiceContainer):
-    database = FactoryProvider(DatabaseService, url="postgresql://localhost/db")
-
-container = AppContainer()
-
-@app.get("/data")
-@inject
-async def get_data(db: DatabaseService = Provide[container.database]):
-    conn = await db.get_connection()
-    return {"data": "from_database"}
+@app.get("/search")
+async def search(q: str, limit: int = 10, offset: int = 0):
+    return {"query": q, "limit": limit, "offset": offset}
 ```
 
 ## Middleware
 
-Middleware provides a way to process requests and responses:
-
 ### Built-in Middleware
+
+Velithon provides several built-in middleware components:
 
 ```python
 from velithon.middleware import (
+    LoggingMiddleware,
     CORSMiddleware,
     CompressionMiddleware,
-    LoggingMiddleware,
+    SessionMiddleware,
     AuthenticationMiddleware,
-    SecurityMiddleware
+    PrometheusMiddleware
 )
 
 app = Velithon(
     middleware=[
-        Middleware(CORSMiddleware, allow_origins=["*"]),
-        Middleware(CompressionMiddleware, compression_level=6),
-        Middleware(LoggingMiddleware, logger_name="velithon.access"),
+        LoggingMiddleware(),
+        CORSMiddleware(origins=["http://localhost:3000"]),
+        CompressionMiddleware(),
+        SessionMiddleware(secret_key="your-secret-key"),
+        AuthenticationMiddleware(),
+        PrometheusMiddleware()
     ]
 )
 ```
 
 ### Custom Middleware
 
+Create custom middleware:
+
 ```python
-from velithon.middleware.base import BaseHTTPMiddleware
+from velithon.middleware import BaseHTTPMiddleware
+from velithon.requests import Request
+from velithon.responses import Response
 
 class CustomMiddleware(BaseHTTPMiddleware):
-    async def process_request(self, request: Request) -> Request | Response | None:
-        # Process incoming request
-        request.state.start_time = time.time()
-        return request  # Continue to next middleware/handler
-    
-    async def process_response(self, request: Request, response: Response) -> Response:
-        # Process outgoing response
-        duration = time.time() - request.state.start_time
-        response.headers["X-Process-Time"] = str(duration)
+    async def dispatch(self, request: Request, call_next):
+        # Pre-processing
+        print(f"Processing request: {request.method} {request.url}")
+        
+        # Call next middleware/route handler
+        response = await call_next(request)
+        
+        # Post-processing
+        response.headers["X-Custom-Header"] = "Custom Value"
+        
         return response
 
-app = Velithon(
-    middleware=[
-        Middleware(CustomMiddleware)
-    ]
-)
+app = Velithon(middleware=[CustomMiddleware()])
 ```
 
-## Lifecycle Management
+## Dependency Injection
 
-### Startup and Shutdown Events
+### Basic DI
+
+Use dependency injection for clean, testable code:
 
 ```python
-import asyncio
+from velithon.di import inject, Provide
 
-async def startup_handler():
-    print("Application starting up...")
-    # Initialize database connections, caches, etc.
+class DatabaseService:
+    async def get_user(self, user_id: int):
+        return {"id": user_id, "name": f"User {user_id}"}
 
-async def shutdown_handler():
-    print("Application shutting down...")
-    # Close database connections, cleanup resources
+@app.get("/users/{user_id}")
+@inject
+async def get_user(
+    user_id: int,
+    db: DatabaseService = Provide[DatabaseService]
+):
+    return await db.get_user(user_id)
+```
 
-app = Velithon()
+### Service Container
 
-# Register lifecycle handlers using decorators
-@app.on_startup()
-async def register_startup_handler():
-    await startup_handler()
+Register services in a container:
 
-@app.on_shutdown()
-async def register_shutdown_handler():
-    await shutdown_handler()
+```python
+from velithon.di import ServiceContainer, SingletonProvider
 
-# Alternative decorator syntax for multiple handlers
-@app.on_startup()
-async def another_startup_handler():
-    print("Another startup task...")
+class AppContainer(ServiceContainer):
+    database_service = SingletonProvider(DatabaseService)
+    cache_service = SingletonProvider(CacheService)
 
-@app.on_shutdown()
-async def another_shutdown_handler():
-    print("Another shutdown task...")
+container = AppContainer()
+app.register_container(container)
 ```
 
 ## Error Handling
 
-### Exception Handling
+### HTTP Exceptions
+
+Raise HTTP exceptions for error responses:
 
 ```python
-from velithon.exceptions import HTTPException
-
-@app.get("/users/{user_id}")
-async def get_user(request: Request):
-    user_id = request.path_params["user_id"]
-    
-    if not user_id.isdigit():
-        raise HTTPException(status_code=400, detail="Invalid user ID")
-    
-    # Fetch user logic here
-    user = None
-    
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    return {"user": user}
-```
-
-### Error Handling
-
-```python
-from velithon.requests import Request
-from velithon.responses import JSONResponse
 from velithon.exceptions import HTTPException
 
 @app.get("/users/{user_id}")
 async def get_user(user_id: int):
+    if user_id < 1:
+        raise HTTPException(status_code=400, detail="Invalid user ID")
+    
+    if user_id > 1000:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {"user_id": user_id}
+```
+
+## WebSocket Support
+
+### Basic WebSocket
+
+Handle WebSocket connections:
+
+```python
+from velithon.websocket import WebSocket
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    
     try:
-        user = get_user_from_db(user_id)
-        if not user:
-            raise HTTPException(
-                status_code=404,
-                detail="User not found"
-            )
-        return {"user": user}
-    except ValueError as e:
-        # Handle errors within endpoints
-        return JSONResponse(
-            status_code=400,
-            content={"error": "Validation failed", "detail": str(e)}
-        )
-```
+        while True:
+            data = await websocket.receive_text()
+            await websocket.send_text(f"Message: {data}")
+    except Exception:
+        await websocket.close()
 ```
 
-## Next Steps
+### WebSocket with Authentication
 
-Now that you understand the core concepts, explore the specific guides:
+```python
+@app.websocket("/ws/auth")
+async def websocket_auth(websocket: WebSocket):
+    # Check authentication
+    token = websocket.query_params.get("token")
+    if not token:
+        await websocket.close(code=4001)
+        return
+    
+    await websocket.accept()
+    # Handle authenticated WebSocket connection
+```
 
-- **[HTTP Endpoints](http-endpoints.md)** - Learn about request/response handling
-- **[Routing](routing.md)** - Advanced routing patterns and techniques
-- **[Middleware](middleware.md)** - Building and configuring middleware
-- **[Dependency Injection](dependency-injection.md)** - Advanced DI patterns
-- **[Security](../security/index.md)** - Authentication and authorization
-- **[WebSocket Support](websocket.md)** - Real-time communication
-- **[Advanced Features](../advanced/gateway.md)** - Gateway, and performance features
+## Background Tasks
+
+### Simple Background Tasks
+
+Run tasks in the background:
+
+```python
+from velithon.background import BackgroundTask
+
+@app.post("/send-email")
+async def send_email(
+    email: str,
+    background_tasks: BackgroundTask
+):
+    background_tasks.add_task(send_email_task, email)
+    return {"message": "Email queued for sending"}
+
+async def send_email_task(email: str):
+    # Simulate email sending
+    await asyncio.sleep(5)
+    print(f"Email sent to {email}")
+```
+
+## Application Lifecycle
+
+### Startup and Shutdown
+
+Register startup and shutdown handlers:
+
+```python
+@app.on_startup
+async def startup():
+    # Initialize database connections
+    # Load configuration
+    # Start background services
+    print("Application starting up...")
+
+@app.on_shutdown
+async def shutdown():
+    # Close database connections
+    # Clean up resources
+    # Stop background services
+    print("Application shutting down...")
+```
+
+## Configuration Management
+
+### Environment-based Configuration
+
+```python
+import os
+from velithon import Velithon
+
+app = Velithon(
+    title=os.getenv("APP_TITLE", "Velithon API"),
+    version=os.getenv("APP_VERSION", "1.0.0"),
+    description=os.getenv("APP_DESCRIPTION", "")
+)
+```
+
+### Settings Class
+
+```python
+from pydantic import BaseSettings
+
+class Settings(BaseSettings):
+    app_name: str = "Velithon"
+    debug: bool = False
+    database_url: str
+    
+    class Config:
+        env_file = ".env"
+
+settings = Settings()
+app = Velithon(title=settings.app_name)
+```
+
+This covers the core concepts of Velithon. Each of these topics is explored in more detail in the following sections of the documentation.

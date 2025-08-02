@@ -48,7 +48,7 @@ Velithon is a modern, lightning-fast web framework for Python that combines simp
 
     ---
 
-    Built-in middleware for logging, CORS, compression, sessions, and custom middleware support.
+    Built-in middleware for logging, CORS, compression, sessions, authentication, and custom middleware support.
 
 -   :material-upload: **File Handling**
 
@@ -60,7 +60,7 @@ Velithon is a modern, lightning-fast web framework for Python that combines simp
 
     ---
 
-    Built-in authentication and session management with multiple backends and secure HMAC signing.
+    Built-in authentication and session management with JWT, OAuth2, API Keys, and secure HMAC signing.
 
 -   :material-api: **OpenAPI Integration**
 
@@ -131,11 +131,11 @@ New to Velithon? Follow our structured learning path:
     
     Build your first Velithon application in minutes
 
--   **[Core Concepts](getting-started/first-application.md)**
+-   **[Core Concepts](user-guide/core-concepts.md)**
     
     Understand the fundamental concepts and architecture
 
--   **[User Guide](getting-started/project-structure.md)**
+-   **[User Guide](user-guide/index.md)**
     
     Deep dive into all features with practical examples
 
@@ -203,7 +203,7 @@ Unlike traditional ASGI frameworks, Velithon leverages RSGI for:
 - **[GitHub](https://github.com/DVNghiem/velithon)** - Source code, issues, and discussions
 - **[PyPI](https://pypi.org/project/velithon/)** - Official Python package
 - **[Documentation](https://velithon.readthedocs.io)** - Comprehensive guides and API reference
-- **[Examples](getting-started/first-application.md)** - Real-world application examples
+- **[Examples](examples/index.md)** - Real-world application examples
 
 ## 📄 License
 

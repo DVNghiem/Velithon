@@ -1,519 +1,441 @@
 # Middleware
 
-Middleware in Velithon allows you to process requests and responses before they reach your application endpoints. Velithon provides a comprehensive set of built-in middleware and supports custom middleware creation.
+Middleware in Velithon provides a way to process requests and responses as they flow through your application. It's a powerful mechanism for cross-cutting concerns like logging, authentication, CORS, compression, and more.
 
-## Adding Middleware
+## Overview
 
-Middleware is added to your application during initialization:
+Middleware in Velithon follows a simple pattern:
 
-```python
-from velithon import Velithon
-from velithon.middleware import Middleware
-from velithon.middleware.cors import CORSMiddleware
-from velithon.middleware.compression import CompressionMiddleware
+1. **Request Phase**: Process incoming requests
+2. **Handler Phase**: Execute the route handler
+3. **Response Phase**: Process outgoing responses
 
-app = Velithon(
-    middleware=[
-        Middleware(CORSMiddleware, allow_origins=["*"]),
-        Middleware(CompressionMiddleware, minimum_size=500),
-    ]
-)
+```mermaid
+graph LR
+    A[Request] --> B[Middleware 1] --> C[Middleware 2] --> D[Route Handler]
+    D --> E[Middleware 2] --> F[Middleware 1] --> G[Response]
 ```
 
 ## Built-in Middleware
 
-### CORS Middleware
+Velithon provides several built-in middleware components for common use cases:
 
-Handle Cross-Origin Resource Sharing (CORS) for browser requests:
+### LoggingMiddleware
+
+Logs all requests and responses with configurable options:
 
 ```python
-from velithon.middleware.cors import CORSMiddleware
+from velithon.middleware import LoggingMiddleware
 
 app = Velithon(
     middleware=[
-        Middleware(
-            CORSMiddleware,
-            allow_origins=["https://frontend.example.com", "https://app.example.com"],
-            allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-            allow_headers=["*"],
+        LoggingMiddleware(
+            logger_name="velithon.access",
+            log_format="json",
+            include_headers=True,
+            include_body=False
+        )
+    ]
+)
+```
+
+**Configuration Options:**
+- `logger_name`: Name of the logger to use
+- `log_format`: Format for logs ("text" or "json")
+- `include_headers`: Whether to log request headers
+- `include_body`: Whether to log request/response bodies
+- `exclude_paths`: List of paths to exclude from logging
+
+### CORSMiddleware
+
+Handles Cross-Origin Resource Sharing (CORS):
+
+```python
+from velithon.middleware import CORSMiddleware
+
+app = Velithon(
+    middleware=[
+        CORSMiddleware(
+            origins=["http://localhost:3000", "https://myapp.com"],
             allow_credentials=True,
-            max_age=600  # Preflight cache duration in seconds
-        )
-    ]
-)
-
-# Allow all origins (development only)
-app = Velithon(
-    middleware=[
-        Middleware(
-            CORSMiddleware,
-            allow_origins=["*"],
-            allow_methods=["*"],  # Allows all HTTP methods
+            allow_methods=["GET", "POST", "PUT", "DELETE"],
             allow_headers=["*"],
-            allow_credentials=False  # Cannot use credentials with wildcard origins
+            max_age=3600
         )
     ]
 )
 ```
 
-**CORS Middleware features:**
-- Automatic preflight request handling
-- Origin validation
-- Method and header validation
-- Credential support
-- Configurable preflight cache duration
-- Secure defaults
+**Configuration Options:**
+- `origins`: List of allowed origins
+- `allow_credentials`: Whether to allow credentials
+- `allow_methods`: List of allowed HTTP methods
+- `allow_headers`: List of allowed headers
+- `expose_headers`: List of headers to expose
+- `max_age`: Cache duration for preflight requests
 
-### Compression Middleware
+### CompressionMiddleware
 
-Automatically compress HTTP responses using gzip compression:
+Compresses responses to reduce bandwidth:
 
 ```python
-from velithon.middleware.compression import CompressionMiddleware, CompressionLevel
+from velithon.middleware import CompressionMiddleware, CompressionLevel
 
 app = Velithon(
     middleware=[
-        Middleware(
-            CompressionMiddleware,
-            minimum_size=500,  # Only compress responses >= 500 bytes
-            compression_level=CompressionLevel.BALANCED,  # Compression level
-            compressible_types={  # Custom content types to compress
-                "application/json",
-                "text/html", 
-                "text/css",
-                "application/javascript",
-                "text/plain",
-                "text/xml",
-                "application/xml"
-            }
+        CompressionMiddleware(
+            compression_level=CompressionLevel.BALANCED,
+            min_size=1024,
+            content_types=["text/", "application/json", "application/xml"]
         )
     ]
 )
 ```
 
-The compression middleware will:
-- Only compress responses for clients that accept gzip encoding
-- Only compress responses above the minimum size threshold (default: 500 bytes)
-- Only compress responses with compressible content types
-- Add appropriate `Content-Encoding` and `Vary` headers
-- Automatically update the `Content-Length` header
+**Configuration Options:**
+- `compression_level`: Compression level (FAST, BALANCED, BEST)
+- `min_size`: Minimum response size to compress (bytes)
+- `content_types`: List of content types to compress
+- `exclude_paths`: List of paths to exclude from compression
 
-**Compression levels:**
-- `CompressionLevel.FASTEST` (1): Fastest compression, larger file size
-- `CompressionLevel.BALANCED` (6): Balanced speed and compression ratio (default)
-- `CompressionLevel.BEST` (9): Best compression, slower speed
+### SessionMiddleware
 
-### Session Middleware
-
-Provides session support with multiple backend options for storing session data:
+Manages user sessions with configurable backends:
 
 ```python
-from velithon.middleware.session import SessionMiddleware
+from velithon.middleware import SessionMiddleware, MemorySessionInterface
 
-# Memory-based sessions (default)
 app = Velithon(
     middleware=[
-        Middleware(
-            SessionMiddleware,
-            secret_key="your-secret-key-here"  # Required for signed cookies
-        )
-    ]
-)
-
-# Cookie-based sessions (signed with HMAC)
-app = Velithon(
-    middleware=[
-        Middleware(
-            SessionMiddleware,
+        SessionMiddleware(
             secret_key="your-secret-key-here",
-            cookie_name="velithon_session",  # Custom cookie name
-            max_age=3600,  # Session expires in 1 hour
-            cookie_params={
-                "path": "/",
-                "domain": None,
-                "secure": False,  # Set to True for HTTPS
-                "httponly": True,  # Prevent JavaScript access
-                "samesite": "lax"  # CSRF protection
-            }
+            session_interface=MemorySessionInterface(),
+            max_age=3600,
+            secure=False,
+            http_only=True
         )
     ]
 )
 ```
 
-**Using sessions in your endpoints:**
+**Configuration Options:**
+- `secret_key`: Secret key for session signing
+- `session_interface`: Session storage backend
+- `max_age`: Session lifetime in seconds
+- `secure`: Whether to use secure cookies
+- `http_only`: Whether to use HTTP-only cookies
+- `same_site`: SameSite cookie policy
+
+### AuthenticationMiddleware
+
+Handles authentication and authorization:
 
 ```python
-from velithon.requests import Request
-from velithon.responses import JSONResponse
-
-@app.get("/login")
-async def login(request: Request):
-    # Access session through request.session
-    session = request.session
-    
-    # Set session data
-    session["user_id"] = 123
-    session["username"] = "alice"
-    session["is_admin"] = False
-    
-    return JSONResponse({"message": "Logged in"})
-
-@app.get("/profile")
-async def profile(request: Request):
-    # Read session data
-    user_id = request.session.get("user_id")
-    
-    if not user_id:
-        return JSONResponse({"error": "Not logged in"}, status_code=401)
-    
-    return JSONResponse({
-        "user_id": user_id,
-        "username": request.session.get("username"),
-        "is_admin": request.session.get("is_admin", False)
-    })
-
-@app.post("/logout")
-async def logout(request: Request):
-    # Clear session data
-    request.session.clear()
-    return JSONResponse({"message": "Logged out"})
-```
-
-**Session backends:**
-
-- **Memory**: Fast in-memory storage (default). Data is lost when the server restarts.
-- **Signed Cookie**: Stores session data in browser cookies, signed with HMAC for security. Limited by browser cookie size (~4KB).
-
-**Custom session interface:**
-
-```python
-from velithon.middleware.session import SessionInterface, Session
-
-class RedisSessionInterface(SessionInterface):
-    def __init__(self, redis_client):
-        self.redis = redis_client
-    
-    async def load_session(self, session_id: str) -> dict:
-        data = await self.redis.get(f"session:{session_id}")
-        if data:
-            import json
-            return json.loads(data)
-        return {}
-    
-    async def save_session(self, session_id: str, session_data: dict) -> None:
-        import json
-        await self.redis.setex(
-            f"session:{session_id}",
-            3600,  # 1 hour expiry
-            json.dumps(session_data)
-        )
-
-    async def delete_session(self, session_id: str) -> None:
-        await self.redis.delete(f"session:{session_id}")
-
-    def generate_session_id(self) -> str:
-        import os
-        return os.urandom(32).hex()
-
-# Use custom interface
-app = Velithon(
-    middleware=[
-        Middleware(
-            SessionMiddleware,
-            session_interface=RedisSessionInterface(redis_client)
-        )
-    ]
-)
-```
-
-**Session features:**
-- Automatic session creation and management
-- Secure HMAC signing for cookie-based sessions
-- Configurable cookie settings (secure, httponly, samesite)
-- Session expiration support
-- Modification tracking (only saves when data changes)
-- Thread-safe memory storage
-- Easy access via `request.session`
-
-### Security Middleware
-
-Adds security headers and handles global security policies:
-
-```python
-from velithon.middleware.auth import SecurityMiddleware
+from velithon.middleware import AuthenticationMiddleware
 
 app = Velithon(
     middleware=[
-        Middleware(
-            SecurityMiddleware,
-            add_security_headers=True,  # Add standard security headers
-            cors_enabled=False  # Enable if using CORS
+        AuthenticationMiddleware(
+            exclude_paths=["/public", "/health"],
+            on_auth_failure=lambda request: {"error": "Unauthorized"}
         )
     ]
 )
 ```
 
-The security middleware automatically adds these headers:
-- `X-Content-Type-Options: nosniff` - Prevent MIME type sniffing
-- `X-Frame-Options: DENY` - Prevent clickjacking
-- `X-XSS-Protection: 1; mode=block` - Enable XSS protection
-- `Referrer-Policy: strict-origin-when-cross-origin` - Control referrer information
+**Configuration Options:**
+- `exclude_paths`: List of paths to exclude from authentication
+- `on_auth_failure`: Callback for authentication failures
+- `auth_header`: Name of the authentication header
 
-### Authentication Middleware
+### PrometheusMiddleware
 
-Handles authentication errors gracefully:
+Collects metrics for monitoring and observability:
 
 ```python
-from velithon.middleware.auth import AuthenticationMiddleware
+from velithon.middleware import PrometheusMiddleware
 
 app = Velithon(
     middleware=[
-        Middleware(AuthenticationMiddleware)
-    ]
-)
-```
-
-This middleware catches `AuthenticationError` and `AuthorizationError` exceptions and returns appropriate HTTP error responses.
-
-### Logging Middleware
-
-Automatically logs requests and responses:
-
-```python
-from velithon.middleware.logging import LoggingMiddleware
-
-app = Velithon(
-    middleware=[
-        Middleware(
-            LoggingMiddleware,
-            logger_name="velithon.requests",  # Custom logger name
-            level="INFO"  # Log level
+        PrometheusMiddleware(
+            metrics_path="/metrics",
+            include_http_requests_total=True,
+            include_http_request_duration_seconds=True,
+            include_http_request_size_bytes=True,
+            include_http_response_size_bytes=True
         )
     ]
 )
 ```
 
-### Proxy Middleware
+**Configuration Options:**
+- `metrics_path`: Path to expose metrics
+- `include_http_requests_total`: Whether to count total requests
+- `include_http_request_duration_seconds`: Whether to measure request duration
+- `include_http_request_size_bytes`: Whether to measure request size
+- `include_http_response_size_bytes`: Whether to measure response size
 
-Provides advanced proxy capabilities for microservices:
+### ProxyMiddleware
+
+Acts as a reverse proxy with load balancing:
 
 ```python
-from velithon.middleware.proxy import ProxyMiddleware
+from velithon.middleware import ProxyMiddleware
 
 app = Velithon(
     middleware=[
-        Middleware(
-            ProxyMiddleware,
-            target_url="http://backend-service:8080",
-            strip_path="/api",  # Strip this prefix before forwarding
-            add_headers={"X-Forwarded-By": "Velithon"},
-            timeout_ms=5000,
-            max_retries=3
+        ProxyMiddleware(
+            upstream_urls=["http://backend1:8000", "http://backend2:8000"],
+            health_check_path="/health",
+            circuit_breaker_threshold=5,
+            timeout=30.0
         )
     ]
 )
 ```
+
+**Configuration Options:**
+- `upstream_urls`: List of backend URLs
+- `health_check_path`: Path for health checks
+- `circuit_breaker_threshold`: Number of failures before circuit breaker opens
+- `timeout`: Request timeout in seconds
+- `load_balancing_strategy`: Strategy for load balancing
 
 ## Custom Middleware
 
-### Creating Custom HTTP Middleware
+### Basic Custom Middleware
+
+Create custom middleware by extending `BaseHTTPMiddleware`:
 
 ```python
-from velithon.middleware.base import BaseHTTPMiddleware
-from velithon.datastructures import Scope, Protocol
+from velithon.middleware import BaseHTTPMiddleware
 from velithon.requests import Request
-from velithon.responses import JSONResponse
+from velithon.responses import Response
 import time
 
 class TimingMiddleware(BaseHTTPMiddleware):
-    async def process_http_request(self, scope: Scope, protocol: Protocol) -> None:
+    async def dispatch(self, request: Request, call_next):
         start_time = time.time()
         
-        # Add timing info to scope
-        scope.state = getattr(scope, 'state', {})
-        scope.state['start_time'] = start_time
+        # Process request
+        response = await call_next(request)
         
-        # Process the request
-        await self.app(scope, protocol)
-        
-        # Calculate duration
+        # Add timing header
         duration = time.time() - start_time
-        print(f"Request took {duration:.3f} seconds")
+        response.headers["X-Process-Time"] = f"{duration:.4f}s"
+        
+        return response
 
-# Add to your app
-app = Velithon(
-    middleware=[
-        Middleware(TimingMiddleware)
-    ]
-)
-```
-
-### Protocol Wrapper Middleware
-
-For middleware that needs to modify responses:
-
-```python
-from velithon.middleware.base import ProtocolWrapperMiddleware
-from velithon.datastructures import Protocol
-
-class CustomHeaderProtocol:
-    def __init__(self, protocol: Protocol, custom_header: str):
-        self.protocol = protocol
-        self.custom_header = custom_header
-    
-    def __getattr__(self, name):
-        return getattr(self.protocol, name)
-    
-    def response_bytes(self, status: int, headers: list, body: bytes):
-        # Add custom header
-        headers.append(('X-Custom', self.custom_header))
-        return self.protocol.response_bytes(status, headers, body)
-
-class CustomHeaderMiddleware(ProtocolWrapperMiddleware):
-    def __init__(self, app, custom_header: str = "Velithon"):
-        super().__init__(app)
-        self.custom_header = custom_header
-    
-    def create_wrapped_protocol(self, scope: Scope, protocol: Protocol) -> Protocol:
-        return CustomHeaderProtocol(protocol, self.custom_header)
-
-# Usage
-app = Velithon(
-    middleware=[
-        Middleware(CustomHeaderMiddleware, custom_header="MyApp/1.0")
-    ]
-)
+app = Velithon(middleware=[TimingMiddleware()])
 ```
 
 ### Conditional Middleware
 
-For middleware that should only run under certain conditions:
+Apply middleware conditionally:
 
 ```python
-from velithon.middleware.base import ConditionalMiddleware
-from velithon.datastructures import Scope, Protocol
+from velithon.middleware import ConditionalMiddleware
 
-class APIKeyMiddleware(ConditionalMiddleware):
-    def __init__(self, app, required_paths: list[str], api_key: str):
-        super().__init__(app)
-        self.required_paths = required_paths
-        self.api_key = api_key
-    
-    async def should_process_request(self, scope: Scope, protocol: Protocol) -> bool:
-        # Only process requests to protected paths
-        if not any(scope.path.startswith(path) for path in self.required_paths):
-            return True  # Continue processing
-        
-        # Check API key
-        api_key = scope.headers.get('x-api-key')
-        if api_key != self.api_key:
-            from velithon.responses import JSONResponse
-            response = JSONResponse(
-                {"error": "Invalid API key"}, 
-                status_code=401
-            )
-            await response(scope, protocol)
-            return False  # Stop processing
-        
-        return True  # Continue processing
+def is_api_request(request: Request) -> bool:
+    return request.path.startswith("/api/")
 
-# Usage
 app = Velithon(
     middleware=[
-        Middleware(
-            APIKeyMiddleware,
-            required_paths=["/api/admin", "/api/internal"],
-            api_key="secret-key"
+        ConditionalMiddleware(
+            LoggingMiddleware(),
+            condition=is_api_request
         )
     ]
 )
 ```
 
+### Middleware with State
+
+Store and retrieve state in middleware:
+
+```python
+from velithon.middleware import BaseHTTPMiddleware
+from velithon.requests import Request
+
+class UserTrackingMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        # Add user tracking to request state
+        request.state.user_id = self.extract_user_id(request)
+        request.state.session_id = self.generate_session_id()
+        
+        response = await call_next(request)
+        
+        # Add tracking headers
+        response.headers["X-User-ID"] = request.state.user_id
+        response.headers["X-Session-ID"] = request.state.session_id
+        
+        return response
+    
+    def extract_user_id(self, request: Request) -> str:
+        # Extract user ID from headers, cookies, etc.
+        return request.headers.get("X-User-ID", "anonymous")
+    
+    def generate_session_id(self) -> str:
+        import uuid
+        return str(uuid.uuid4())
+```
+
 ## Middleware Order
 
-Middleware order matters! Middleware is executed in the order it's defined:
+The order of middleware is important. Middleware is executed in the order it's added:
 
 ```python
 app = Velithon(
     middleware=[
-        # 1. CORS (should be first for preflight requests)
-        Middleware(CORSMiddleware, allow_origins=["*"]),
+        # 1. Logging (first to capture everything)
+        LoggingMiddleware(),
         
-        # 2. Security headers
-        Middleware(SecurityMiddleware),
+        # 2. CORS (early to handle preflight requests)
+        CORSMiddleware(origins=["*"]),
         
-        # 3. Authentication
-        Middleware(AuthenticationMiddleware),
+        # 3. Authentication (before business logic)
+        AuthenticationMiddleware(),
         
-        # 4. Sessions (after auth)
-        Middleware(SessionMiddleware, secret_key="secret"),
+        # 4. Compression (after authentication, before response)
+        CompressionMiddleware(),
         
-        # 5. Compression (should be last)
-        Middleware(CompressionMiddleware),
+        # 5. Custom middleware (last in chain)
+        CustomMiddleware()
     ]
 )
 ```
 
 ## Middleware Best Practices
 
-### Performance Considerations
+### 1. Keep Middleware Lightweight
 
 ```python
-# Use caching for expensive operations
-class CachingMiddleware(BaseHTTPMiddleware):
-    def __init__(self, app):
-        super().__init__(app)
-        self.cache = {}
-    
-    async def process_http_request(self, scope: Scope, protocol: Protocol):
-        # Check cache before processing
-        cache_key = f"{scope.method}:{scope.path}"
-        
-        if cache_key in self.cache:
-            # Return cached response
-            cached_response = self.cache[cache_key]
-            await cached_response(scope, protocol)
-            return
-        
-        # Process normally and cache result
-        await self.app(scope, protocol)
+# Good: Lightweight middleware
+class SimpleMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Custom"] = "value"
+        return response
+
+# Avoid: Heavy operations in middleware
+class HeavyMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        # Don't do heavy operations here
+        await self.heavy_database_operation()  # ❌
+        response = await call_next(request)
+        return response
 ```
 
-### Error Handling
+### 2. Use Conditional Middleware
 
 ```python
-class ErrorHandlingMiddleware(BaseHTTPMiddleware):
-    async def process_http_request(self, scope: Scope, protocol: Protocol):
+# Only apply middleware where needed
+def is_admin_request(request: Request) -> bool:
+    return request.path.startswith("/admin/")
+
+app = Velithon(
+    middleware=[
+        ConditionalMiddleware(
+            AdminAuthMiddleware(),
+            condition=is_admin_request
+        )
+    ]
+)
+```
+
+### 3. Handle Exceptions Gracefully
+
+```python
+class SafeMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
         try:
-            await self.app(scope, protocol)
+            response = await call_next(request)
+            return response
         except Exception as e:
-            # Log the error
-            import logging
-            logging.exception(f"Unhandled error: {e}")
-            
-            # Return error response
-            from velithon.responses import JSONResponse
-            response = JSONResponse(
-                {"error": "Internal server error"},
-                status_code=500
-            )
-            await response(scope, protocol)
+            # Log the error but don't break the request
+            logger.error(f"Middleware error: {e}")
+            # Return a fallback response or re-raise
+            raise
 ```
 
-### Request Modification
+### 4. Use Middleware for Cross-cutting Concerns
 
 ```python
-class RequestModifierMiddleware(BaseHTTPMiddleware):
-    async def process_http_request(self, scope: Scope, protocol: Protocol):
-        # Add custom data to scope
-        scope.custom_data = {"processed_by": "middleware"}
-        
-        # Modify headers
-        headers = dict(scope.headers)
-        headers['x-processed'] = 'true'
-        scope.headers = headers
-        
-        await self.app(scope, protocol)
+# Good use cases for middleware:
+# - Logging
+# - Authentication
+# - CORS
+# - Compression
+# - Rate limiting
+# - Request/response transformation
+# - Metrics collection
+
+# Avoid using middleware for:
+# - Business logic
+# - Database operations
+# - Complex calculations
 ```
 
-This middleware system provides powerful capabilities for cross-cutting concerns like authentication, logging, compression, and security while maintaining high performance through Velithon's optimized RSGI architecture.
+## Advanced Middleware Patterns
+
+### Middleware with Configuration
+
+```python
+from dataclasses import dataclass
+from velithon.middleware import BaseHTTPMiddleware
+
+@dataclass
+class RateLimitConfig:
+    requests_per_minute: int = 60
+    burst_size: int = 10
+
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    def __init__(self, config: RateLimitConfig):
+        self.config = config
+        self.requests = {}
+    
+    async def dispatch(self, request: Request, call_next):
+        client_ip = request.client.host
+        now = time.time()
+        
+        # Clean old requests
+        self.requests[client_ip] = [
+            req_time for req_time in self.requests.get(client_ip, [])
+            if now - req_time < 60
+        ]
+        
+        # Check rate limit
+        if len(self.requests[client_ip]) >= self.config.requests_per_minute:
+            return JSONResponse(
+                {"error": "Rate limit exceeded"},
+                status_code=429
+            )
+        
+        # Add current request
+        self.requests[client_ip].append(now)
+        
+        return await call_next(request)
+```
+
+### Middleware with Dependency Injection
+
+```python
+from velithon.di import inject, Provide
+
+class DatabaseMiddleware(BaseHTTPMiddleware):
+    def __init__(self, database_service):
+        self.database_service = database_service
+    
+    @inject
+    async def dispatch(
+        self, 
+        request: Request, 
+        call_next,
+        db: DatabaseService = Provide[DatabaseService]
+    ):
+        # Use injected database service
+        request.state.db = db
+        return await call_next(request)
+```
+
+This covers the middleware system in Velithon. Middleware is a powerful tool for adding cross-cutting concerns to your application while keeping your route handlers clean and focused on business logic.

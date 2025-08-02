@@ -778,13 +778,6 @@ class SecureErrorHandler:
                 status_code=500
             )
 
-# Error handler
-error_handler = SecureErrorHandler(debug_mode=False)
-
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    """Global exception handler."""
-    return error_handler.handle_error(request, exc)
 ```
 
 ## Security Testing

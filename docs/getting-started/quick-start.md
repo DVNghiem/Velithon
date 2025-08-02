@@ -266,12 +266,6 @@ async def health_check():
     return JSONResponse({"status": "healthy", "service": "velithon-app"})
 ```
 
-@app.get("/health")
-async def health_check():
-    """Health check endpoint."""
-    return {"status": "healthy", "service": "velithon-app"}
-```
-
 Now test the improved POST endpoint:
 
 ```bash
@@ -375,7 +369,6 @@ async def create_item(item: Item):
 async def health_check():
     """Health check endpoint."""
     return JSONResponse({"status": "healthy", "service": "velithon-app"})
-```
 ```
 
 ## 🔧 Step 6: Velithon CLI Options
@@ -482,10 +475,6 @@ Ready to dive deeper? Here are your next steps:
 
 <div class="grid cards" markdown>
 
--   **[First Application](first-application.md)**
-    
-    Build a more comprehensive application with middleware, authentication, and databases
-
 -   **[Core Concepts](../user-guide/core-concepts.md)**
     
     Understand Velithon's architecture and design principles
@@ -500,4 +489,4 @@ Ready to dive deeper? Here are your next steps:
 
 </div>
 
-**[Build Your First Real Application →](first-application.md)**
+**[Build Your First Real Application →](../user-guide/core-concepts.md)**
