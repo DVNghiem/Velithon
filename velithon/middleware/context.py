@@ -4,8 +4,9 @@ This middleware manages application and request contexts, and handles custom req
 """  # noqa: E501
 
 from velithon.ctx import AppContext, RequestContext, RequestIDManager
-from velithon.datastructures import Protocol, Scope, TempRequestContext
+from velithon.datastructures import Protocol, Scope
 from velithon.middleware.base import BaseHTTPMiddleware
+from velithon.requests import Request
 
 
 class RequestContextMiddleware(BaseHTTPMiddleware):
@@ -26,15 +27,13 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
 
     async def process_http_request(self, scope: Scope, protocol: Protocol) -> None:
         """Process HTTP request with async context management for optimal performance."""  # noqa: E501
-        # Create a temporary request context for request ID generation
-        temp_request = TempRequestContext(scope._scope)
-
         # Generate custom request ID if configured
         if (
             hasattr(self.velithon_app, 'request_id_generator')
             and self.velithon_app.request_id_generator
         ):
-            custom_request_id = self.velithon_app.request_id_generator(temp_request)
+            request = Request(scope, protocol)
+            custom_request_id = self.velithon_app.request_id_generator(request)
             scope._request_id = custom_request_id
 
         # Use async context managers for non-blocking context management
