@@ -27,7 +27,7 @@ from velithon.datastructures import FunctionInfo, Protocol, Scope
 from velithon.di import ServiceContainer
 from velithon.logging import configure_logger
 from velithon.middleware import Middleware
-from velithon.middleware.di import DIMiddleware
+from velithon.middleware.context import RequestContextMiddleware
 from velithon.middleware.logging import LoggingMiddleware
 from velithon.middleware.wrapped import WrappedRSGITypeMiddleware
 from velithon.openapi.ui import get_swagger_ui_html
@@ -392,6 +392,7 @@ class Velithon:
             container: The ServiceContainer instance containing providers.
 
         """
+        print("Registering container:", container)
         self.container = container
 
     def build_middleware_stack(self) -> RSGIApp:
@@ -403,22 +404,9 @@ class Velithon:
         """
         middleware = [
             Middleware(WrappedRSGITypeMiddleware),
+            Middleware(RequestContextMiddleware, self),
+            Middleware(LoggingMiddleware),
         ]
-
-        # Add request context middleware if custom request ID generator is configured
-        if self.request_id_generator:
-            from velithon.middleware.context import RequestContextMiddleware
-
-            middleware.append(Middleware(RequestContextMiddleware, self))
-
-        middleware.extend(
-            [
-                Middleware(LoggingMiddleware),
-            ]
-        )
-
-        if self.container:
-            middleware.append(Middleware(DIMiddleware, self))
 
         # Add security middleware if requested
         if self.include_security_middleware:

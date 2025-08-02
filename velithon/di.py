@@ -6,7 +6,6 @@ container management, and automatic dependency resolution for endpoints.
 
 import logging
 from collections.abc import Callable
-from contextvars import ContextVar
 from functools import wraps
 from inspect import iscoroutinefunction
 from typing import Any
@@ -22,13 +21,9 @@ from velithon._velithon import (
 from velithon._velithon import (
     ServiceContainer as _RustServiceContainer,
 )
-from velithon.datastructures import Scope
+from velithon.ctx import current_app
 
 logger = logging.getLogger(__name__)
-
-# Context variable to store the current request scope for dependency injection.
-current_scope: ContextVar[Scope | None] = ContextVar('current_scope', default=None)
-
 
 class ServiceContainer:
     """Enhanced ServiceContainer with automatic provider registration.
@@ -44,9 +39,9 @@ class ServiceContainer:
             if isinstance(value, Provider):
                 setattr(self, name, value)
 
-    async def resolve(self, provide, scope=None, resolution_stack=None):
+    async def resolve(self, provide, container, resolution_stack=None):
         """Delegate to Rust implementation and handle async results."""
-        result = self._rust_container.resolve(provide, scope, resolution_stack)
+        result = self._rust_container.resolve(provide, container, resolution_stack)
 
         # If the result is a coroutine, await it
         if hasattr(result, '__await__'):
@@ -80,19 +75,14 @@ def inject(func: Callable) -> Callable:
 
         if provide:
             param_deps.append((name, provide))
-        elif param.annotation == Scope:
-            param_deps.append((name, Scope))
 
     @wraps(func)
     async def wrapper(*args, **kwargs) -> Any:
-        scope = current_scope.get()
-        if scope is None:
-            raise RuntimeError('No scope available for dependency injection')
 
-        container = scope._di_context.get('velithon', {}).container
+        container = current_app.container
         if not container:
             raise RuntimeError(
-                "No container available in scope._di_context['velithon']"
+                "No container available in Velithon context."
             )
 
         # Fast dependency resolution using Rust implementations
@@ -104,15 +94,12 @@ def inject(func: Callable) -> Callable:
                 ]  # User-provided kwargs take precedence
                 continue
 
-            if dep is Scope:
-                resolved_kwargs[name] = scope
-            else:
-                try:
-                    # Use high-performance Rust container resolution
-                    resolved_kwargs[name] = await container.resolve(dep, scope)
-                except ValueError as e:
-                    logger.error(f'Inject error for {name} in {func.__name__}: {e}')
-                    raise
+            try:
+                # Use high-performance Rust container resolution
+                resolved_kwargs[name] = await container.resolve(dep, container)
+            except ValueError as e:
+                logger.error(f'Inject error for {name} in {func.__name__}: {e}')
+                raise
 
         kwargs.update(resolved_kwargs)
         return (
@@ -131,6 +118,5 @@ __all__ = [
     'Provider',
     'ServiceContainer',
     'SingletonProvider',
-    'current_scope',
     'inject',
 ]
