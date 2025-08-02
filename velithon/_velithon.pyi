@@ -418,3 +418,23 @@ def create_template_engine(
     cache_enabled: bool | None = True,
     strict_mode: bool | None = True,
 ) -> _TemplateEngine: ...
+
+
+@dataclass(frozen=True)
+class UploadFile:
+    """Represents an uploaded file."""
+
+    filename: str
+    content_type: str
+    size: int
+    headers: dict[str, str]
+
+    def read(self) -> bytes:
+        """Read the contents of the uploaded file."""
+        ...
+    def write(self, data: bytes) -> None:
+        """Write data to the uploaded file."""
+        ...
+    def seek(self, offset: int) -> None:
+        """Seek to a specific position in the uploaded file."""
+        ...

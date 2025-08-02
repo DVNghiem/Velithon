@@ -101,6 +101,7 @@ class ParameterResolver:
 
     async def _fetch_data(self, param_type: str) -> Any:
         """Fetch and cache request data for the given parameter type."""
+        # Lock to ensure thread-safe access to the cache
         async with self._lock:
             if param_type not in self.data_cache:
                 parsers = {
