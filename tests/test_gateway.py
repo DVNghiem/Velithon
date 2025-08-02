@@ -24,7 +24,6 @@ class MockScope:
         self.query_string = query_string
         self.headers = headers or {}
         self._path_params = {}
-        self._di_context = {}
         self._request_id = 'test-request-id'
         self._session = None
 

@@ -158,7 +158,6 @@ class Scope:
     """Wrapper for the RSGI scope object."""
 
     __slots__ = (
-        '_di_context',
         '_path_params',
         '_request_id',
         '_scope',
@@ -180,7 +179,6 @@ class Scope:
         # The request ID will be updated later by the context manager
         self._request_id = request_id_generator.generate()
 
-        self._di_context = {}
         self._session = None
 
     @property

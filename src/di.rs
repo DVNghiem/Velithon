@@ -70,7 +70,7 @@ impl Provider {
     fn get(
         &self,
         _py: Python,
-        _scope: Option<PyObject>,
+        _container: Option<PyObject>,
         _resolution_stack: Option<PyObject>,
     ) -> PyResult<PyObject> {
         Err(PyErr::new::<pyo3::exceptions::PyNotImplementedError, _>(
@@ -95,9 +95,9 @@ impl SingletonProvider {
             Some(k) => k.unbind().into(),
             None => Python::with_gil(|py| PyDict::new(py).unbind().into()),
         };
-        
+
         let lock_key = format!("{:?}", cls);
-        
+
         Ok((
             Self {
                 cls,
@@ -111,12 +111,11 @@ impl SingletonProvider {
     fn get(
         &self,
         py: Python,
-        scope: Option<PyObject>,
+        container: PyObject,
         resolution_stack: Option<PyObject>,
     ) -> PyResult<PyObject> {
-        let instances_lock = PROVIDER_INSTANCES.get_or_init(py, || {
-            Arc::new(Mutex::new(HashMap::new()))
-        });
+        let instances_lock =
+            PROVIDER_INSTANCES.get_or_init(py, || Arc::new(Mutex::new(HashMap::new())));
 
         // Check if instance already exists
         {
@@ -134,18 +133,19 @@ impl SingletonProvider {
 
         let stack_bound = resolution_stack.bind(py);
         let key_str = PyString::new(py, &self.lock_key);
-        
+
         if stack_bound.contains(&key_str)? {
-            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                format!("Circular dependency detected for {}", self.lock_key)
-            ));
+            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "Circular dependency detected for {}",
+                self.lock_key
+            )));
         }
-        
+
         stack_bound.call_method1("add", (&key_str,))?;
 
         let result = {
             let mut instances = instances_lock.lock().unwrap();
-            
+
             // Double-check after acquiring write lock
             if let Some(instance) = instances.get(&self.lock_key) {
                 let _ = stack_bound.call_method1("discard", (&key_str,));
@@ -153,9 +153,14 @@ impl SingletonProvider {
             }
 
             // Get container and create instance
-            let container = get_container_from_scope(py, scope.as_ref())?;
-            let instance = create_instance(py, &self.cls, &self.kwargs, &container, scope.as_ref(), Some(resolution_stack.clone_ref(py)))?;
-            
+            let instance = create_instance(
+                py,
+                &self.cls,
+                &self.kwargs,
+                &container,
+                Some(resolution_stack.clone_ref(py)),
+            )?;
+
             instances.insert(self.lock_key.clone(), instance.clone_ref(py));
             instance
         };
@@ -180,8 +185,7 @@ impl FactoryProvider {
             Some(k) => k.unbind().into(),
             None => PyDict::new(py).unbind().into(),
         };
-        
-        
+
         Ok((
             Self {
                 cls,
@@ -194,7 +198,7 @@ impl FactoryProvider {
     fn get(
         &self,
         py: Python,
-        scope: Option<PyObject>,
+        container: PyObject,
         resolution_stack: Option<PyObject>,
     ) -> PyResult<PyObject> {
         let resolution_stack = match resolution_stack {
@@ -204,18 +208,24 @@ impl FactoryProvider {
 
         let stack_bound = resolution_stack.bind(py);
         let key_str = PyString::new(py, &format!("{:?}", self.cls));
-        
+
         if stack_bound.contains(&key_str)? {
-            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                format!("Circular dependency detected for {:?}", self.cls)
-            ));
+            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "Circular dependency detected for {:?}",
+                self.cls
+            )));
         }
-        
+
         stack_bound.call_method1("add", (&key_str,))?;
 
         let result = {
-            let container = get_container_from_scope(py, scope.as_ref())?;
-            create_instance(py, &self.cls, &self.kwargs, &container, scope.as_ref(), Some(resolution_stack.clone_ref(py)))?
+            create_instance(
+                py,
+                &self.cls,
+                &self.kwargs,
+                &container,
+                Some(resolution_stack.clone_ref(py)),
+            )?
         };
 
         let _ = stack_bound.call_method1("discard", (&key_str,));
@@ -234,14 +244,18 @@ pub struct AsyncFactoryProvider {
 impl AsyncFactoryProvider {
     #[new]
     #[pyo3(signature = (factory, **kwargs))]
-    fn new(py: Python, factory: PyObject, kwargs: Option<Bound<PyDict>>) -> PyResult<(Self, Provider)> {
+    fn new(
+        py: Python,
+        factory: PyObject,
+        kwargs: Option<Bound<PyDict>>,
+    ) -> PyResult<(Self, Provider)> {
         let kwargs_dict = match kwargs {
             Some(k) => k.unbind().into(),
             None => PyDict::new(py).unbind().into(),
         };
-        
+
         let signature = cached_signature(py, factory.bind(py).clone())?;
-        
+
         Ok((
             Self {
                 factory,
@@ -255,7 +269,7 @@ impl AsyncFactoryProvider {
     fn get(
         &self,
         py: Python,
-        scope: Option<PyObject>,
+        container: PyObject,
         resolution_stack: Option<PyObject>,
     ) -> PyResult<PyObject> {
         let resolution_stack = match resolution_stack {
@@ -265,24 +279,30 @@ impl AsyncFactoryProvider {
 
         let stack_bound = resolution_stack.bind(py);
         let key_str = PyString::new(py, &format!("{:?}", self.factory));
-        
+
         if stack_bound.contains(&key_str)? {
-            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                format!("Circular dependency detected for {:?}", self.factory)
-            ));
+            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "Circular dependency detected for {:?}",
+                self.factory
+            )));
         }
-        
+
         stack_bound.call_method1("add", (&key_str,))?;
 
         let result = {
-            let container = get_container_from_scope(py, scope.as_ref())?;
-            let deps = resolve_dependencies(py, &self.signature, &container, scope.as_ref(), &self.kwargs, Some(resolution_stack.clone_ref(py)))?;
-            
+            let deps = resolve_dependencies(
+                py,
+                &self.signature,
+                &container,
+                &self.kwargs,
+                Some(resolution_stack.clone_ref(py)),
+            )?;
+
             // Call the async factory function and return the result/coroutine
             let factory_bound = self.factory.bind(py);
             let deps_dict = deps.downcast::<PyDict>()?;
             let result = factory_bound.call((), Some(deps_dict))?;
-            
+
             // Return the result directly - if it's a coroutine, let the caller handle awaiting
             result.unbind()
         };
@@ -305,8 +325,8 @@ impl ServiceContainer {
     fn resolve(
         &self,
         py: Python,
-        provide: PyObject,  // Changed from &Provide to PyObject
-        scope: Option<PyObject>,
+        provide: PyObject, // Changed from &Provide to PyObject
+        container: PyObject,
         resolution_stack: Option<PyObject>,
     ) -> PyResult<PyObject> {
         // Extract the service from the Provide object
@@ -316,54 +336,24 @@ impl ServiceContainer {
             // Assume it's already a service object
             provide
         };
-        
+
         // Check if service is a Provider
         let service_bound = service.bind(py);
         if !service_bound.hasattr("get")? {
-            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                format!("No service registered for {:?}", service)
-            ));
+            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "No service registered for {:?}",
+                service
+            )));
         }
-        
+
         // Call the provider's get method
         let get_method = service_bound.getattr("get")?;
-        let result = get_method.call((scope, resolution_stack), None)?;
-        
+        let result = get_method.call((container, resolution_stack), None)?;
+
         // Return the result directly - don't try to handle async here
         // The Python side will handle awaiting if needed
         Ok(result.unbind())
     }
-}
-
-// Helper functions
-
-fn get_container_from_scope(py: Python, scope: Option<&PyObject>) -> PyResult<PyObject> {
-    let scope = scope.ok_or_else(|| {
-        PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
-            "Invalid scope or missing container in scope._di_context['velithon']"
-        )
-    })?;
-
-    let scope_bound = scope.bind(py);
-    
-    if !scope_bound.hasattr("_di_context")? {
-        return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
-            "Invalid scope or missing container in scope._di_context['velithon']"
-        ));
-    }
-    
-    let di_context = scope_bound.getattr("_di_context")?;
-    
-    if !di_context.contains("velithon")? {
-        return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
-            "Invalid scope or missing container in scope._di_context['velithon']"
-        ));
-    }
-    
-    let velithon_context = di_context.get_item("velithon")?;
-    let container = velithon_context.getattr("container")?;
-    
-    Ok(container.unbind())
 }
 
 fn create_instance(
@@ -371,12 +361,11 @@ fn create_instance(
     cls: &PyObject,
     kwargs: &PyObject,
     container: &PyObject,
-    scope: Option<&PyObject>,
     resolution_stack: Option<PyObject>,
 ) -> PyResult<PyObject> {
     let signature = cached_signature(py, cls.bind(py).clone())?;
-    let deps = resolve_dependencies(py, &signature, container, scope, kwargs, resolution_stack)?;
-    
+    let deps = resolve_dependencies(py, &signature, container, kwargs, resolution_stack)?;
+
     let cls_bound = cls.bind(py);
     let deps_dict = deps.downcast::<PyDict>()?;
     let instance = cls_bound.call((), Some(deps_dict))?;
@@ -387,7 +376,6 @@ fn resolve_dependencies<'py>(
     py: Python<'py>,
     signature: &PyObject,
     container: &PyObject,
-    scope: Option<&PyObject>,
     kwargs: &PyObject,
     resolution_stack: Option<PyObject>,
 ) -> PyResult<Bound<'py, PyDict>> {
@@ -395,19 +383,19 @@ fn resolve_dependencies<'py>(
     let sig_bound = signature.bind(py);
     let parameters = sig_bound.getattr("parameters")?;
     let kwargs_bound = kwargs.bind(py);
-    
+
     for item in parameters.getattr("items")?.call0()?.try_iter()? {
         let item = item?;
         let (name, param) = item.extract::<(String, PyObject)>()?;
-        
+
         // Check if dependency is already provided in kwargs
         if kwargs_bound.contains(&name)? {
             let value = kwargs_bound.get_item(&name)?;
-            
+
             // Check if the value is a provider that needs to be resolved
             if value.hasattr("get")? {
                 // This looks like a provider, resolve it through the container
-                let resolved_value = value.call_method1("get", (scope, &resolution_stack))?;
+                let resolved_value = value.call_method1("get", (container, &resolution_stack))?;
                 deps.set_item(&name, resolved_value)?;
             } else {
                 // Use the raw value
@@ -415,13 +403,13 @@ fn resolve_dependencies<'py>(
             }
             continue;
         }
-        
+
         // Try to resolve parameter
-        if let Ok(dep) = resolve_param(py, &name, &param, container, scope, &resolution_stack) {
+        if let Ok(dep) = resolve_param(py, &name, &param, container, &resolution_stack) {
             deps.set_item(&name, dep)?;
         }
     }
-    
+
     Ok(deps)
 }
 
@@ -430,11 +418,11 @@ fn resolve_param(
     _name: &str,
     param: &PyObject,
     container: &PyObject,
-    scope: Option<&PyObject>,
+    // scope: Option<&PyObject>,
     resolution_stack: &Option<PyObject>,
 ) -> PyResult<PyObject> {
     let param_bound = param.bind(py);
-    
+
     // Check annotation metadata
     if param_bound.hasattr("annotation")? {
         let annotation = param_bound.getattr("annotation")?;
@@ -446,13 +434,14 @@ fn resolve_param(
                 if item_obj.hasattr("service")? {
                     let container_bound = container.bind(py);
                     let resolve_method = container_bound.getattr("resolve")?;
-                    let result = resolve_method.call((item_obj.clone(), scope, resolution_stack), None)?;
-                    
+                    let result = resolve_method.call((item_obj.clone(), resolution_stack), None)?;
+
                     // Handle async result
                     if result.hasattr("__await__")? {
                         let asyncio = PyModule::import(py, "asyncio")?;
                         let event_loop = asyncio.getattr("get_event_loop")?.call0()?;
-                        let awaited_result = event_loop.getattr("run_until_complete")?.call1((result,))?;
+                        let awaited_result =
+                            event_loop.getattr("run_until_complete")?.call1((result,))?;
                         return Ok(awaited_result.unbind());
                     } else {
                         return Ok(result.unbind());
@@ -461,15 +450,15 @@ fn resolve_param(
             }
         }
     }
-    
+
     // Check default value
     if param_bound.hasattr("default")? {
         let default = param_bound.getattr("default")?;
         if default.hasattr("service")? {
             let container_bound = container.bind(py);
             let resolve_method = container_bound.getattr("resolve")?;
-            let result = resolve_method.call((default.clone(), scope, resolution_stack), None)?;
-            
+            let result = resolve_method.call((default.clone(), resolution_stack), None)?;
+
             // Handle async result
             if result.hasattr("__await__")? {
                 let asyncio = PyModule::import(py, "asyncio")?;
@@ -481,9 +470,9 @@ fn resolve_param(
             }
         }
     }
-    
+
     Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-        "Cannot resolve parameter"
+        "Cannot resolve parameter",
     ))
 }
 
@@ -499,6 +488,6 @@ pub fn register_di(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     // Register utility functions
     m.add_function(wrap_pyfunction!(cached_signature, m)?)?;
-    
+
     Ok(())
 }
