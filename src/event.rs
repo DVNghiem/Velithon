@@ -1,10 +1,10 @@
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
-use tokio::sync::mpsc::{self, Sender};
+use pyo3_async_runtimes::tokio::future_into_py;
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use std::collections::HashMap;
-use pyo3_async_runtimes::tokio::future_into_py;
+use tokio::sync::mpsc::{self, Sender};
 
 struct Listener {
     callback: PyObject,
@@ -15,29 +15,42 @@ struct Listener {
 struct EventChannel {
     channels: Arc<Mutex<HashMap<String, Sender<Py<PyDict>>>>>,
     listeners: Arc<Mutex<HashMap<String, Vec<Listener>>>>,
+    // Buffer size for the channel
+    buffer_size: usize,
 }
 
 #[pymethods]
 impl EventChannel {
     #[new]
-    fn new() -> Self {
+    #[pyo3(signature = (buffer_size=1000))]
+    fn new(buffer_size: usize) -> Self {
         EventChannel {
             channels: Arc::new(Mutex::new(HashMap::new())),
             listeners: Arc::new(Mutex::new(HashMap::new())),
+            buffer_size,
         }
     }
 
-    fn register_listener(&mut self, event_name: String, callback: PyObject, is_async: bool, py: Python) -> PyResult<()> {
-        let (tx, mut rx) = mpsc::channel(1000); // Buffer size 1000
+    fn register_listener(
+        &mut self,
+        event_name: String,
+        callback: PyObject,
+        is_async: bool,
+        py: Python,
+    ) -> PyResult<()> {
+        let (tx, mut rx) = mpsc::channel(self.buffer_size);
         let listeners = Arc::clone(&self.listeners);
-        
+
         // Register the listener
         // This is done in a blocking context to avoid deadlocks
         let mut listeners_lock = listeners.blocking_lock();
-        listeners_lock.entry(event_name.clone()).or_insert_with(Vec::new).push(Listener {
-            callback: callback.clone_ref(py),
-            is_async,
-        });
+        listeners_lock
+            .entry(event_name.clone())
+            .or_insert_with(Vec::new)
+            .push(Listener {
+                callback: callback.clone_ref(py),
+                is_async,
+            });
 
         // Store the sender in the channels map
         // This is also done in a blocking context.
@@ -61,11 +74,13 @@ impl EventChannel {
                                 // Run async listener in asyncio event loop
                                 future_into_py(py, async move {
                                     Python::with_gil(|py| {
-                                        let coro = callback.call1(py, (data_for_listener.clone_ref(py),))?;
+                                        let coro = callback
+                                            .call1(py, (data_for_listener.clone_ref(py),))?;
                                         coro.call0(py)?;
                                         Ok::<(), PyErr>(())
                                     })
-                                }).unwrap();
+                                })
+                                .unwrap();
                             } else {
                                 // Run sync listener in thread pool
                                 let callback = callback.clone_ref(py);
@@ -80,7 +95,8 @@ impl EventChannel {
                         }
                     }
                     Ok::<(), PyErr>(())
-                }).unwrap();
+                })
+                .unwrap();
             }
         });
 
@@ -90,7 +106,12 @@ impl EventChannel {
     async fn emit(&self, event_name: String, data: Py<PyDict>) -> PyResult<()> {
         let channels = self.channels.lock().await;
         if let Some(tx) = channels.get(&event_name) {
-            tx.send(data).await.map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Channel send error: {}", e)))?;
+            tx.send(data).await.map_err(|e| {
+                PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                    "Channel send error: {}",
+                    e
+                ))
+            })?;
         }
         Ok(())
     }
@@ -103,7 +124,6 @@ impl EventChannel {
         Ok(())
     }
 }
-
 
 pub fn register_events(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Register DI classes
