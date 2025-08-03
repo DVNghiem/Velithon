@@ -25,6 +25,7 @@ from velithon._utils import (
 )
 from velithon.datastructures import FunctionInfo, Protocol, Scope
 from velithon.di import ServiceContainer
+from velithon.event import EventChannel
 from velithon.logging import configure_logger
 from velithon.middleware import Middleware
 from velithon.middleware.context import RequestContextMiddleware
@@ -319,6 +320,15 @@ class Velithon:
                 """
             ),
         ] = False,
+        event_channel: Annotated[
+            EventChannel | None,
+            Doc(
+                """
+                An optional EventChannel instance for handling events across the application.
+                If not provided, a default EventChannel will be created.
+                """  # noqa: E501
+            ),
+        ] = None,
     ):
         """Initialize the Velithon application instance.
 
@@ -348,6 +358,7 @@ class Velithon:
             tags: List of tags used by OpenAPI.
             request_id_generator: Custom function to generate request IDs.
             include_security_middleware: Whether to include default security middleware.
+            event_channel: An optional EventChannel instance for handling events.
 
         """
         self.router = Router(routes, on_startup=on_startup, on_shutdown=on_shutdown)
@@ -382,6 +393,7 @@ class Velithon:
         self.log_to_file = False
         self.max_bytes = 10 * 1024 * 1024  # 10MB
         self.backup_count = 7
+        self.event_channel = event_channel or EventChannel()
 
         self.setup()
 
@@ -951,6 +963,7 @@ class Velithon:
         """
         # configure the logger
         self.config_logger()
+        self._start_event_channel(loop)
         # run all the startup functions from user setup
         for function_info in self.startup_functions:
             loop.run_until_complete(function_info())
@@ -975,6 +988,11 @@ class Velithon:
         """
         for function_info in self.shutdown_functions:
             loop.run_until_complete(function_info())
+
+    def _start_event_channel(self, loop: asyncio.AbstractEventLoop) -> None:
+        """Start the event channel for handling events across the application."""
+        for event_name, handler, is_async in self.event_channel.events:
+            self.event_channel.register_listener(event_name, handler, is_async, loop)
 
     def _serve(
         self,

@@ -428,3 +428,22 @@ class UploadFile:
     def seek(self, offset: int) -> None:
         """Seek to a specific position in the uploaded file."""
         ...
+
+@dataclass(frozen=True)
+class RustEventChannel:
+    """Event channel for handling events in Velithon."""
+
+    buffer_size: int = 1000
+
+    def register_listener(
+        self,
+        event_name: str,
+        callback: typing.Callable,
+        is_async: bool,
+        event_loop: typing.Any,
+    ) -> None:
+        """Register a listener for a specific event."""
+        ...
+    def emit(self, event_name: str, data: dict) -> None:
+        """Emit an event with the provided data."""
+        ...
