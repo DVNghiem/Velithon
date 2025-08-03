@@ -3,33 +3,9 @@ use pyo3::types::PyDict;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
-use handlebars::{Handlebars, RenderError as HandlebarsError};
+use handlebars::Handlebars;
 use serde_json::{Value, Map};
 
-#[derive(Debug)]
-pub enum TemplateError {
-    RenderError(String),
-    IoError(String),
-    JsonError(String),
-}
-
-impl From<HandlebarsError> for TemplateError {
-    fn from(err: HandlebarsError) -> Self {
-        TemplateError::RenderError(err.to_string())
-    }
-}
-
-impl From<std::io::Error> for TemplateError {
-    fn from(err: std::io::Error) -> Self {
-        TemplateError::IoError(err.to_string())
-    }
-}
-
-impl From<serde_json::Error> for TemplateError {
-    fn from(err: serde_json::Error) -> Self {
-        TemplateError::JsonError(err.to_string())
-    }
-}
 
 /// High-performance template engine with caching and security features
 #[pyclass(name = "_TemplateEngine")]

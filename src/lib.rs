@@ -21,8 +21,8 @@ mod logging;
 mod proxy;
 mod routing;
 mod templates;
-mod error;
 mod formparsers;
+mod event;
 
 /// Velithon Rust Extensions
 /// High-performance Rust implementations for critical Velithon components
@@ -51,6 +51,9 @@ fn _velithon(m: &Bound<'_, PyModule>) -> PyResult<()> {
     
     // Register form parsers for high-performance form parsing
     formparsers::register_formparsers(m.py(), m)?;
+
+    // Register event handling system
+    event::register_events(m.py(), m)?;
     
     Ok(())
 }
