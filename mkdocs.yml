@@ -85,6 +85,7 @@ nav:
     - 'File Uploads': 'user-guide/file-uploads.md'
     - 'Error Handling': 'user-guide/error-handling.md'
     - 'Best Practices': 'user-guide/best-practices.md'
+    - 'Event System': 'user-guide/event-system.md'
     - 'Security':
       - 'Overview': 'security/index.md'
       - 'Authentication': 'security/authentication.md'

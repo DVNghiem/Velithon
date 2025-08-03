@@ -34,38 +34,6 @@ This section provides comprehensive examples of Velithon applications, from simp
 
 </div>
 
-## 📚 Advanced Examples
-
-### Production-Ready Applications
-
-<div class="grid cards" markdown>
-
--   **[E-commerce API](ecommerce-api.md)**
-    
-    Complete e-commerce API with authentication, payments, and inventory
-
--   **[Social Media Platform](social-media.md)**
-    
-    Social media features with real-time notifications
-
--   **[IoT Dashboard](iot-dashboard.md)**
-    
-    IoT device management with real-time data streaming
-
--   **[Content Management System](cms.md)**
-    
-    CMS with file management and user roles
-
--   **[API Gateway](gateway.md)**
-    
-    API gateway with rate limiting and load balancing
-
--   **[Monitoring Dashboard](monitoring.md)**
-    
-    Application monitoring with Prometheus metrics
-
-</div>
-
 ## 🎯 Example Categories
 
 ### Authentication & Security
@@ -152,45 +120,6 @@ if __name__ == "__main__":
         workers=1
     )
 ```
-
-## 📖 Learning Path
-
-### Beginner Level
-
-1. **Start with Basic Examples**
-   - [Basic Application](basic.md) - Simple routing and responses
-   - [Authentication](authentication.md) - User authentication
-   - [CRUD API](crud-api.md) - Database operations
-
-2. **Learn Core Concepts**
-   - Request/Response handling
-   - Middleware usage
-   - Error handling
-   - Validation with Pydantic
-
-### Intermediate Level
-
-1. **Advanced Features**
-   - [File Upload](file-upload.md) - File handling
-   - [WebSocket Chat](websocket-chat.md) - Real-time features
-   - [Microservices](microservices.md) - Service architecture
-
-2. **Production Patterns**
-   - Security best practices
-   - Performance optimization
-   - Monitoring and logging
-
-### Advanced Level
-
-1. **Enterprise Features**
-   - [E-commerce API](ecommerce-api.md) - Complex business logic
-   - [API Gateway](gateway.md) - Service orchestration
-   - [Monitoring Dashboard](monitoring.md) - Observability
-
-2. **Scalability Patterns**
-   - Load balancing
-   - Caching strategies
-   - Background processing
 
 ## 🔧 Running Examples
 
