@@ -19,7 +19,7 @@ from velithon.responses import JSONResponse, PlainTextResponse
 
 # Try importing optimizations
 try:
-    from velithon._utils import get_json_encoder, get_response_cache
+    from velithon._utils import get_json_encoder
 
     HAS_OPTIMIZATIONS = True
     print('✅ Advanced optimizations available')
@@ -101,52 +101,6 @@ class AdvancedBenchmarkSuite(
             print(f'  Optimization speedup: {speedup:.2f}x')
 
         return results
-
-    def benchmark_response_caching(self) -> dict[str, Any]:
-        """Benchmark response caching performance."""
-        print('🗄️ Testing response caching...')
-
-        if not HAS_OPTIMIZATIONS:
-            print('  Skipping - optimizations not available')
-            return {'status': 'skipped'}
-
-        test_data = generate_test_user_data(50)
-        response_cache = get_response_cache()
-
-        # Cache miss (first access)
-        def cache_miss():
-            cache_key = 'test_response_123'
-            cached = response_cache.get(cache_key)
-            if cached is None:
-                # Simulate response creation
-                import json
-
-                result = json.dumps(test_data).encode()
-                response_cache.put(cache_key, result)
-                return result
-            return cached
-
-        miss_result = self.timer.time_function(cache_miss)
-
-        # Cache hit (second access)
-        def cache_hit():
-            cache_key = 'test_response_123'
-            return response_cache.get(cache_key)
-
-        hit_result = self.timer.time_function(cache_hit)
-
-        # Calculate cache effectiveness
-        cache_speedup = miss_result.stats['mean'] / hit_result.stats['mean']
-
-        self.print_timing_results('Cache Miss', miss_result)
-        self.print_timing_results('Cache Hit', hit_result)
-        print(f'  Cache speedup: {cache_speedup:.2f}x')
-
-        return {
-            'cache_miss': miss_result,
-            'cache_hit': hit_result,
-            'speedup': cache_speedup,
-        }
 
     async def benchmark_concurrent_json_responses(self) -> dict[str, Any]:
         """Benchmark concurrent JSON response handling using base timer."""
@@ -289,7 +243,6 @@ class AdvancedBenchmarkSuite(
 
         # Run all benchmarks
         json_results = self.benchmark_optimized_json_response()
-        cache_results = self.benchmark_response_caching()
         concurrent_results = await self.benchmark_concurrent_json_responses()
         encoder_results = self.benchmark_optimized_encoder_performance()
         memory_results = await self.benchmark_memory_efficiency()
@@ -298,7 +251,6 @@ class AdvancedBenchmarkSuite(
         self.results.update(
             {
                 'optimized_json': json_results,
-                'response_caching': cache_results,
                 'concurrent_responses': concurrent_results,
                 'encoder_optimizations': encoder_results,
                 'memory_efficiency': memory_results,

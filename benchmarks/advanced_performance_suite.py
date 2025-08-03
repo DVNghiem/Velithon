@@ -19,7 +19,7 @@ from velithon.responses import JSONResponse, PlainTextResponse
 
 # Try importing optimizations
 try:
-    from velithon._utils import get_json_encoder, get_response_cache
+    from velithon._utils import get_json_encoder
 
     HAS_OPTIMIZATIONS = True
     print('✅ Advanced optimizations available')
@@ -151,49 +151,6 @@ class AdvancedBenchmarkSuite:
         else:
             print('   ⚠️ Optimized JSON encoder not available')
 
-    def benchmark_response_caching(self):
-        """Benchmark response caching effectiveness."""
-        print('🗄️ Testing response caching...')
-
-        if not HAS_OPTIMIZATIONS:
-            print('   ⚠️ Response caching not available')
-            return
-
-        response_cache = get_response_cache()
-        test_data = {'message': 'cached response', 'id': 123}
-
-        # First access (cache miss)
-        def cache_miss():
-            cache_key = 'test_response_123'
-            cached = response_cache.get(cache_key)
-            if cached is None:
-                # Simulate response creation
-                result = json.dumps(test_data).encode()
-                response_cache.put(cache_key, result)
-                return result
-            return cached
-
-        miss_results = self.time_execution(cache_miss)
-
-        # Second access (cache hit)
-        def cache_hit():
-            cache_key = 'test_response_123'
-            return response_cache.get(cache_key)
-
-        hit_results = self.time_execution(cache_hit)
-
-        self.results['cache_miss'] = {
-            k: v for k, v in miss_results.items() if k != 'result'
-        }
-        self.results['cache_hit'] = {
-            k: v for k, v in hit_results.items() if k != 'result'
-        }
-
-        # Calculate cache effectiveness
-        cache_speedup = miss_results['mean'] / hit_results['mean']
-        self.results['cache_speedup'] = cache_speedup
-        print(f'   📈 Cache speedup: {cache_speedup:.2f}x')
-
     async def benchmark_concurrent_json_responses(self):
         """Benchmark concurrent JSON response handling."""
         print('⚡ Testing concurrent JSON response handling...')
@@ -295,7 +252,6 @@ class AdvancedBenchmarkSuite:
 
         # Basic optimizations
         self.benchmark_optimized_json_response()
-        self.benchmark_response_caching()
         self.benchmark_memory_efficiency()
 
         # Advanced async tests

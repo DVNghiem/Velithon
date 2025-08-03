@@ -8,7 +8,6 @@ import time
 from collections.abc import AsyncIterator, Callable, Iterable
 from typing import Any, TypeVar
 
-from ._velithon import ResponseCache
 from .cache import cache_manager
 from .memory_management import (
     enable_memory_optimizations,
@@ -241,18 +240,12 @@ class SimpleMiddlewareOptimizer:
 
 # Global simplified instances
 _json_encoder = FastJSONEncoder()
-_response_cache = ResponseCache()
 _middleware_optimizer = SimpleMiddlewareOptimizer()
 
 
 def get_json_encoder() -> FastJSONEncoder:
     """Get the global simplified JSON encoder."""
     return _json_encoder
-
-
-def get_response_cache() -> ResponseCache:
-    """Get the global response cache."""
-    return _response_cache
 
 
 def get_middleware_optimizer() -> SimpleMiddlewareOptimizer:

@@ -55,16 +55,6 @@ def compile_path(
     # The implementation is not provided in the original code snippet.
     ...
 
-# Block for Optimization and caching of responses.
-@dataclass(frozen=True)
-class ResponseCache:
-    max_size: int
-    cache: dict[str, typing.Any]
-    access_order: list[str]
-
-    def get(self, key: str) -> typing.Any | None: ...
-    def put(self, key: str, value: typing.Any) -> None: ...
-
 # Block for Dependency Injection and caching of signatures.
 def di_cached_signature(func: typing.Callable) -> typing.Any:
     pass
