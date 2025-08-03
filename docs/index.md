@@ -182,7 +182,6 @@ Unlike traditional ASGI frameworks, Velithon leverages RSGI for:
 | Feature | Velithon | FastAPI | Flask | Django |
 |---------|----------|---------|-------|--------|
 | **Foundation** | ⚡ RSGI + Granian | ASGI + Uvicorn | WSGI | WSGI |
-| **Performance** | 🏆 ~70k req/s | 🚀 ~65k req/s | 🐌 ~25k req/s | 🐌 ~20k req/s |
 | **Learning Curve** | 📈 Easy | 📈 Easy | 📈 Easy | 📊 Steep |
 | **Type Safety** | ✅ Full | ✅ Full | ❌ Optional | ❌ Optional |
 | **Async Support** | ✅ Native RSGI | ✅ Native ASGI | ⚠️ Limited | ⚠️ Limited |
