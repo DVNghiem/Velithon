@@ -60,10 +60,6 @@ class GarbageCollectionOptimizer:
 
             gc.set_threshold(gen0_threshold, gen1_threshold, gen2_threshold)
 
-            # Disable automatic garbage collection during request processing
-            # We'll trigger it manually at appropriate times
-            gc.disable()
-
             self._optimization_enabled = True
             logger.info(
                 f'GC optimization enabled. Thresholds: {gen0_threshold}, '
