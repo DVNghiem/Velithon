@@ -986,6 +986,10 @@ class Velithon:
             ```
 
         """
+        # clean up the event channel
+        loop.run_until_complete(self._close_event_channel())
+
+        # run all the shutdown functions from user setup
         for function_info in self.shutdown_functions:
             loop.run_until_complete(function_info())
 
@@ -993,6 +997,10 @@ class Velithon:
         """Start the event channel for handling events across the application."""
         for event_name, handler, is_async in self.event_channel.events:
             self.event_channel.register_listener(event_name, handler, is_async, loop)
+
+    async def _close_event_channel(self) -> None:
+        """Close the event channel and clean up resources."""
+        await self.event_channel.cleanup()
 
     def _serve(
         self,

@@ -444,6 +444,9 @@ class RustEventChannel:
     ) -> None:
         """Register a listener for a specific event."""
         ...
-    def emit(self, event_name: str, data: dict) -> None:
+    async def emit(self, event_name: str, data: dict) -> None:
         """Emit an event with the provided data."""
+        ...
+    async def cleanup(self) -> None:
+        """Clean up resources and close the event channel."""
         ...
