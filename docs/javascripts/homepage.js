@@ -32,7 +32,6 @@ function createLiveDemo() {
     demoContainer.innerHTML = `
         <div class="demo-header">
             <h3>🚀 Velithon API Examples</h3>
-            <p>Explore different Velithon endpoint examples!</p>
         </div>
         <div class="demo-content">
             <div class="demo-tabs">

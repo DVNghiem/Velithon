@@ -84,7 +84,7 @@
 }
 
 .counter-label {
-    font-size: 0.9rem;
+    font-size: 0.7rem;
     color: rgba(0, 0, 0, 0.7);
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -183,7 +183,7 @@
     border: 1px solid rgba(102, 126, 234, 0.3);
     border-radius: 6px;
     font-family: 'Roboto Mono', monospace;
-    font-size: 0.9rem;
+    font-size: 0.7rem;
     resize: vertical;
 }
 
@@ -193,7 +193,7 @@
     padding: 1rem;
     border-radius: 6px;
     font-family: 'Roboto Mono', monospace;
-    font-size: 0.9rem;
+    font-size: 0.7rem;
     margin: 0;
     overflow-x: auto;
     border: 1px solid rgba(102, 126, 234, 0.3);

@@ -193,7 +193,6 @@ Velithon comes with these core dependencies:
 - **[Pydantic](https://pydantic-docs.helpmanual.io/)** - Data validation and serialization  
 - **[orjson](https://github.com/ijl/orjson)** - Fast JSON serialization
 - **[Jinja2](https://jinja.palletsprojects.com/)** - Template engine
-- **[msgpack](https://msgpack.org/)** - Efficient binary serialization
 - **[pydash](https://pydash.readthedocs.io/)** - Utility library
 - **[markdown](https://python-markdown.github.io/)** - Markdown processing
 - **[weasyprint](https://weasyprint.org/)** - PDF generation

@@ -10,24 +10,10 @@ from __future__ import annotations
 import dataclasses
 from typing import Any
 
-from velithon.responses import JSONResponse
-
 # Try to import pydantic
-try:
-    from pydantic import BaseModel
+from pydantic import BaseModel
 
-    HAS_PYDANTIC = True
-except ImportError:
-    BaseModel = None
-    HAS_PYDANTIC = False
-
-# Try to import msgpack (check availability only)
-try:
-    import importlib.util
-
-    HAS_MSGPACK = importlib.util.find_spec('msgpack') is not None
-except ImportError:
-    HAS_MSGPACK = False
+from velithon.responses import JSONResponse
 
 
 def is_json_serializable(obj: Any) -> bool:
@@ -62,7 +48,7 @@ def is_json_serializable(obj: Any) -> bool:
         return False
 
     # Pydantic models
-    if HAS_PYDANTIC and isinstance(obj, BaseModel):
+    if isinstance(obj, BaseModel):
         return True
 
     # Dataclasses
@@ -81,31 +67,6 @@ def is_json_serializable(obj: Any) -> bool:
         return True
 
     return False
-
-
-def is_msgpack_serializable(obj: Any) -> bool:
-    """Check if an object can be serialized to MessagePack.
-
-    Args:
-        obj: The object to check
-
-    Returns:
-        True if the object can be serialized to MessagePack, False otherwise
-
-    """
-    if not HAS_MSGPACK:
-        return False
-
-    # MessagePack supports JSON-serializable types plus binary data
-    if is_json_serializable(obj):
-        return True
-
-    # Additional MessagePack-specific types
-    if isinstance(obj, bytes | bytearray):
-        return True
-
-    return False
-
 
 def serialize_to_dict(obj: Any) -> dict[str, Any] | list[Any] | Any:
     """Convert an object to a dictionary or list for JSON serialization.
@@ -132,7 +93,7 @@ def serialize_to_dict(obj: Any) -> dict[str, Any] | list[Any] | Any:
         return {k: serialize_to_dict(v) for k, v in obj.items()}
 
     # Handle Pydantic models
-    if HAS_PYDANTIC and isinstance(obj, BaseModel):
+    if isinstance(obj, BaseModel):
         return obj.model_dump(mode='json')
 
     # Handle dataclasses
