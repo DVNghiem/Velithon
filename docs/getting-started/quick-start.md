@@ -35,12 +35,7 @@ Let's build your first Velithon application! This guide will take you from zero 
 </div>
 
 !!! tip "Interactive Features"
-    This page includes enhanced code blocks with:
-    
-    - **Copy to clipboard** buttons
-    - **Syntax highlighting** with enhanced colors
-    - **Line numbers** for longer code blocks
-    - **Expand/collapse** for better readability
+    This file provides a quick start guide for creating your first Velithon application.
 
 ## 📝 Step 1: Create Your First App
 
