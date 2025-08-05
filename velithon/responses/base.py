@@ -7,12 +7,18 @@ import typing
 from datetime import datetime
 from email.utils import format_datetime
 
+# Rust implementation available for complex scenarios
+from velithon._velithon import header_init
 from velithon.background import BackgroundTask
 from velithon.datastructures import Headers, Protocol, Scope
 
 
 class Response:
-    """Base class for HTTP responses in Velithon framework."""
+    """Base class for HTTP responses in Velithon framework.
+
+    Uses high-performance Rust implementation for header initialization
+    when available, falling back to Python implementation.
+    """
 
     media_type = None
     charset = 'utf-8'
@@ -42,36 +48,18 @@ class Response:
         return content.encode(self.charset)  # type: ignore
 
     def init_headers(self, headers: typing.Mapping[str, str] | None = None) -> None:
-        """Initialize response headers, setting content length and content type if not provided."""  # noqa: E501
-        if headers is None:
-            raw_headers: list[tuple[str, str]] = []
-            populate_content_length = True
-            populate_content_type = True
-        else:
-            raw_headers = [(k.lower(), v) for k, v in headers.items()]
-            keys = [h[0] for h in raw_headers]
-            populate_content_length = 'content-length' not in keys
-            populate_content_type = 'content-type' not in keys
+        """Initialize response headers using Rust implementation when available."""
+        # Use high-performance Rust implementation
+        # Convert headers to dict for Rust function
+        headers_dict = dict(headers) if headers else None
 
-        body = getattr(self, 'body', None)
-        if (
-            body is not None
-            and populate_content_length
-            and not (self.status_code < 200 or self.status_code in (204, 304))
-        ):
-            content_length = str(len(body))
-            raw_headers.append(('content-length', content_length))
-
-        content_type = self.media_type
-        if content_type is not None and populate_content_type:
-            if (
-                content_type.startswith('text/')
-                and 'charset=' not in content_type.lower()
-            ):
-                content_type += '; charset=' + self.charset
-            raw_headers.append(('content-type', content_type))
-
-        self.raw_headers = [*raw_headers, ('server', 'velithon')]
+        self.raw_headers = header_init(
+            body_length=len(self.body) if self.body else 0,
+            status_code=self.status_code,
+            media_type=self.media_type,
+            charset=self.charset,
+            provided_headers=headers_dict,
+        )
 
     @property
     def headers(self) -> Headers:

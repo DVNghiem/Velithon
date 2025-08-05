@@ -23,6 +23,7 @@ mod routing;
 mod templates;
 mod formparsers;
 mod event;
+mod responses;
 
 /// Velithon Rust Extensions
 /// High-performance Rust implementations for critical Velithon components
@@ -54,6 +55,9 @@ fn _velithon(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     // Register event handling system
     event::register_events(m.py(), m)?;
+
+    // Register response handling system
+    responses::register_responses(m.py(), m)?;
     
     Ok(())
 }
