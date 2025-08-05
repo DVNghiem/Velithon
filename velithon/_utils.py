@@ -70,7 +70,6 @@ async def run_in_threadpool(func: Callable, *args, **kwargs) -> Any:
     if not args and not kwargs:
         return await loop.run_in_executor(_thread_pool, func)
 
-    # Cache partial functions cho các hot paths
     cache_key = (id(func), args, tuple(sorted(kwargs.items())) if kwargs else ())
 
     with _cache_lock:
@@ -78,7 +77,6 @@ async def run_in_threadpool(func: Callable, *args, **kwargs) -> Any:
             partial_func = _cached_partials[cache_key]
         else:
             partial_func = functools.partial(func, *args, **kwargs)
-            # Giới hạn cache size để tránh memory leak
             if len(_cached_partials) < 100:
                 _cached_partials[cache_key] = partial_func
 
