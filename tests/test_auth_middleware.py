@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from velithon.middleware.auth import AuthenticationMiddleware, SecurityMiddleware
+from velithon.middleware.auth import AuthenticationMiddleware
 from velithon.security import AuthenticationError, AuthorizationError
 
 

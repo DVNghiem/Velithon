@@ -34,7 +34,6 @@ from base_benchmark import (
     ResponseBenchmarkMixin,
     TimingResult,
     generate_test_api_response,
-    generate_test_user_data,
 )
 
 
