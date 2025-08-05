@@ -12,7 +12,7 @@ import typing
 from pydantic import BaseModel
 
 from velithon._utils import is_async_callable, run_in_threadpool
-from velithon.cache import cache_manager, signature_cache
+from velithon.cache import cache_manager
 from velithon.requests import Request
 from velithon.responses import JSONResponse, Response
 
@@ -20,22 +20,62 @@ from .parser import InputHandler
 
 
 # Cache for function signatures to avoid repeated inspection
-@signature_cache()
-def _get_cached_signature(func: typing.Any) -> inspect.Signature:
-    """Get cached function signature."""
-    return inspect.signature(func)
+class _SignatureCache:
+    """Custom signature cache with proper cache_clear interface."""
+
+    def __init__(self):
+        """Initialize the signature cache."""
+        self._cache: dict[str, inspect.Signature] = {}
+
+    def get(self, cache_key: str, func: typing.Any) -> inspect.Signature:
+        """Get cached function signature using a cache key for consistency."""
+        if cache_key not in self._cache:
+            self._cache[cache_key] = inspect.signature(func)
+        return self._cache[cache_key]
+
+    def cache_clear(self) -> None:
+        """Clear the signature cache."""
+        self._cache.clear()
+
+_signature_cache = _SignatureCache()
+
+
+def _get_cached_signature(cache_key: str, func: typing.Any) -> inspect.Signature:
+    """Get cached function signature using a cache key for consistency."""
+    return _signature_cache.get(cache_key, func)
+
+def _get_signature_cache_key(func: typing.Any) -> str:
+    """Generate a consistent cache key for function signatures.
+
+    For bound methods, use the method name and class to ensure consistent
+    caching across different instances of the same class.
+    """
+    if hasattr(func, '__self__') and hasattr(func, '__func__'):
+        # Bound method - use class and method name for consistent caching
+        cls = func.__self__.__class__
+        method_name = func.__func__.__name__
+        return f"{cls.__module__}.{cls.__qualname__}.{method_name}"
+    elif hasattr(func, '__name__'):
+        # Regular function or unbound method
+        module = getattr(func, '__module__', '')
+        qualname = getattr(func, '__qualname__', func.__name__)
+        return f"{module}.{qualname}"
+    else:
+        # Fallback for other callable objects
+        return f"{type(func).__module__}.{type(func).__name__}.{id(func)}"
 
 # Register caches with the global cache manager
-cache_manager.register_lru_cache('signature_cache', _get_cached_signature)
+cache_manager.register_lru_cache('signature_cache', _signature_cache)
 
 
 async def dispatch(handler: typing.Any, request: Request) -> Response:
-    """Dispatches a request to the given handler, performing parameter injection,.
+    """Dispatches a request to the given handler, performing parameter injection.
 
-    method execution, and automatic response serialization.
-
+    This function handles method execution and automatic response serialization.
     """
-    signature = _get_cached_signature(handler)
+    # Generate consistent cache key and get cached signature
+    cache_key = _get_signature_cache_key(handler)
+    signature = _get_cached_signature(cache_key, handler)
 
     # Pre-check if handler is async to avoid repeated calls
     is_async = is_async_callable(handler)
