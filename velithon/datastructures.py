@@ -40,8 +40,7 @@ class ResponseDataCapture:
     response_data = protocol.response_data
     if response_data:
         # Process the captured response data
-        for chunk in response_data:
-            process_chunk(chunk)
+        process(response_data.get_data())
     ```
 
     Performance benefits:
