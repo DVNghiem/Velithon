@@ -308,8 +308,8 @@ class ParameterResolver:
                         pass
 
                 # Filter data to only include fields that the model expects
-                if hasattr(base_type, '__fields__'):
-                    model_fields = base_type.__fields__
+                if hasattr(base_type, 'model_fields'):
+                    model_fields = base_type.model_fields
                 else:
                     model_fields = base_type.model_fields
                 model_data = {k: v for k, v in data.items() if k in model_fields}
