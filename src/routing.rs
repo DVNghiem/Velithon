@@ -216,72 +216,222 @@ impl RouteOptimizer {
     }
 }
 
-/// High-performance router with optimized route lookup
-#[pyclass(name = "_RouterOptimizer")]
-pub struct RouterOptimizer {
-    exact_routes: AHashMap<String, usize>, // path:method -> route_index
-    route_lookup: AHashMap<String, isize>, // path:method -> route_index or -1 for not_found
+/// High-performance unified router with consolidated route matching
+#[pyclass(name = "_UnifiedRouteOptimizer")]
+pub struct UnifiedRouteOptimizer {
+    // Exact path lookup (no parameters) - fastest path
+    exact_routes: AHashMap<String, (usize, Vec<String>)>, // path -> (route_index, allowed_methods)
+    
+    // Parameterized routes with pre-compiled regexes
+    regex_routes: Vec<(Regex, usize, Vec<String>, Py<PyDict>)>, // (regex, route_index, methods, convertors)
+    
+    // Unified cache for all route lookups
+    unified_cache: AHashMap<String, CacheEntry>,
     max_cache_size: usize,
 }
 
+#[derive(Debug)]
+struct CacheEntry {
+    route_index: isize, // -1 for not found
+    match_type: Match,
+    params: Option<Vec<(String, String)>>, // Store as string pairs to avoid Python object clone issues
+}
+
 #[pymethods]
-impl RouterOptimizer {
+impl UnifiedRouteOptimizer {
     #[new]
-    #[pyo3(signature = (max_cache_size=1000))]
+    #[pyo3(signature = (max_cache_size=2048))]
     fn new(max_cache_size: usize) -> Self {
-        RouterOptimizer {
+        UnifiedRouteOptimizer {
             exact_routes: AHashMap::new(),
-            route_lookup: AHashMap::new(),
+            regex_routes: Vec::new(),
+            unified_cache: AHashMap::new(),
             max_cache_size,
         }
     }
 
-    /// Cache a route lookup result
-    #[pyo3(signature = (path, method, route_index, is_exact=false))]
-    fn cache_route(&mut self, path: &str, method: &str, route_index: isize, is_exact: bool) {
-        let route_key = format!("{}:{}", path, method);
+    /// Add an exact route (no parameters) for fastest matching
+    #[pyo3(signature = (path, route_index, methods))]
+    fn add_exact_route(&mut self, path: &str, route_index: usize, methods: Vec<String>) {
+        let normalized_methods: Vec<String> = methods.iter()
+            .map(|m| m.to_uppercase())
+            .collect();
         
-        if is_exact && route_index >= 0 {
-            self.exact_routes.insert(route_key.clone(), route_index as usize);
+        // Add HEAD if GET is present
+        let mut final_methods = normalized_methods;
+        if final_methods.contains(&"GET".to_string()) && !final_methods.contains(&"HEAD".to_string()) {
+            final_methods.push("HEAD".to_string());
         }
         
-        // Limit cache size
-        if self.route_lookup.len() >= self.max_cache_size {
-            let keys_to_remove: Vec<String> = self.route_lookup.keys()
+        self.exact_routes.insert(path.to_string(), (route_index, final_methods));
+    }
+
+    /// Add a parameterized route with regex
+    #[pyo3(signature = (path_regex, route_index, methods, param_convertors))]
+    fn add_regex_route(
+        &mut self, 
+        path_regex: &str, 
+        route_index: usize, 
+        methods: Vec<String>,
+        param_convertors: Py<PyDict>
+    ) -> PyResult<()> {
+        let regex = Regex::new(path_regex)
+            .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("Invalid regex: {}", e)))?;
+        
+        let normalized_methods: Vec<String> = methods.iter()
+            .map(|m| m.to_uppercase())
+            .collect();
+        
+        // Add HEAD if GET is present
+        let mut final_methods = normalized_methods;
+        if final_methods.contains(&"GET".to_string()) && !final_methods.contains(&"HEAD".to_string()) {
+            final_methods.push("HEAD".to_string());
+        }
+        
+        self.regex_routes.push((regex, route_index, final_methods, param_convertors));
+        Ok(())
+    }
+
+    /// Unified route matching with single cache lookup
+    #[pyo3(signature = (path, method))]
+    fn match_route(&mut self, py: Python, path: &str, method: &str) -> PyResult<(isize, Match, Option<Py<PyDict>>)> {
+        let cache_key = format!("{}:{}", path, method.to_uppercase());
+        
+        // Check unified cache first
+        if let Some(entry) = self.unified_cache.get(&cache_key) {
+            let params_dict = if let Some(ref params) = entry.params {
+                let dict = PyDict::new(py);
+                for (key, value) in params {
+                    dict.set_item(key, value)?;
+                }
+                Some(dict.unbind())
+            } else {
+                None
+            };
+            return Ok((entry.route_index, entry.match_type, params_dict));
+        }
+
+        let method_upper = method.to_uppercase();
+
+        // Check exact routes first (fastest path)
+        let exact_result = self.exact_routes.get(path).map(|(idx, methods)| (*idx, methods.clone()));
+        if let Some((route_index, allowed_methods)) = exact_result {
+            let match_type = if allowed_methods.contains(&method_upper) {
+                Match::Full
+            } else {
+                Match::Partial
+            };
+
+            // Cache the exact route result
+            self.cache_result(cache_key, route_index as isize, match_type, None);
+            return Ok((route_index as isize, match_type, None));
+        }
+
+        // Check regex routes
+        let mut match_result = None;
+        for (regex, route_index, allowed_methods, param_convertors) in &self.regex_routes {
+            if let Some(captures) = regex.captures(path) {
+                let match_type = if allowed_methods.contains(&method_upper) {
+                    Match::Full
+                } else {
+                    Match::Partial
+                };
+
+                // Extract and convert parameters
+                let mut matched_params = Vec::new();
+                let param_convertors_dict = param_convertors.bind(py);
+                let mut params_dict = None;
+                
+                for (capture, name) in captures.iter().skip(1).zip(regex.capture_names().skip(1)) {
+                    if let (Some(capture), Some(param_name)) = (capture, name) {
+                        let param_value = capture.as_str();
+                        if let Ok(Some(convertor)) = param_convertors_dict.get_item(param_name) {
+                            let converted = convertor.call_method1("convert", (param_value,))?;
+                            // Store converted value as string for caching
+                            matched_params.push((param_name.to_string(), converted.str()?.to_string()));
+                        }
+                    }
+                }
+
+                // Convert to Python dict with proper conversion
+                if !matched_params.is_empty() {
+                    let dict = PyDict::new(py);
+                    for (capture, name) in captures.iter().skip(1).zip(regex.capture_names().skip(1)) {
+                        if let (Some(capture), Some(param_name)) = (capture, name) {
+                            let param_value = capture.as_str();
+                            if let Ok(Some(convertor)) = param_convertors_dict.get_item(param_name) {
+                                let converted = convertor.call_method1("convert", (param_value,))?;
+                                dict.set_item(param_name, converted)?;
+                            }
+                        }
+                    }
+                    params_dict = Some(dict.unbind());
+                }
+
+                let cache_params = if matched_params.is_empty() {
+                    None
+                } else {
+                    Some(matched_params)
+                };
+
+                match_result = Some((*route_index as isize, match_type, params_dict, cache_params));
+                break;
+            }
+        }
+
+        if let Some((route_index, match_type, params_dict, cache_params)) = match_result {
+            // Cache the result after the loop
+            self.cache_result(cache_key, route_index, match_type, cache_params);
+            return Ok((route_index, match_type, params_dict));
+        }
+
+        // No match found - cache the miss
+        self.cache_result(cache_key, -1, Match::None, None);
+        Ok((-1, Match::None, None))
+    }
+
+    /// Internal method to cache results with size management
+    fn cache_result(&mut self, key: String, route_index: isize, match_type: Match, params: Option<Vec<(String, String)>>) {
+        // Manage cache size
+        if self.unified_cache.len() >= self.max_cache_size {
+            // Remove 20% of entries when cache is full
+            let keys_to_remove: Vec<String> = self.unified_cache.keys()
                 .take(self.max_cache_size / 5)
                 .cloned()
                 .collect();
             for key in keys_to_remove {
-                self.route_lookup.remove(&key);
+                self.unified_cache.remove(&key);
             }
         }
-        
-        self.route_lookup.insert(route_key, route_index);
-    }
 
-    /// Look up a cached route
-    #[pyo3(signature = (path, method))]
-    fn lookup_route(&self, path: &str, method: &str) -> Option<isize> {
-        let route_key = format!("{}:{}", path, method);
-        
-        // Check exact routes first
-        if let Some(&route_index) = self.exact_routes.get(&route_key) {
-            return Some(route_index as isize);
-        }
-        
-        // Then check general lookup
-        self.route_lookup.get(&route_key).copied()
-    }
-
-    /// Clear all caches
-    fn clear_caches(&mut self) {
-        self.exact_routes.clear();
-        self.route_lookup.clear();
+        let entry = CacheEntry {
+            route_index,
+            match_type,
+            params,
+        };
+        self.unified_cache.insert(key, entry);
     }
 
     /// Get cache statistics
-    fn cache_stats(&self) -> (usize, usize, usize) {
-        (self.exact_routes.len(), self.route_lookup.len(), self.max_cache_size)
+    fn cache_stats(&self) -> (usize, usize, usize, usize) {
+        (
+            self.exact_routes.len(),
+            self.regex_routes.len(), 
+            self.unified_cache.len(),
+            self.max_cache_size
+        )
+    }
+
+    /// Clear all caches and routes
+    fn clear_all(&mut self) {
+        self.exact_routes.clear();
+        self.regex_routes.clear();
+        self.unified_cache.clear();
+    }
+
+    /// Clear only the cache, keep routes
+    fn clear_cache(&mut self) {
+        self.unified_cache.clear();
     }
 }
 
@@ -384,7 +534,7 @@ pub fn register_routing(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     
     // Register main classes
     m.add_class::<RouteOptimizer>()?;
-    m.add_class::<RouterOptimizer>()?;
+    m.add_class::<UnifiedRouteOptimizer>()?;
     m.add_class::<RoutePatternMatcher>()?;
     
     Ok(())

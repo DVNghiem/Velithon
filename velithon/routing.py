@@ -14,8 +14,7 @@ from velithon._utils import is_async_callable, run_in_threadpool
 from velithon._velithon import (
     Match,
     _RouteOptimizer,
-    _RoutePatternMatcher,
-    _RouterOptimizer,
+    _UnifiedRouteOptimizer,
     compile_path,
 )
 from velithon.cache import CacheConfig
@@ -233,41 +232,22 @@ class Route(BaseRoute):
 
         """
         if scope.proto == 'http':
-            # Use Rust-optimized matching first
+            # Use Rust-optimized matching for individual route checks
             try:
                 match_result, params = self._rust_optimizer.matches(
                     scope.path, scope.method
                 )
                 if params:
-                    # Ensure params is a proper dictionary and copy it
-                    scope._path_params = dict(params) if params else {}
-                    return match_result, scope
-                elif match_result != Match.NONE:
-                    # Even if no params, make sure _path_params is initialized
-                    if not hasattr(scope, '_path_params') or scope._path_params is None:
-                        scope._path_params = {}
-                    return match_result, scope
-            except Exception:
-                # Fall back to Python implementation if Rust optimization fails
-                pass
-
-            # Fallback to original Python logic
-            route_path = scope.path
-
-            # Check if we have this path in the path cache
-            path_key = f'{route_path}:{scope.method}'
-            path_cache = getattr(self, '_path_cache', {})
-
-            cached_result = path_cache.get(path_key)
-            if cached_result is not None:
-                match_type, params = cached_result
-                if params:
-                    scope._path_params = params.copy()
+                    scope._path_params = dict(params.items())
                 else:
                     scope._path_params = {}
-                return match_type, scope
+                return match_result, scope
+            except Exception:
+                # Fall back to Python implementation if Rust fails
+                pass
 
-            # No cache hit, do the regex matching
+            # Simplified Python fallback without redundant caching
+            route_path = scope.path
             match = self.path_regex.match(route_path)
             if match:
                 matched_params = match.groupdict()
@@ -277,24 +257,9 @@ class Route(BaseRoute):
 
                 # Determine match type
                 if self.methods and scope.method not in self.methods:
-                    match_type = Match.PARTIAL
+                    return Match.PARTIAL, scope
                 else:
-                    match_type = Match.FULL
-
-                # Cache the result - limit cache size to prevent memory leaks
-                if not hasattr(self, '_path_cache'):
-                    self._path_cache = {}
-                if len(self._path_cache) >= 1000:  # Limit cache size
-                    # Clear 20% of the cache when it gets too big
-                    keys_to_remove = list(self._path_cache.keys())[:200]
-                    for key in keys_to_remove:
-                        self._path_cache.pop(key, None)
-
-                self._path_cache[path_key] = (
-                    match_type,
-                    matched_params.copy() if matched_params else None,
-                )
-                return match_type, scope
+                    return Match.FULL, scope
 
         return Match.NONE, {}
 
@@ -497,11 +462,9 @@ class Router:
                     # Handle other route types - just copy as-is
                     self.routes.append(route)
 
-        # Initialize Rust optimizations
-        self._rust_optimizer = _RouterOptimizer(
-            max_cache_size=CacheConfig.get_cache_size('route')
-        )
-        self._pattern_matcher = _RoutePatternMatcher()
+        # Initialize unified Rust routing optimization
+        cache_size = CacheConfig.get_cache_size('route') * 2  # Larger unified cache
+        self._unified_optimizer = _UnifiedRouteOptimizer(max_cache_size=cache_size)
         self._rebuild_rust_optimizations()
 
     def _get_full_path(self, path: str) -> str:
@@ -523,26 +486,29 @@ class Router:
         return full_path
 
     def _rebuild_rust_optimizations(self):
-        """Rebuild Rust optimizations for all routes."""
+        """Rebuild unified Rust optimizations for all routes."""
         try:
-            self._pattern_matcher = _RoutePatternMatcher()
+            # Clear previous optimizations
+            self._unified_optimizer.clear_all()
 
-            for route in self.routes:
-                if hasattr(route, 'path'):
-                    # Add pattern to the pattern matcher
-                    path_regex, path_format, param_convertors = compile_path(
-                        route.path, CONVERTOR_TYPES
-                    )
-
+            for route_index, route in enumerate(self.routes):
+                if hasattr(route, 'path') and hasattr(route, 'methods'):
+                    methods = list(route.methods) if route.methods else ['GET']
+                    
                     # Check if this is an exact path (no parameters)
-                    is_exact = '{' not in route.path
-
-                    self._pattern_matcher.add_pattern(
-                        path_regex=path_regex,
-                        path_format=path_format,
-                        param_convertors=param_convertors,
-                        is_exact_path=is_exact,
-                    )
+                    if '{' not in route.path:
+                        # Add as exact route for fastest matching
+                        self._unified_optimizer.add_exact_route(
+                            route.path, route_index, methods
+                        )
+                    else:
+                        # Add as regex route for parameterized paths
+                        path_regex, path_format, param_convertors = compile_path(
+                            route.path, CONVERTOR_TYPES
+                        )
+                        self._unified_optimizer.add_regex_route(
+                            path_regex, route_index, methods, param_convertors
+                        )
         except Exception:
             # If Rust optimizations fail, continue without them
             pass
@@ -560,9 +526,10 @@ class Router:
         await response(scope, protocol)
 
     async def app(self, scope: Scope, protocol: Protocol) -> None:
-        """Handle incoming requests and dispatch to the appropriate route handler.
+        """Handle incoming requests with optimized unified routing.
 
-        This method matches requests against registered routes and dispatches them.
+        This method uses the unified Rust optimizer for maximum performance,
+        eliminating multiple cache layers and minimizing Python/Rust boundaries.
 
         Args:
             scope (Scope): The request scope containing path and method information.
@@ -571,85 +538,47 @@ class Router:
         """
         assert scope.proto in ('http', 'websocket')
 
-        # Try Rust-optimized routing first
+        # Use unified Rust optimizer for HTTP requests
         if scope.proto == 'http':
             try:
-                cached_result = self._rust_optimizer.lookup_route(
+                route_index, match_type, params = self._unified_optimizer.match_route(
                     scope.path, scope.method
                 )
 
-                if cached_result is not None:
-                    if cached_result == -1:  # Cached "not found"
-                        await self.default(scope, protocol)
-                        return
-                    route = self.routes[cached_result]
-                    # For cached results, we need to extract params again
-                    match_result, params = route._rust_optimizer.matches(
-                        scope.path, scope.method
-                    )
-                    if match_result == Match.FULL:
-                        if params:
-                            scope._path_params = params
+                if route_index >= 0:  # Route found
+                    route = self.routes[route_index]
+                    if params:
+                        scope._path_params = (
+                            dict(params.items()) if hasattr(params, 'items') else {}
+                        )
+                    else:
+                        scope._path_params = {}
+                    
+                    if match_type == Match.FULL:
                         await route.handle(scope, protocol)
                         return
+                    elif match_type == Match.PARTIAL:
+                        # Method not allowed
+                        await route.handle(scope, protocol)
+                        return
+                
+                # If route_index is -1, no route found
+                await self.default(scope, protocol)
+                return
+
             except Exception:
                 # Fall back to Python implementation if Rust optimization fails
                 pass
 
-        # Check if we have a route lookup table (fallback)
-        if not hasattr(self, '_route_lookup'):
-            self._route_lookup = {}
-            self._exact_routes = {}
-
-        # Try to match an exact path first for common routes
-        route_key = f'{scope.path}:{scope.method}'
-        exact_route = self._exact_routes.get(route_key)
-        if exact_route is not None:
-            await exact_route.handle(scope, protocol)
-            return
-
-        # Then check the route lookup cache
-        cached_route = self._route_lookup.get(route_key)
-        if cached_route is not None:
-            if cached_route == 'default':
-                await self.default(scope, protocol)
-                return
-            elif cached_route == 'not_found':
-                await self.default(scope, protocol)
-                return
-            else:
-                # For cached routes, we still need to extract path parameters
-                match, updated_scope = cached_route.matches(scope)
-                if match == Match.FULL:
-                    await cached_route.handle(updated_scope, protocol)
-                    return
-                # If cache became invalid, continue to full route matching
-
-        # Fall back to checking all routes
+        # Fallback implementation for WebSocket or when Rust optimization fails
         partial = None
         for route in self.routes:
-            # Determine if any route matches the incoming scope,
-            # and hand over to the matching route if found.
             match, updated_scope = route.matches(scope)
             if match == Match.FULL:
-                # Cache this result for future lookups
-                # Don't cache parameterized routes to avoid memory issues
-                if not getattr(updated_scope, '_path_params', None):
-                    self._exact_routes[route_key] = route
-                elif len(self._route_lookup) < 1000:  # Limit cache size
-                    self._route_lookup[route_key] = route
-
                 await route.handle(updated_scope, protocol)
                 return
             elif match == Match.PARTIAL and partial is None:
                 partial = route
-
-        # Cache the result for future lookups
-        if len(self._route_lookup) < 1000:  # Limit cache size
-            if partial is not None:
-                self._route_lookup[route_key] = partial
-            else:
-                self._route_lookup[route_key] = 'not_found'
 
         if partial is not None:
             await partial.handle(scope, protocol)
