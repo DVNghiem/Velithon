@@ -61,8 +61,12 @@ def generate_api_key(prefix: str = '', length: int = 32) -> str:
 
 
 def hash_api_key(api_key: str, secret: str) -> str:
-    """Hash an API key with a secret for secure storage."""
-    return hmac.new(secret.encode(), api_key.encode(), hashlib.sha256).hexdigest()
+    """Hash an API key with a secret for secure storage using PBKDF2."""
+    # Use the secret as salt for PBKDF2 - consider separate salt in production
+    salt = hashlib.sha256(secret.encode()).digest()
+    # Use PBKDF2 with 100,000 iterations for computational expense
+    key = hashlib.pbkdf2_hmac('sha256', api_key.encode(), salt, 100000)
+    return key.hex()
 
 
 def verify_api_key(api_key: str, hashed_key: str, secret: str) -> bool:
