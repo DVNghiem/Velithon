@@ -76,10 +76,8 @@ class TestBackgroundTask:
         task = BackgroundTask(async_task)
         await task()
 
-        # TODO: Current Rust implementation doesn't properly await async functions
-        # This is a known limitation that needs to be fixed in the Rust code
-        # For now, verify that the task runs without error
-        assert len(executed) == 0  # Nothing executed due to implementation limitation
+        # Async tasks are now properly awaited in the Rust implementation
+        assert 'async_task_executed' in executed
 
     @pytest.mark.asyncio
     async def test_background_task_exception_handling(self):
@@ -91,9 +89,8 @@ class TestBackgroundTask:
         task = BackgroundTask(failing_task)
 
         # Current implementation propagates exceptions wrapped in RuntimeError
-        # TODO: Should be updated to handle exceptions gracefully
         with pytest.raises(RuntimeError) as exc_info:
-            await task()  # Currently raises wrapped exception
+            await task()  # Raises wrapped exception
 
         # Verify the original exception is preserved in the message
         assert 'ValueError: Task failed' in str(exc_info.value)
@@ -225,9 +222,9 @@ class TestBackgroundTasks:
 
         assert 'task1' in executed_tasks
         assert 'task2' in executed_tasks
-        # TODO: async tasks not properly awaited in current implementation
-        # assert "async_task" in executed_tasks
-        assert len(executed_tasks) == 2  # Only sync tasks execute properly
+        # Async tasks are now properly awaited in the implementation
+        assert "async_task" in executed_tasks
+        assert len(executed_tasks) == 3  # All tasks execute properly
 
     @pytest.mark.asyncio
     async def test_tasks_execution_order(self):
@@ -399,12 +396,11 @@ class TestBackgroundTaskPerformance:
         await tasks()
         total_time = time.time() - start_total
 
-        # TODO: Current implementation doesn't properly await async tasks
-        # So execution_times will be empty. This is a known limitation.
-        # If running concurrently, total time should be less than sum of individual times
-        # (This test is approximate due to timing variations)
-        assert len(execution_times) == 0  # No async tasks execute properly
-        assert total_time < 0.5  # Should complete quickly since no actual work is done
+        # Async tasks are now properly awaited, so execution_times should have data
+        # If running concurrently, total time should be less than sum of 
+        # individual times (this test is approximate due to timing variations)
+        assert len(execution_times) == 3  # All async tasks execute properly
+        assert total_time < 0.5  # Should complete in reasonable time
 
     @pytest.mark.asyncio
     async def test_many_background_tasks(self):
@@ -514,7 +510,6 @@ class TestBackgroundTaskEdgeCases:
         task = BackgroundTask(failing_task_with_details)
 
         # Current implementation propagates exceptions wrapped in RuntimeError
-        # TODO: Should be updated to handle exceptions gracefully
         with pytest.raises(RuntimeError) as exc_info:
             await task()
 
@@ -545,8 +540,8 @@ class TestBackgroundTaskEdgeCases:
         await tasks()
 
         assert 'sync' in executed
-        # TODO: async tasks not properly awaited in current implementation
-        # assert "async" in executed
+        # Async tasks are now properly awaited in the implementation
+        assert "async" in executed
         assert 'callable_class' in executed
 
 
