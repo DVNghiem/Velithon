@@ -9,8 +9,14 @@ from __future__ import annotations
 import typing
 from enum import IntEnum
 
+import orjson
+
+from velithon._utils import get_json_encoder
 from velithon.datastructures import Headers, Protocol, Scope
 from velithon.status import WS_1000_NORMAL_CLOSURE
+
+# Use the unified JSON encoder for WebSocket JSON operations
+_json_encoder = get_json_encoder()
 
 
 class WebSocketState(IntEnum):
@@ -128,10 +134,9 @@ class WebSocket:
         raise RuntimeError(f'Unexpected message type: {message["type"]}')
 
     async def receive_json(self) -> typing.Any:
-        """Receive JSON message from WebSocket."""
-        import orjson
-
+        """Receive JSON message from WebSocket using unified JSON handling."""
         text = await self.receive_text()
+        # Use orjson directly for parsing since it's faster for deserialization
         return orjson.loads(text)
 
     async def send_text(self, data: str) -> None:
@@ -151,10 +156,10 @@ class WebSocket:
         await self._send_message(message)
 
     async def send_json(self, data: typing.Any) -> None:
-        """Send JSON message to WebSocket."""
-        import orjson
-
-        text = orjson.dumps(data).decode('utf-8')
+        """Send JSON message to WebSocket using unified JSON encoding."""
+        # Use the unified JSON encoder for consistent high-performance encoding
+        json_bytes = _json_encoder.encode(data)
+        text = json_bytes.decode('utf-8')
         await self.send_text(text)
 
     async def close(self, code: int = WS_1000_NORMAL_CLOSURE, reason: str = '') -> None:

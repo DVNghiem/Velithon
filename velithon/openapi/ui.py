@@ -6,9 +6,11 @@ interactive OpenAPI documentation in web browsers.
 
 from typing import Any
 
-import orjson
-
+from velithon._utils import get_json_encoder
 from velithon.responses import HTMLResponse
+
+# Use the unified JSON encoder for OpenAPI configuration serialization
+_json_encoder = get_json_encoder()
 
 swagger_ui_default_parameters = {
     'dom_id': '#swagger-ui',
@@ -73,7 +75,9 @@ def get_swagger_ui_html(
         url: '{openapi_url}',
     """
     for key, value in swagger_ui_default_parameters.items():
-        html += f'{orjson.dumps(key).decode()}: {orjson.dumps(value).decode()},\n'
+        key_json = _json_encoder.encode(key).decode()
+        value_json = _json_encoder.encode(value).decode()
+        html += f'{key_json}: {value_json},\n'
 
     if oauth2_redirect_url:
         html += f"oauth2RedirectUrl: window.location.origin + '{oauth2_redirect_url}',"
@@ -86,8 +90,9 @@ def get_swagger_ui_html(
     })"""
 
     if init_oauth:
+        oauth_json = _json_encoder.encode(init_oauth).decode()
         html += f"""
-        ui.initOAuth({orjson.dumps(init_oauth).decode()})
+        ui.initOAuth({oauth_json})
         """
 
     html += """
