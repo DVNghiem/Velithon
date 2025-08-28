@@ -577,19 +577,6 @@ async def root():
 velithon run --app main:app --workers 9
 ```
 
-### Memory Optimization
-
-```python
-# Enable memory management
-from velithon.memory_management import enable_memory_management
-
-enable_memory_management()
-
-app = Velithon(
-    # ... configuration
-)
-```
-
 ### Caching Strategy
 
 ```python

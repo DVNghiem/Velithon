@@ -19,9 +19,7 @@ from typing_extensions import Doc
 
 from velithon._utils import (
     get_middleware_optimizer,
-    initialize_memory_management,
     is_async_callable,
-    request_memory_context,
 )
 from velithon.datastructures import FunctionInfo, Protocol, Scope
 from velithon.di import ServiceContainer
@@ -462,13 +460,11 @@ class Velithon:
             self.middleware_stack = self.build_middleware_stack()
 
         # Use optimized request context that respects global settings
-        with request_memory_context():
-            await self.middleware_stack(scope, protocol)
+        await self.middleware_stack(scope, protocol)
 
     def setup(self) -> None:
         """Set up the application including memory management."""
         # Initialize memory management for best performance
-        initialize_memory_management()
 
         if self.openapi_url:
             urls = (server_data.get('url') for server_data in self.servers)

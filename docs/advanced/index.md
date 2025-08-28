@@ -395,35 +395,6 @@ async def make_purchase(purchase_data: dict):
 
 ## 🔧 Performance Tuning
 
-### Memory Optimization
-
-```python
-import gc
-from velithon.optimization import MemoryOptimizer
-
-class MemoryEfficientApp:
-    def __init__(self):
-        self.optimizer = MemoryOptimizer()
-    
-    async def cleanup_middleware(self, request, call_next):
-        response = await call_next(request)
-        
-        # Periodic garbage collection for long-running processes
-        if hasattr(request.app.state, 'request_count'):
-            request.app.state.request_count += 1
-            if request.app.state.request_count % 1000 == 0:
-                gc.collect()
-        
-        return response
-
-# Enable memory optimization
-app = Velithon(
-    middleware=[
-        Middleware(MemoryEfficientApp().cleanup_middleware)
-    ]
-)
-```
-
 ### Connection Pool Optimization
 
 ```python
