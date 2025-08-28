@@ -67,6 +67,8 @@ def get_param_source(param: inspect.Parameter, annotation: Any) -> str:
                 return 'cookie'
             elif isinstance(meta, Provide):
                 return 'dependency'
+            elif callable(meta):
+                return 'function_dependency'
         annotation = base_type
 
     # Handle special types
@@ -233,10 +235,6 @@ class ParameterResolver:
         default = param.default if param.default != inspect.Parameter.empty else None
         is_required = param.default == inspect.Parameter.empty
 
-        # Skip auth dependencies - they're handled in the main resolve method
-        if _is_auth_dependency(annotation):
-            return default
-
         # Handle special types
         base_type = get_base_type(annotation)
         if base_type == Request:
@@ -250,6 +248,20 @@ class ParameterResolver:
 
         # Get parameter source and data
         source = get_param_source(param, annotation)
+
+        # Handle function dependencies
+        if source == 'function_dependency':
+            if get_origin(annotation) is Annotated:
+                _, *metadata = get_args(annotation)
+                for meta in metadata:
+                    if callable(meta):
+                        result = meta(self.request)
+                        # Handle async functions
+                        if inspect.iscoroutine(result):
+                            return await result
+                        else:
+                            return result
+            return default
 
         # For BaseModel without explicit annotation, infer based on HTTP method
         if (
@@ -360,55 +372,12 @@ class ParameterResolver:
 
         for param in signature.parameters.values():
             try:
-                # Check if this is an auth dependency first
-                if _is_auth_dependency(param.annotation):
-                    # Handle auth dependency
-                    if get_origin(param.annotation) is Annotated:
-                        _, *metadata = get_args(param.annotation)
-                        for meta in metadata:
-                            if isinstance(meta, Provide):
-                                if callable(meta.service):
-                                    sig = inspect.signature(meta.service)
-                                    if sig.parameters:
-                                        result = meta.service(self.request)
-                                        kwargs[param.name] = (
-                                            await result
-                                            if inspect.iscoroutine(result)
-                                            else result
-                                        )
-                                    else:
-                                        result = meta.service()
-                                        kwargs[param.name] = (
-                                            await result
-                                            if inspect.iscoroutine(result)
-                                            else result
-                                        )
-                                else:
-                                    kwargs[param.name] = meta.service
-                                break
-                else:
-                    kwargs[param.name] = await self.resolve_parameter(param)
+                kwargs[param.name] = await self.resolve_parameter(param)
             except Exception as e:
                 logger.error(f'Failed to resolve parameter {param.name}: {e}')
                 raise
 
         return kwargs
-
-
-def _is_auth_dependency(annotation: Any) -> bool:
-    """Check if a parameter annotation represents a dependency.
-
-    Args:
-        annotation: The parameter annotation to check
-
-    Returns:
-        True if this is a dependency, False otherwise
-
-    """
-    if get_origin(annotation) is Annotated:
-        _, *metadata = get_args(annotation)
-        return any(isinstance(meta, Provide) for meta in metadata)
-    return False
 
 
 class InputHandler:

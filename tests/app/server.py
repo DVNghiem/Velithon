@@ -14,6 +14,10 @@ from ..app.params_inject import (
 from .container import container
 from .di import TestAsyncFactoryProvider, TestFactoryProvider, TestSingletonProvider
 from .endpoint import TestEndpoint
+from .function_deps import (
+    TestFunctionDependencyEndpoint,
+    TestSimpleFunctionDependencyEndpoint,
+)
 from .validate import TestValidate
 
 logger = logging.getLogger(__name__)
@@ -30,6 +34,10 @@ router.add_route('/inject/request', InjectRequestEndpoint, methods=['GET'])
 router.add_route('/di/singleton', TestSingletonProvider, methods=['GET'])
 router.add_route('/di/factory', TestFactoryProvider, methods=['GET'])
 router.add_route('/di/async-factory', TestAsyncFactoryProvider, methods=['GET'])
+router.add_route('/function-deps', TestFunctionDependencyEndpoint, methods=['GET'])
+router.add_route(
+    '/function-deps/simple', TestSimpleFunctionDependencyEndpoint, methods=['GET']
+)
 
 app = Velithon(routes=router.routes)
 app.register_container(container)
