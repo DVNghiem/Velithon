@@ -64,17 +64,28 @@ impl BackgroundTask {
 
         future_into_py(py, async move {
             if is_async {
-                // For async functions
-                let result = Python::with_gil(|py| -> PyResult<PyObject> {
+                // For async functions, create the coroutine and properly await it
+                let coroutine = Python::with_gil(|py| -> PyResult<PyObject> {
                     let func_bound = func.bind(py);
                     let args_bound = args.bind(py).downcast::<PyTuple>()?;
                     let kwargs_bound = kwargs.bind(py).downcast::<PyDict>()?;
-                    let result = func_bound.call(args_bound, Some(kwargs_bound))?;
-                    Ok(result.unbind())
+                    let coro = func_bound.call(args_bound, Some(kwargs_bound))?;
+                    Ok(coro.unbind())
+                })?;
+
+                // Use pyo3_asyncio to properly await the Python coroutine
+                let future_result = Python::with_gil(|py| {
+                    let coro_bound = coroutine.bind(py);
+                    pyo3_async_runtimes::tokio::into_future(coro_bound.clone())
                 });
                 
+                let result = match future_result {
+                    Ok(future) => future.await,
+                    Err(err) => return Err(err),
+                };
+                
                 match result {
-                    Ok(py_result) => Ok(py_result),
+                    Ok(py_result) => Ok(py_result.into()),
                     Err(py_err) => {
                         Python::with_gil(|py| {
                             let type_name = py_err.get_type(py).name().map(|s| s.to_string()).unwrap_or_else(|_| "UnknownError".to_string());
@@ -85,7 +96,7 @@ impl BackgroundTask {
                     }
                 }
             } else {
-                // For sync functions, run them in a thread pool
+                // For sync functions, run them in a thread pool to avoid blocking
                 let result = tokio::task::spawn_blocking(move || {
                     Python::with_gil(|py| -> PyResult<PyObject> {
                         let func_bound = func.bind(py);
@@ -203,17 +214,17 @@ impl BackgroundTasks {
                 });
             }
 
-            // Use semaphore to limit concurrent execution
-            let semaphore = Arc::new(Semaphore::new(max_concurrent));
-            let mut handles = Vec::with_capacity(task_queue.len());
+            let mut errors: Vec<String> = Vec::new();
 
+            // Separate sync and async tasks for different handling
+            let mut sync_tasks = Vec::new();
+            let mut async_coroutines = Vec::new();
+            
+            // Prepare tasks and create coroutines for async tasks
             for task in task_queue {
-                let permit = semaphore.clone().acquire_owned().await.unwrap();
-                let handle = tokio::spawn(async move {
-                    let _permit = permit; // Keep permit alive during task execution
-                    
-                    // Simple execution - just call the function directly in the sync case
-                    Python::with_gil(|py| -> PyResult<()> {
+                if task.is_async {
+                    // Create the coroutine immediately in the main context
+                    let coroutine_result = Python::with_gil(|py| -> PyResult<PyObject> {
                         let func = task.func.clone_ref(py);
                         let args = task.args.clone_ref(py);
                         let kwargs = task.kwargs.clone_ref(py);
@@ -222,30 +233,86 @@ impl BackgroundTasks {
                         let args_bound = args.bind(py).downcast::<PyTuple>()?;
                         let kwargs_bound = kwargs.bind(py).downcast::<PyDict>()?;
                         
-                        if task.is_async {
-                            // For async functions, create the coroutine but don't await it here
-                            // This matches the Python implementation pattern
-                            let _coro = func_bound.call(args_bound, Some(kwargs_bound))?;
-                            // Note: In a real implementation, we'd need to properly await this
-                            Ok(())
-                        } else {
-                            // For sync functions, just call them directly
-                            let _result = func_bound.call(args_bound, Some(kwargs_bound))?;
-                            Ok(())
+                        // Create the coroutine
+                        let coro = func_bound.call(args_bound, Some(kwargs_bound))?;
+                        Ok(coro.unbind())
+                    });
+                    
+                    match coroutine_result {
+                        Ok(coro) => async_coroutines.push(coro),
+                        Err(err) => {
+                            errors.push(format!("Failed to create async task: {}", err));
+                            if !continue_on_error {
+                                break;
+                            }
                         }
+                    }
+                } else {
+                    sync_tasks.push(task);
+                }
+            }
+
+            // Use semaphore to limit concurrent execution
+            let semaphore = Arc::new(Semaphore::new(max_concurrent));
+            let mut handles = Vec::new();
+
+            // Execute sync tasks in background threads
+            for task in sync_tasks {
+                let permit = semaphore.clone().acquire_owned().await.unwrap();
+                let handle = tokio::spawn(async move {
+                    let _permit = permit;
+                    
+                    Python::with_gil(|py| -> Result<(), String> {
+                        let func = task.func.clone_ref(py);
+                        let args = task.args.clone_ref(py);
+                        let kwargs = task.kwargs.clone_ref(py);
+                        
+                        let func_bound = func.bind(py);
+                        let args_bound = args.bind(py).downcast::<PyTuple>().map_err(|e| format!("Args error: {}", e))?;
+                        let kwargs_bound = kwargs.bind(py).downcast::<PyDict>().map_err(|e| format!("Kwargs error: {}", e))?;
+                        
+                        let _result = func_bound.call(args_bound, Some(kwargs_bound)).map_err(|e| format!("Call error: {}", e))?;
+                        Ok(())
                     })
                 });
                 handles.push(handle);
             }
 
-            let mut errors: Vec<String> = Vec::new();
+            // Execute async coroutines directly in the main event loop context  
+            for coroutine in async_coroutines {
+                let permit = semaphore.clone().acquire_owned().await.unwrap();
+                
+                // Convert coroutine to future and execute it
+                let future_result = Python::with_gil(|py| {
+                    let coro_bound = coroutine.bind(py);
+                    pyo3_async_runtimes::tokio::into_future(coro_bound.clone())
+                });
+
+                match future_result {
+                    Ok(future) => {
+                        let async_handle = tokio::spawn(async move {
+                            let _permit = permit;
+                            match future.await {
+                                Ok(_) => Ok(()),
+                                Err(err) => Err(format!("Async task failed: {}", err)),
+                            }
+                        });
+                        handles.push(async_handle);
+                    }
+                    Err(err) => {
+                        errors.push(format!("Failed to convert coroutine to future: {}", err));
+                        if !continue_on_error {
+                            break;
+                        }
+                    }
+                }
+            }
 
             // Wait for all tasks to complete
             for handle in handles {
                 match handle.await {
                     Ok(Ok(())) => {}, // Task completed successfully
-                    Ok(Err(py_err)) => {
-                        let error_msg = format!("Task failed with Python error: {}", py_err);
+                    Ok(Err(error_msg)) => {
                         errors.push(error_msg);
                         if !continue_on_error {
                             break;
