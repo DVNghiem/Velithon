@@ -38,7 +38,6 @@ This documentation covers all aspects of building applications with Velithon, fr
 ### Advanced Features
 - **[Gateway](advanced/gateway.md)** - API gateway capabilities
 - **[Performance](advanced/performance.md)** - Optimization techniques
-- **[Memory Management](advanced/memory-management.md)** - Resource optimization
 - **[Circuit Breaker](advanced/circuit-breaker.md)** - Fault tolerance
 - **[Connection Pooling](advanced/connection-pooling.md)** - Database optimization
 - **[Health Checks](advanced/health-checks.md)** - Service monitoring
@@ -97,7 +96,7 @@ The documentation has been updated to reflect the current framework status:
 #### 🆕 New Features Documented
 - **Advanced Middleware**: LoggingMiddleware, PrometheusMiddleware, ProxyMiddleware
 - **Security Components**: JWT, OAuth2, API Keys, RBAC
-- **Performance Features**: Memory management, JSON optimization
+- **Performance Features**: JSON optimization
 - **Deployment**: Docker, Kubernetes, Cloud platforms
 - **Monitoring**: Prometheus metrics, health checks
 

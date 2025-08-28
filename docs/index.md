@@ -24,7 +24,7 @@ Velithon is a modern, lightning-fast web framework for Python that combines simp
 
     ---
 
-    Optimized for maximum speed with orjson-only JSON processing and simplified memory management. Built on RSGI protocol achieving ~70,000 requests per second.
+    Optimized for maximum speed with orjson-only JSON processing. Built on RSGI protocol achieving ~70,000 requests per second.
 
 -   :material-puzzle: **Dependency Injection**
 

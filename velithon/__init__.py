@@ -59,28 +59,6 @@ from .status import (
     HTTP_500_INTERNAL_SERVER_ERROR,
 )
 
-# Memory management utilities
-from .memory_management import (
-    enable_memory_optimizations,
-    disable_memory_optimizations,
-    manual_memory_cleanup,
-    get_memory_optimizer,
-    RequestMemoryContext,
-    with_memory_optimization,
-    with_lightweight_memory_optimization,
-    set_lightweight_mode,
-    get_memory_context,
-)
-
-# Memory management middleware
-from .middleware.memory_management import (
-    MemoryManagementMiddleware,
-    GCTuningMiddleware,
-)
-
-# Performance configuration
-from .performance import PerformanceConfig, configure_performance
-
 # Context management (Flask-style)
 from .ctx import (
     AppContext,
@@ -111,26 +89,21 @@ __all__ = [
     'BadRequestException',
     'FileResponse',
     'ForbiddenException',
-    'GCTuningMiddleware',
     'Gateway',
     'GatewayRoute',
     'HTMLResponse',
     'HTTPException',
     'InternalServerException',
     'JSONResponse',
-    # Memory management middleware
-    'MemoryManagementMiddleware',
     'Middleware',
     'NotFoundException',
     # Performance configuration
-    'PerformanceConfig',
     'PlainTextResponse',
     'ProxyResponse',
     'RedirectResponse',
     'Request',
     'RequestContext',
     'RequestIDManager',
-    'RequestMemoryContext',
     'Response',
     'Route',
     'Router',
@@ -143,26 +116,16 @@ __all__ = [
     'WebSocket',
     'WebSocketEndpoint',
     'WebSocketRoute',
-    'configure_performance',
     'current_app',
-    'disable_memory_optimizations',
-    # Memory optimization functions
-    'enable_memory_optimizations',
     'forward_to',
     'g',
     'gateway_route',
     'get_current_app',
     'get_current_request',
-    'get_memory_context',
-    'get_memory_optimizer',
     'get_or_create_request',
     'has_app_context',
     'has_request_context',
-    'manual_memory_cleanup',
     'request',
     'request_response',
-    'set_lightweight_mode',
     'websocket_route',
-    'with_lightweight_memory_optimization',
-    'with_memory_optimization',
 ]

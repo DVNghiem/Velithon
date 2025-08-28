@@ -214,7 +214,6 @@ return JSONResponse(your_data)
 
 ## Next Steps
 
-- [Memory Optimization →](memory-optimization.md)
 - [Gateway & Proxy System →](gateway.md)
 - [Response Types →](../user-guide/request-response.md)
 - [Middleware →](../user-guide/middleware.md)

@@ -11,11 +11,6 @@ from collections.abc import AsyncIterator, Callable, Iterable
 from typing import Any, Optional, TypeVar
 
 from .cache import cache_manager
-from .memory_management import (
-    enable_memory_optimizations,
-    get_memory_context,
-    manual_memory_cleanup,
-)
 
 try:
     import orjson
@@ -229,51 +224,3 @@ def clear_all_caches() -> None:
     except Exception:
         pass  # Ignore cache manager errors
 
-
-def initialize_memory_management() -> None:
-    """Initialize basic memory management for the Velithon framework."""
-    # Use lightweight mode for better performance
-    try:
-        enable_memory_optimizations(lightweight=True)
-    except Exception:
-        pass  # Ignore if memory optimizations are not available
-
-def cleanup_framework_memory():
-    """Perform basic framework memory cleanup."""
-    # Clear framework caches
-    clear_all_caches()
-
-    # Clear thread pool if needed
-    global _thread_pool
-    if _thread_pool:
-        _thread_pool.shutdown(wait=False)
-        _thread_pool = None
-
-    # Basic memory cleanup if available
-    try:
-        manual_memory_cleanup()
-    except Exception:
-        pass  # Ignore if memory management is not available
-
-def optimized_json_encode(obj: Any) -> bytes:
-    """Simplified JSON encoding."""
-    return get_json_encoder().encode(obj)
-
-
-def request_memory_context():
-    """Get a simple memory context for request processing."""
-    try:
-        return get_memory_context(enable_monitoring=False)
-    except Exception:
-        # Return a no-op context if memory management is not available
-        return NoOpContext()
-
-
-class NoOpContext:
-    """No-op context manager for when memory management is not available."""
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        pass
