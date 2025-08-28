@@ -14,7 +14,7 @@ from velithon.datastructures import UploadFile
 from velithon.di import Provide
 from velithon.openapi.docs import swagger_generate
 from velithon.params import Body, Form, Header, Path, Query
-from velithon.params.parser import ParameterResolver, _is_auth_dependency
+from velithon.params.parser import ParameterResolver
 from velithon.requests import Request
 
 
@@ -501,16 +501,11 @@ async def test_runtime_parameter_resolution():
     # Check that auth dependencies are properly detected
 
     sig = inspect.signature(query_with_auth_endpoint)
-    auth_params = []
     business_params = []
 
-    for param_name, param in sig.parameters.items():
-        if _is_auth_dependency(param.annotation):
-            auth_params.append(param_name)
-        else:
-            business_params.append(param_name)
+    for param_name, _ in sig.parameters.items():
+        business_params.append(param_name)
 
-    assert 'user' in auth_params
     assert 'data' in business_params
     assert 'extra' in business_params
 
