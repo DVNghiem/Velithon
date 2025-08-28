@@ -121,12 +121,22 @@ def serialize_to_dict(obj: Any) -> dict[str, Any] | list[Any] | Any:
 def create_json_response(obj: Any, status_code: int = 200) -> JSONResponse:
     """Create a JSON response for the given object.
 
+    Note: For new code, prefer using JSONResponse directly for better performance
+    and clearer intent. This helper function is maintained for backward compatibility.
+
     Args:
         obj: The object to serialize
         status_code: HTTP status code
 
     Returns:
         JSONResponse with serialized content
+
+    Example:
+        # Preferred approach - direct JSONResponse usage
+        return JSONResponse(data, status_code=201)
+
+        # Legacy approach - using this helper
+        return create_json_response(data, status_code=201)
 
     """
     # Convert object to serializable format
