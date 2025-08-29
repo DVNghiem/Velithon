@@ -61,6 +61,9 @@ class HTTPEndpoint:
         """Use singleton request pattern - try to get from context first."""
         if has_request_context():
             request = get_or_create_request(self.scope, self.protocol)
+            # Ensure the request uses the current protocol instance
+            # This is critical for middleware chains where the protocol might be wrapped
+            request.protocol = self.protocol
         else:
             # Create new request if no context exists
             request = Request(self.scope, self.protocol)
