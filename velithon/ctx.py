@@ -255,7 +255,9 @@ def get_or_create_request(scope: 'Scope', protocol: 'Protocol') -> 'Request':
     """
     try:
         # Try to get existing request from context first
-        return get_current_request()
+        request = get_current_request()
+        request.protocol = protocol  # Ensure protocol is up-to-date
+        return request
     except RuntimeError:
         # No request context exists, create new request
         from velithon.requests import Request
