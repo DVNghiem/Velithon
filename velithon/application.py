@@ -599,7 +599,6 @@ class Velithon:
         *,
         prefix: str = '',
         tags: Sequence[str] | None = None,
-        dependencies: Sequence[Any] | None = None,
     ) -> None:
         """Add a sub-router to the application.
 
@@ -607,11 +606,10 @@ class Velithon:
             router: The Router instance to add
             prefix: Path prefix to add to all routes in the router
             tags: Tags to add to all routes in the router
-            dependencies: Dependencies to add to all routes in the router
 
         """
         self.router.add_router(
-            router, prefix=prefix, tags=tags, dependencies=dependencies
+            router, prefix=prefix, tags=tags
         )
 
     def include_router(
@@ -620,7 +618,6 @@ class Velithon:
         *,
         prefix: str = '',
         tags: Sequence[str] | None = None,
-        dependencies: Sequence[Any] | None = None,
     ) -> None:
         """Include a router in the application.
 
@@ -633,7 +630,7 @@ class Velithon:
             dependencies: Dependencies to add to all routes in the router
 
         """
-        self.add_router(router, prefix=prefix, tags=tags, dependencies=dependencies)
+        self.add_router(router, prefix=prefix, tags=tags)
 
     def get(
         self,
