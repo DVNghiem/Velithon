@@ -12,7 +12,6 @@ import typing
 from pydantic import BaseModel
 
 from velithon._utils import is_async_callable, run_in_threadpool
-from velithon.cache import cache_manager
 from velithon.requests import Request
 from velithon.responses import JSONResponse, Response
 from velithon.serialization import auto_serialize_response
@@ -39,8 +38,6 @@ class _SignatureCache:
         self._cache.clear()
 
 _signature_cache = _SignatureCache()
-# Register caches with the global cache manager
-cache_manager.register_lru_cache('signature_cache', _signature_cache)
 
 def _get_cached_signature(cache_key: str, func: typing.Any) -> inspect.Signature:
     """Get cached function signature using a cache key for consistency."""
