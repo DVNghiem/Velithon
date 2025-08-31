@@ -15,6 +15,7 @@ from velithon._utils import is_async_callable, run_in_threadpool
 from velithon.cache import cache_manager
 from velithon.requests import Request
 from velithon.responses import JSONResponse, Response
+from velithon.serialization import auto_serialize_response
 
 from .parser import InputHandler
 
@@ -38,7 +39,8 @@ class _SignatureCache:
         self._cache.clear()
 
 _signature_cache = _SignatureCache()
-
+# Register caches with the global cache manager
+cache_manager.register_lru_cache('signature_cache', _signature_cache)
 
 def _get_cached_signature(cache_key: str, func: typing.Any) -> inspect.Signature:
     """Get cached function signature using a cache key for consistency."""
@@ -63,10 +65,6 @@ def _get_signature_cache_key(func: typing.Any) -> str:
     else:
         # Fallback for other callable objects
         return f"{type(func).__module__}.{type(func).__name__}.{id(func)}"
-
-# Register caches with the global cache manager
-cache_manager.register_lru_cache('signature_cache', _signature_cache)
-
 
 async def dispatch(handler: typing.Any, request: Request) -> Response:
     """Dispatches a request to the given handler, performing parameter injection.
@@ -95,8 +93,6 @@ async def dispatch(handler: typing.Any, request: Request) -> Response:
     if not isinstance(response, Response):
         # Try automatic serialization first
         try:
-            from velithon.serialization import auto_serialize_response
-
             response = auto_serialize_response(response, status_code=200)
         except (ImportError, TypeError):
             # Fallback to original logic for backward compatibility

@@ -132,11 +132,6 @@ class SecurityProtocol:
         headers = self._add_security_headers(headers)
         return self.protocol.response_stream(status, headers)
 
-    async def response_start(self, status: int, headers: list[tuple[str, str]]) -> None:
-        """Handle response start for streaming responses."""
-        headers = self._add_security_headers(headers)
-        return await self.protocol.response_start(status, headers)
-
     def _add_security_headers(
         self, headers: tuple[str, str] | list[tuple[str, str]]
     ) -> tuple[str, str] | list[tuple[str, str]]:
