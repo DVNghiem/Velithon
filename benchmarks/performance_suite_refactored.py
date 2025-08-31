@@ -51,7 +51,8 @@ class PerformanceBenchmark(BaseBenchmark, ResponseBenchmarkMixin, CacheBenchmark
             return {'user_id': user_id, 'name': name, 'active': active}
 
         def test_signature_resolution():
-            return _get_cached_signature(sample_handler)
+            cache_key = f"{sample_handler.__module__}.{sample_handler.__qualname__}"
+            return _get_cached_signature(cache_key, sample_handler)
 
         result = self.timer.time_function(test_signature_resolution)
         self.print_timing_results('Signature Resolution', result)

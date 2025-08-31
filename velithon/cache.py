@@ -12,22 +12,24 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 
-# Simplified cache size constants
+# Optimized cache size constants
 class CacheConfig:
-    """Simplified cache size configuration."""
+    """Optimized cache size configuration."""
 
-    DEFAULT_CACHE_SIZE = 512  # Reduced from 1000
-    LARGE_CACHE_SIZE = 1024  # Reduced from 5000
-    SMALL_CACHE_SIZE = 128  # Reduced from 256
-    RESPONSE_CACHE_SIZE = 50  # Reduced from 100
+    DEFAULT_CACHE_SIZE = 2048  # Increased from 512
+    LARGE_CACHE_SIZE = 8192   # Increased from 1024
+    SMALL_CACHE_SIZE = 512    # Increased from 128
+    RESPONSE_CACHE_SIZE = 256 # Increased from 50
+    SIGNATURE_CACHE_SIZE = 1024  # New dedicated size
+    ROUTE_CACHE_SIZE = 4096   # New dedicated size
 
     @classmethod
     def get_cache_size(cls, cache_type: str) -> int:
         """Get appropriate cache size for different cache types."""
         size_map = {
-            'route': cls.DEFAULT_CACHE_SIZE,
+            'route': cls.ROUTE_CACHE_SIZE,
             'middleware': cls.LARGE_CACHE_SIZE,
-            'signature': cls.SMALL_CACHE_SIZE,
+            'signature': cls.SIGNATURE_CACHE_SIZE,
             'response': cls.RESPONSE_CACHE_SIZE,
             'default': cls.DEFAULT_CACHE_SIZE,
         }
