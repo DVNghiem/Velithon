@@ -10,8 +10,6 @@ import time
 from collections.abc import AsyncIterator, Callable, Iterable
 from typing import Any, Optional, TypeVar
 
-from .cache import cache_manager
-
 try:
     import orjson
 except ImportError as exc:
@@ -218,9 +216,5 @@ def clear_all_caches() -> None:
     # Clear JSON encoder cache
     _json_encoder._simple_cache.clear()
 
-    # Clear cache manager caches
-    try:
-        cache_manager.clear_all_caches()
-    except Exception:
-        pass  # Ignore cache manager errors
+    # Cache management removed
 
