@@ -202,9 +202,13 @@ class HTTPConnection(typing.Mapping[str, typing.Any]):
         an Address instance containing the host and port, or None if unavailable.
         """
         # client is a 2 item tuple of (host, port), None if missing
-        host_port = self.scope.client.split(':')
-        if host_port is not None:
-            return Address(*host_port)
+        client_info = self.scope.get('client')
+        if client_info and ':' in client_info:
+            try:
+                host, port = client_info.rsplit(':', 1)
+                return Address(host, int(port))
+            except (ValueError, TypeError):
+                pass
         return None
 
 
@@ -267,14 +271,20 @@ class Request(HTTPConnection):
         async for chunk in self.protocol:
             yield chunk
 
-    async def body(self) -> bytes:
+    async def body(self, max_size: int = 1024 * 1024 * 16) -> bytes:
         """Asynchronously read and return the entire request body as bytes.
 
         This method collects all chunks from the request stream and returns the complete body.
         """  # noqa: E501
         if not hasattr(self, '_body'):
             chunks: list[bytes] = []
+            total_size = 0
             async for chunk in self.stream():
+                total_size += len(chunk)
+                if total_size > max_size:
+                    raise ValueError(
+                        f"Request body too large: {total_size} > {max_size}"
+                    )
                 chunks.append(chunk)
             self._body = b''.join(chunks)
         return self._body
@@ -285,9 +295,12 @@ class Request(HTTPConnection):
         This method reads the request body and deserializes it using orjson,
         returning the parsed JSON object.
         """
-        if not hasattr(self, '_json'):  # pragma: no branch
-            body = await self.body()
-            self._json = orjson.loads(body)
+        if not hasattr(self, '_json'):
+            try:
+                body = await self.body()
+                self._json = orjson.loads(body)
+            except orjson.JSONDecodeError as e:
+                raise ValueError(f"Invalid JSON: {e}") from e
         return self._json
 
     async def _get_form(
