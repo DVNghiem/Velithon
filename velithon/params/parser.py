@@ -158,40 +158,69 @@ def get_param_source(param: inspect.Parameter, annotation: Any) -> str:
 
 
 class ParameterResolver:
-    """Simplified parameter resolver inspired."""
+    """Simplified parameter resolver for high-performance parameter extraction."""
 
     def __init__(self, request: Request):
         """Initialize the parameter resolver with a request object."""
         self.request = request
         self._data_cache = {}
 
+    async def _extract_query_data(self) -> dict:
+        """Extract query parameters from request."""
+        return dict(self.request.query_params)
+
+    async def _extract_path_data(self) -> dict:
+        """Extract path parameters from request."""
+        return dict(self.request.path_params)
+
+    async def _extract_body_data(self) -> Any:
+        """Extract JSON body from request."""
+        return await self.request.json()
+
+    async def _extract_form_data(self) -> dict:
+        """Extract form data from request, handling multiple values."""
+        form = await self.request.form()
+        data = {}
+        for key, value in form.multi_items():
+            if key in data:
+                if not isinstance(data[key], list):
+                    data[key] = [data[key]]
+                data[key].append(value)
+            else:
+                data[key] = value
+        return data
+
+    async def _extract_file_data(self) -> Any:
+        """Extract file uploads from request."""
+        return await self.request.files()
+
+    async def _extract_header_data(self) -> dict:
+        """Extract headers from request."""
+        return dict(self.request.headers)
+
+    async def _extract_cookie_data(self) -> dict:
+        """Extract cookies from request."""
+        return dict(self.request.cookies)
+
     async def get_data(self, source: str) -> Any:
-        """Get data from request based on source."""
+        """Get data from request based on source with caching."""
         if source in self._data_cache:
             return self._data_cache[source]
 
-        if source == ParameterSource.QUERY:
-            data = dict(self.request.query_params)
-        elif source == ParameterSource.PATH:
-            data = dict(self.request.path_params)
-        elif source == ParameterSource.BODY:
-            data = await self.request.json()
-        elif source == ParameterSource.FORM:
-            form = await self.request.form()
-            data = {}
-            for key, value in form.multi_items():
-                if key in data:
-                    if not isinstance(data[key], list):
-                        data[key] = [data[key]]
-                    data[key].append(value)
-                else:
-                    data[key] = value
-        elif source == ParameterSource.FILE:
-            data = await self.request.files()
-        elif source == ParameterSource.HEADER:
-            data = dict(self.request.headers)
-        elif source == ParameterSource.COOKIE:
-            data = dict(self.request.cookies)
+        # Use specific extraction methods for better performance
+        extractors = {
+            ParameterSource.QUERY: self._extract_query_data,
+            ParameterSource.PATH: self._extract_path_data,
+            ParameterSource.BODY: self._extract_body_data,
+            ParameterSource.FORM: self._extract_form_data,
+            ParameterSource.FILE: self._extract_file_data,
+            ParameterSource.HEADER: self._extract_header_data,
+            ParameterSource.COOKIE: self._extract_cookie_data,
+        }
+
+        extractor = extractors.get(source)
+        if extractor:
+            data = await extractor()
         else:
             data = {}
 
@@ -200,110 +229,135 @@ class ParameterResolver:
 
     def get_param_value(self, data: dict, param_name: str) -> Any:
         """Get parameter value from data, trying name and alias."""
-        # Try exact name
+        # Try exact name first (most common case)
         if param_name in data:
             return data[param_name]
 
-        # Try with underscores converted to hyphens
+        # Try with underscores converted to hyphens for compatibility
         alias = param_name.replace('_', '-')
         if alias in data:
             return data[alias]
 
         return None
 
+    def _parse_union_type(self, value: Any, args: tuple, param_name: str) -> Any:
+        """Parse value against Union type arguments."""
+        for arg_type in args:
+            if arg_type is type(None):
+                continue
+            try:
+                return self.parse_value(value, arg_type, param_name)
+            except (ValueError, TypeError, ValidationError, ValidationException):
+                continue
+
+        raise ValidationException(
+            details={
+                'field': param_name,
+                'msg': f'Could not parse value {value} as any of {args}',
+            }
+        )
+
+    def _parse_list_type(self, value: Any, args: tuple, param_name: str) -> list:
+        """Parse value as list type."""
+        if not isinstance(value, list):
+            # Split comma-separated values for string inputs
+            if isinstance(value, str):
+                value = [v.strip() for v in value.split(',') if v.strip()]
+            else:
+                value = [value]
+
+        if args:
+            item_type = args[0]
+            return [self.parse_value(item, item_type, param_name) for item in value]
+        return value
+
+    def _parse_pydantic_model(
+        self, value: Any, annotation: type, param_name: str
+    ) -> BaseModel:
+        """Parse value as Pydantic BaseModel."""
+        if isinstance(value, dict):
+            try:
+                return annotation(**value)
+            except ValidationError as e:
+                raise ValidationException(
+                    details={'field': param_name, 'msg': str(e)}
+                ) from e
+
+        elif isinstance(value, str):
+            # Handle JSON string in form data
+            try:
+                import json
+                data = json.loads(value)
+                return annotation(**data)
+            except (json.JSONDecodeError, ValidationError) as e:
+                raise ValidationException(
+                    details={'field': param_name, 'msg': str(e)}
+                ) from e
+
+        raise ValidationException(
+            details={
+                'field': param_name,
+                'msg': f'Expected dict or JSON string for {annotation}, '
+                f'got {type(value)}',
+            }
+        )
+
+    def _parse_primitive_type(
+        self, value: Any, annotation: type, param_name: str
+    ) -> Any:
+        """Parse value as primitive type."""
+        try:
+            return convert_value(value, annotation)
+        except (ValueError, TypeError) as e:
+            raise ValidationException(
+                details={
+                    'field': param_name,
+                    'msg': f'Invalid {annotation.__name__}: {e}',
+                }
+            ) from e
+
     def parse_value(self, value: Any, annotation: Any, param_name: str) -> Any:
-        """Parse value based on type annotation."""
+        """Parse value based on type annotation using specialized parsers."""
         if value is None:
             return None
 
-        # Handle Union types (including Optional)
         origin = get_origin(annotation)
+
+        # Handle Union types (including Optional)
         if origin is Union:
             args = get_args(annotation)
-            # Try each type in the Union
-            for arg_type in args:
-                if arg_type is type(None):
-                    continue
-                try:
-                    return self.parse_value(value, arg_type, param_name)
-                except (ValueError, TypeError, ValidationError, ValidationException):
-                    continue
-            raise ValidationException(
-                details={
-                    'field': param_name,
-                    'msg': f'Could not parse value {value} as any of {args}',
-                }
-            )
+            return self._parse_union_type(value, args, param_name)
 
         # Handle List types
         elif origin is list:
-            if not isinstance(value, list):
-                # Split comma-separated values
-                if isinstance(value, str):
-                    value = [v.strip() for v in value.split(',') if v.strip()]
-                else:
-                    value = [value]
-
             args = get_args(annotation)
-            if args:
-                item_type = args[0]
-                return [self.parse_value(item, item_type, param_name) for item in value]
-            return value
+            return self._parse_list_type(value, args, param_name)
 
         # Handle Pydantic models
         elif isinstance(annotation, type) and issubclass(annotation, BaseModel):
-            if isinstance(value, dict):
-                try:
-                    return annotation(**value)
-                except ValidationError as e:
-                    raise ValidationException(
-                        details={'field': param_name, 'msg': str(e)}
-                    ) from e
-            elif isinstance(value, str):
-                # Handle JSON string in form data
-                try:
-                    import json
-
-                    data = json.loads(value)
-                    return annotation(**data)
-                except (json.JSONDecodeError, ValidationError) as e:
-                    raise ValidationException(
-                        details={'field': param_name, 'msg': str(e)}
-                    ) from e
-            raise ValidationException(
-                details={
-                    'field': param_name,
-                    'msg': f'Expected dict or JSON string for {annotation}, '
-                    f'got {type(value)}',
-                }
-            )
+            return self._parse_pydantic_model(value, annotation, param_name)
 
         # Handle primitive types
         elif annotation in (int, float, str, bool, bytes):
-            try:
-                return convert_value(value, annotation)
-            except (ValueError, TypeError) as e:
-                raise ValidationException(
-                    details={
-                        'field': param_name,
-                        'msg': f'Invalid {annotation.__name__}: {e}',
-                    }
-                ) from e
+            return self._parse_primitive_type(value, annotation, param_name)
 
         # Return as-is for other types
         return value
 
-    async def resolve_parameter(self, param: inspect.Parameter) -> Any:
-        """Resolve a single parameter."""
+    def _extract_param_metadata(
+        self, param: inspect.Parameter
+    ) -> tuple[str, Any, Any, bool]:
+        """Extract parameter metadata for processing."""
         param_name = param.name
         annotation = (
             param.annotation if param.annotation != inspect.Parameter.empty else str
         )
         default = param.default if param.default != inspect.Parameter.empty else None
         is_required = param.default == inspect.Parameter.empty
+        return param_name, annotation, default, is_required
 
-        # Handle special types
-        base_type = get_base_type(annotation)
+    async def _handle_special_types(self, base_type: type) -> Any:
+        """Handle special request-related types."""
         if base_type == Request:
             return self.request
         elif base_type == FormData:
@@ -312,25 +366,28 @@ class ParameterResolver:
             return self.request.headers
         elif base_type == QueryParams:
             return self.request.query_params
+        return None
 
-        # Get parameter source and data
-        source = get_param_source(param, annotation)
+    async def _handle_function_dependency(
+        self, annotation: Any, default: Any
+    ) -> Any:
+        """Handle function dependencies in parameter annotations."""
+        if get_origin(annotation) is Annotated:
+            _, *metadata = get_args(annotation)
+            for meta in metadata:
+                if callable(meta):
+                    result = meta(self.request)
+                    # Handle async functions
+                    if inspect.iscoroutine(result):
+                        return await result
+                    else:
+                        return result
+        return default
 
-        # Handle function dependencies
-        if source == ParameterSource.FUNCTION_DEPENDENCY:
-            if get_origin(annotation) is Annotated:
-                _, *metadata = get_args(annotation)
-                for meta in metadata:
-                    if callable(meta):
-                        result = meta(self.request)
-                        # Handle async functions
-                        if inspect.iscoroutine(result):
-                            return await result
-                        else:
-                            return result
-            return default
-
-        # For BaseModel without explicit annotation, infer based on HTTP method
+    def _infer_source_for_basemodel(
+        self, source: str, base_type: type
+    ) -> str:
+        """Infer parameter source for BaseModel based on HTTP method."""
         if (
             source == ParameterSource.INFER
             and isinstance(base_type, type)
@@ -338,25 +395,126 @@ class ParameterResolver:
         ):
             method = getattr(self.request, 'method', 'GET')
             if method in ('GET', 'DELETE', 'HEAD'):
-                source = ParameterSource.QUERY
+                return ParameterSource.QUERY
             else:
-                source = ParameterSource.BODY
+                return ParameterSource.BODY
+        return source
 
-        # Handle path parameters specially
+    async def _get_parameter_value(
+        self, source: str, param_name: str
+    ) -> Any:
+        """Get parameter value based on source."""
         if source == ParameterSource.PATH:
-            value = self.request.path_params.get(param_name)
+            return self.request.path_params.get(param_name)
         elif source == ParameterSource.DEPENDENCY:
-            # This should have been handled above
-            return default
+            return None  # Should have been handled earlier
         else:
             data = await self.get_data(source)
             if source == ParameterSource.BODY:
                 # For body parameters, the data IS the value
-                value = data
+                return data
             else:
-                value = self.get_param_value(data, param_name)
+                return self.get_param_value(data, param_name)
 
-        # Parse the value
+    async def _handle_basemodel_query_form(
+        self, 
+        base_type: type, 
+        source: str, 
+        param_name: str,
+        value: Any, 
+        is_required: bool, 
+        default: Any
+    ) -> BaseModel:
+        """Handle BaseModel parsing for query/form parameters."""
+        data = await self.get_data(source)
+
+        # Handle single JSON string (common in form uploads)
+        if isinstance(value, str) and value.startswith('{'):
+            try:
+                import json
+                value = json.loads(value)
+                if isinstance(value, dict):
+                    try:
+                        return base_type(**value)
+                    except ValidationError as e:
+                        raise ValidationException(
+                            details={'field': param_name, 'msg': str(e)}
+                        ) from e
+            except json.JSONDecodeError:
+                # If JSON parsing fails, fall back to field-by-field parsing
+                pass
+
+        # Filter data to only include fields that the model expects
+        model_fields = getattr(base_type, 'model_fields', {})
+        model_data = {k: v for k, v in data.items() if k in model_fields}
+
+        if not model_data and is_required:
+            raise BadRequestException(
+                details={'message': f'Missing required parameter: {param_name}'}
+            )
+        elif not model_data:
+            return default
+
+        try:
+            return base_type(**model_data)
+        except ValidationError as e:
+            raise ValidationException(
+                details={'field': param_name, 'msg': str(e)}
+            ) from e
+
+    def _handle_file_uploads(self, base_type: type, value: Any) -> Any:
+        """Handle file upload parameters."""
+        if base_type == UploadFile:
+            return value
+
+        # Handle list of file uploads
+        if (
+            get_origin(base_type) is list
+            and get_args(base_type)
+            and get_args(base_type)[0] == UploadFile
+        ):
+            return value if isinstance(value, list) else [value]
+
+        return None
+
+    def _validate_required_parameter(
+        self, value: Any, is_required: bool, param_name: str, default: Any
+    ) -> Any:
+        """Validate required parameters and return default if appropriate."""
+        if value is None:
+            if is_required:
+                raise BadRequestException(
+                    details={'message': f'Missing required parameter: {param_name}'}
+                )
+            return default
+        return value
+
+    async def resolve_parameter(self, param: inspect.Parameter) -> Any:
+        """Resolve a single parameter using smaller helper methods."""
+        param_name, annotation, default, is_required = (
+            self._extract_param_metadata(param)
+        )
+
+        # Handle special types
+        base_type = get_base_type(annotation)
+        special_result = await self._handle_special_types(base_type)
+        if special_result is not None:
+            return special_result
+
+        # Get parameter source and handle inference
+        source = get_param_source(param, annotation)
+
+        # Handle function dependencies
+        if source == ParameterSource.FUNCTION_DEPENDENCY:
+            return await self._handle_function_dependency(annotation, default)
+
+        # Infer source for BaseModel based on HTTP method
+        source = self._infer_source_for_basemodel(source, base_type)
+
+        # Get the parameter value
+        value = await self._get_parameter_value(source, param_name)
+
+        # Parse the value based on type
         try:
             base_type = get_base_type(annotation)
 
@@ -366,69 +524,21 @@ class ParameterResolver:
                 and issubclass(base_type, BaseModel)
                 and source in (ParameterSource.QUERY, ParameterSource.FORM)
             ):
-                # For BaseModel in query/form, collect all relevant parameters
-                data = await self.get_data(source)
-
-                # If the value is a single JSON string (common in form uploads),
-                # parse it as JSON first
-                if isinstance(value, str) and value.startswith('{'):
-                    try:
-                        import json
-
-                        value = json.loads(value)
-                        if isinstance(value, dict):
-                            try:
-                                return base_type(**value)
-                            except ValidationError as e:
-                                raise ValidationException(
-                                    details={'field': param_name, 'msg': str(e)}
-                                ) from e
-                    except json.JSONDecodeError:
-                        # If JSON parsing fails, fall back to field-by-field parsing
-                        pass
-
-                # Filter data to only include fields that the model expects
-                if hasattr(base_type, 'model_fields'):
-                    model_fields = base_type.model_fields
-                else:
-                    model_fields = base_type.model_fields
-                model_data = {k: v for k, v in data.items() if k in model_fields}
-
-                if not model_data and is_required:
-                    raise BadRequestException(
-                        details={'message': f'Missing required parameter: {param_name}'}
-                    )
-                elif not model_data:
-                    return default
-
-                try:
-                    return base_type(**model_data)
-                except ValidationError as e:
-                    raise ValidationException(
-                        details={'field': param_name, 'msg': str(e)}
-                    ) from e
+                return await self._handle_basemodel_query_form(
+                    base_type, source, param_name, value, is_required, default
+                )
 
             # Handle file uploads
-            if source == ParameterSource.FILE and base_type == UploadFile:
-                return value
+            file_result = self._handle_file_uploads(base_type, value)
+            if file_result is not None:
+                return file_result
 
-            # Handle list of file uploads
-            if (
-                source == ParameterSource.FILE
-                and get_origin(base_type) is list
-                and get_args(base_type)
-                and get_args(base_type)[0] == UploadFile
-            ):
-                return value if isinstance(value, list) else [value]
+            # Validate required parameters
+            value = self._validate_required_parameter(
+                value, is_required, param_name, default
+            )
 
-            # Handle missing values for non-BaseModel types
-            if value is None:
-                if is_required:
-                    raise BadRequestException(
-                        details={'message': f'Missing required parameter: {param_name}'}
-                    )
-                return default
-
+            # Parse the value using the main parser
             return self.parse_value(value, base_type, param_name)
         except Exception as e:
             logger.error(f'Failed to parse parameter {param_name}: {e}')
