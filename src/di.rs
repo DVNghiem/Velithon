@@ -1,17 +1,18 @@
 use pyo3::prelude::*;
 use pyo3::sync::PyOnceLock;
-use pyo3::types::{PyDict, PySet, PyString, PyType};
+use pyo3::types::{PyDict, PySet, PyString, PyType, PyTuple};
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use parking_lot::Mutex as ParkingLotMutex;
+use std::sync::Arc;
 
-// Global caches
-static SIGNATURE_CACHE: PyOnceLock<Mutex<HashMap<String, Py<PyAny>>>> = PyOnceLock::new();
-static PROVIDER_INSTANCES: PyOnceLock<Arc<Mutex<HashMap<String, Py<PyAny>>>>> = PyOnceLock::new();
+// Global caches with parking_lot mutex for better performance
+static SIGNATURE_CACHE: PyOnceLock<ParkingLotMutex<HashMap<String, Py<PyAny>>>> = PyOnceLock::new();
+static PROVIDER_INSTANCES: PyOnceLock<Arc<ParkingLotMutex<HashMap<String, Py<PyAny>>>>> = PyOnceLock::new();
 
 #[pyfunction(name = "di_cached_signature")]
 fn cached_signature(py: Python, func: Bound<PyAny>) -> PyResult<Py<PyAny>> {
-    let cache_mutex = SIGNATURE_CACHE.get_or_init(py, || Mutex::new(HashMap::new()));
-    let mut cache = cache_mutex.lock().unwrap();
+    let cache_mutex = SIGNATURE_CACHE.get_or_init(py, || ParkingLotMutex::new(HashMap::new()));
+    let mut cache = cache_mutex.lock();
 
     let func_obj = func.unbind();
     let func_str = format!("{:?}", func_obj);
@@ -111,62 +112,42 @@ impl SingletonProvider {
     fn get(
         &self,
         py: Python,
-        container: Py<PyAny>,
-        resolution_stack: Option<Py<PyAny>>,
+        _container: Py<PyAny>,
+        _resolution_stack: Option<Py<PyAny>>,
     ) -> PyResult<Py<PyAny>> {
-        let instances_lock =
-            PROVIDER_INSTANCES.get_or_init(py, || Arc::new(Mutex::new(HashMap::new())));
+        let instances_lock = 
+            PROVIDER_INSTANCES.get_or_init(py, || Arc::new(ParkingLotMutex::new(HashMap::new())));
 
-        // Check if instance already exists
+        // Check if we already have an instance
         {
-            let instances = instances_lock.lock().unwrap();
+            let instances = instances_lock.lock();
             if let Some(instance) = instances.get(&self.lock_key) {
                 return Ok(instance.clone_ref(py));
             }
-        }
+        } // Release lock before creating new instance
 
-        // Create new instance with circular dependency detection
-        let resolution_stack = match resolution_stack {
-            Some(stack) => stack,
-            None => PySet::empty(py)?.unbind().into(),
+        // Create new instance if needed (using optimized kwargs handling)
+        let instance = if self.kwargs.bind(py).len()? == 0 {
+            // No kwargs - fast path
+            self.cls.call0(py)?
+        } else {
+            // Has kwargs - unpack them
+            let kwargs_dict = self.kwargs.bind(py).downcast::<PyDict>()?;
+            let empty_args = PyTuple::empty(py);
+            self.cls.call(py, empty_args, Some(kwargs_dict))?
         };
 
-        let stack_bound = resolution_stack.bind(py);
-        let key_str = PyString::new(py, &self.lock_key);
-
-        if stack_bound.contains(&key_str)? {
-            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                "Circular dependency detected for {}",
-                self.lock_key
-            )));
-        }
-
-        stack_bound.call_method1("add", (&key_str,))?;
-
-        let result = {
-            let mut instances = instances_lock.lock().unwrap();
-
-            // Double-check after acquiring write lock
-            if let Some(instance) = instances.get(&self.lock_key) {
-                let _ = stack_bound.call_method1("discard", (&key_str,));
-                return Ok(instance.clone_ref(py));
+        // Store the instance
+        {
+            let mut instances = instances_lock.lock();
+            // Double-check in case another thread created it while we were creating ours
+            if let Some(existing) = instances.get(&self.lock_key) {
+                return Ok(existing.clone_ref(py));
+            } else {
+                instances.insert(self.lock_key.clone(), instance.clone_ref(py));
+                return Ok(instance);
             }
-
-            // Get container and create instance
-            let instance = create_instance(
-                py,
-                &self.cls,
-                &self.kwargs,
-                &container,
-                Some(resolution_stack.clone_ref(py)),
-            )?;
-
-            instances.insert(self.lock_key.clone(), instance.clone_ref(py));
-            instance
-        };
-
-        let _ = stack_bound.call_method1("discard", (&key_str,));
-        Ok(result)
+        }
     }
 }
 

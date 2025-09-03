@@ -5,8 +5,8 @@ use std::collections::HashMap;
 use std::io::{Read, Seek, SeekFrom, Write};
 use percent_encoding::percent_decode;
 use tempfile::SpooledTempFile;
+use parking_lot::Mutex as ParkingLotMutex;
 use std::sync::Arc;
-use tokio::sync::Mutex;
 
 #[derive(Debug, Clone)]
 #[pyclass]
@@ -46,7 +46,7 @@ pub struct UploadFile {
     pub content_type: Option<String>,
     #[pyo3(get)]
     pub size: usize,
-    pub file: Arc<Mutex<SpooledTempFile>>,
+    pub file: Arc<ParkingLotMutex<SpooledTempFile>>,
     #[pyo3(get)]
     pub headers: Py<PyAny>,
 }
@@ -64,12 +64,9 @@ impl UploadFile {
     }
 
     fn read(&self, py: Python, size: Option<usize>) -> PyResult<Py<PyAny>> {
-        let rt = tokio::runtime::Runtime::new().map_err(|e| {
-            PyRuntimeError::new_err(format!("Failed to create tokio runtime: {}", e))
-        })?;
-
-        rt.block_on(async {
-            let mut file = self.file.lock().await;
+        // Use blocking runtime for sync operations to prevent GIL issues
+        py.detach(|| {
+            let mut file = self.file.lock();
             let mut buffer = if let Some(s) = size {
                 vec![0u8; s]
             } else {
@@ -86,36 +83,31 @@ impl UploadFile {
                 })?;
             }
 
-            Ok(PyBytes::new(py, &buffer).into())
+            Python::attach(|py| Ok(PyBytes::new(py, &buffer).into()))
         })
     }
 
     fn write(&self, data: &Bound<'_, PyBytes>) -> PyResult<usize> {
-        let rt = tokio::runtime::Runtime::new().map_err(|e| {
-            PyRuntimeError::new_err(format!("Failed to create tokio runtime: {}", e))
+        let mut file = self.file.lock();
+        let bytes_written = file.write(data.as_bytes()).map_err(|e| {
+            PyRuntimeError::new_err(format!("Failed to write to file: {}", e))
         })?;
-
-        rt.block_on(async {
-            let mut file = self.file.lock().await;
-            let bytes_written = file.write(data.as_bytes()).map_err(|e| {
-                PyRuntimeError::new_err(format!("Failed to write to file: {}", e))
-            })?;
-            Ok(bytes_written)
-        })
+        Ok(bytes_written)
     }
 
-    fn seek(&self, offset: i64) -> PyResult<u64> {
-        let rt = tokio::runtime::Runtime::new().map_err(|e| {
-            PyRuntimeError::new_err(format!("Failed to create tokio runtime: {}", e))
-        })?;
+    fn seek(&self, position: i64, whence: i32) -> PyResult<i64> {
+        let mut file = self.file.lock();
+        let seek_from = match whence {
+            0 => SeekFrom::Start(position as u64), // SEEK_SET
+            1 => SeekFrom::Current(position),      // SEEK_CUR  
+            2 => SeekFrom::End(position),          // SEEK_END
+            _ => return Err(PyValueError::new_err("Invalid whence value")),
+        };
 
-        rt.block_on(async {
-            let mut file = self.file.lock().await;
-            let position = file.seek(SeekFrom::Start(offset as u64)).map_err(|e| {
-                PyRuntimeError::new_err(format!("Failed to seek file: {}", e))
-            })?;
-            Ok(position)
-        })
+        let new_position = file.seek(seek_from).map_err(|e| {
+            PyRuntimeError::new_err(format!("Failed to seek file: {}", e))
+        })? as i64;
+        Ok(new_position)
     }
 
     fn close(&self) -> PyResult<()> {
@@ -137,7 +129,7 @@ impl UploadFile {
             filename,
             content_type,
             size,
-            file: Arc::new(Mutex::new(file)),
+            file: Arc::new(ParkingLotMutex::new(file)),
             headers,
         })
     }
@@ -341,7 +333,7 @@ impl MultiPartParser {
                 // Write data to the upload file
                 let py_bytes = PyBytes::new(py, &part.data);
                 upload_file.write(&py_bytes)?;
-                upload_file.seek(0)?;
+                upload_file.seek(0, 0)?;
 
                 items.push((part.name, Py::new(py, upload_file)?.into()));
             } else {

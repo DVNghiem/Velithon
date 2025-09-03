@@ -2,7 +2,8 @@ use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList, PyTuple};
 use pyo3_async_runtimes::tokio::future_into_py;
 use std::collections::VecDeque;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use parking_lot::Mutex as ParkingLotMutex;
 use tokio::sync::Semaphore;
 
 /// A high-performance background task implementation in Rust
@@ -139,7 +140,7 @@ impl BackgroundTask {
 /// High-performance background tasks manager
 #[pyclass]
 pub struct BackgroundTasks {
-    tasks: Arc<Mutex<VecDeque<BackgroundTask>>>,
+    tasks: Arc<ParkingLotMutex<VecDeque<BackgroundTask>>>,
     max_concurrent: usize,
 }
 
@@ -160,7 +161,7 @@ impl BackgroundTasks {
         };
 
         Ok(Self {
-            tasks: Arc::new(Mutex::new(task_queue)),
+            tasks: Arc::new(ParkingLotMutex::new(task_queue)),
             max_concurrent: max_concurrent.unwrap_or(10),
         })
     }
@@ -176,10 +177,10 @@ impl BackgroundTasks {
     ) -> PyResult<()> {
         let task = BackgroundTask::new(py, func, args, kwargs)?;
         
-        // Use standard mutex for simple synchronous access
+        // Use ParkingLot mutex for thread-safe access without GIL issues
         let tasks = self.tasks.clone();
         py.detach(|| {
-            let mut task_queue = tasks.lock().unwrap();
+            let mut task_queue = tasks.lock();
             task_queue.push_back(task);
         });
         
@@ -198,7 +199,7 @@ impl BackgroundTasks {
 
         future_into_py(py, async move {
             let task_queue = {
-                let mut queue = tasks.lock().unwrap();
+                let mut queue = tasks.lock();
                 let mut extracted_tasks = Vec::with_capacity(queue.len());
                 // Extract all tasks and clear the queue
                 while let Some(task) = queue.pop_front() {
@@ -363,7 +364,7 @@ impl BackgroundTasks {
         let tasks = self.tasks.clone();
         
         future_into_py(py, async move {
-            let task_queue = tasks.lock().unwrap();
+            let task_queue = tasks.lock();
             let count = task_queue.len();
             // Return the count as a regular integer - PyO3 will handle the conversion
             Ok(count)
@@ -375,7 +376,7 @@ impl BackgroundTasks {
         let tasks = self.tasks.clone();
         
         future_into_py(py, async move {
-            let mut task_queue = tasks.lock().unwrap();
+            let mut task_queue = tasks.lock();
             task_queue.clear();
             Python::attach(|py| Ok(py.None()))
         })
