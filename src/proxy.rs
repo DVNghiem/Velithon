@@ -201,7 +201,7 @@ impl ProxyClient {
                                 let body_bytes = collected.to_bytes().to_vec();
                                 
                                 // Convert headers to Python dict
-                                let headers_dict: PyObject = Python::with_gil(|py| {
+                                let headers_dict: Py<PyAny> = Python::attach(|py| {
                                     let dict = PyDict::new(py);
                                     for (name, value) in headers.iter() {
                                         if let Ok(value_str) = value.to_str() {
