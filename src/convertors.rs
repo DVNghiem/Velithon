@@ -21,13 +21,13 @@ impl Convertor {
     }
 
     /// Convert a value to the appropriate type
-    fn convert(&self, _py: Python, _value: &str) -> PyResult<PyObject> {
+    fn convert(&self, _py: Python, _value: &str) -> PyResult<Py<PyAny>> {
         // raise not implemented error
         Err(pyo3::exceptions::PyNotImplementedError::new_err("Convertor.convert() must be implemented in subclasses"))
     }
 
     /// Convert a value to a string representation
-    fn to_string(&self, _py: Python, _value: &str) -> PyResult<PyObject> {
+    fn to_string(&self, _py: Python, _value: &str) -> PyResult<Py<PyAny>> {
         // raise not implemented error
         Err(pyo3::exceptions::PyNotImplementedError::new_err("Convertor.to_string() must be implemented in subclasses"))
     }

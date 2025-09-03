@@ -7,7 +7,7 @@ use std::sync::Arc;
 use tokio::sync::mpsc::{self, Sender};
 
 struct Listener {
-    callback: PyObject,
+    callback: Py<PyAny>,
     is_async: bool,
 }
 
@@ -34,9 +34,9 @@ impl EventChannel {
     fn register_listener(
         &mut self,
         event_name: String,
-        callback: PyObject,
+        callback: Py<PyAny>,
         is_async: bool,
-        event_loop: PyObject,
+        event_loop: Py<PyAny>,
         py: Python,
     ) -> PyResult<()> {
         let (tx, mut rx) = mpsc::channel(self.buffer_size);
@@ -63,7 +63,7 @@ impl EventChannel {
         get_runtime().spawn(async move {
             while let Some(data) = rx.recv().await {
                 // Clone data and get listeners in a single GIL scope
-                Python::with_gil(|py| {
+                Python::attach(|py| {
                     let data = data.clone_ref(py);
                     let listeners = listeners_for_task.lock();
                     if let Some(listeners) = listeners.get(&event_name) {
@@ -81,7 +81,7 @@ impl EventChannel {
                                 let callback = callback.clone_ref(py);
                                 let data_for_listener = data.clone_ref(py);
                                 get_runtime().spawn_blocking(move || {
-                                    Python::with_gil(|py| {
+                                    Python::attach(|py| {
                                         callback
                                             .call1(py, (data_for_listener,))
                                             .map_err(|e| PyErr::from(e))?;

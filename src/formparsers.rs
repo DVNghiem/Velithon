@@ -48,7 +48,7 @@ pub struct UploadFile {
     pub size: usize,
     pub file: Arc<Mutex<SpooledTempFile>>,
     #[pyo3(get)]
-    pub headers: PyObject,
+    pub headers: Py<PyAny>,
 }
 
 #[pymethods]
@@ -58,12 +58,12 @@ impl UploadFile {
         filename: String,
         content_type: Option<String>,
         size: usize,
-        headers: PyObject,
+        headers: Py<PyAny>,
     ) -> PyResult<Self> {
         Self::create_with_spool_size(filename, content_type, size, headers, 1024 * 1024)
     }
 
-    fn read(&self, py: Python, size: Option<usize>) -> PyResult<PyObject> {
+    fn read(&self, py: Python, size: Option<usize>) -> PyResult<Py<PyAny>> {
         let rt = tokio::runtime::Runtime::new().map_err(|e| {
             PyRuntimeError::new_err(format!("Failed to create tokio runtime: {}", e))
         })?;
@@ -129,7 +129,7 @@ impl UploadFile {
         filename: String,
         content_type: Option<String>,
         size: usize,
-        headers: PyObject,
+        headers: Py<PyAny>,
         spool_max_size: usize,
     ) -> PyResult<Self> {
         let file = SpooledTempFile::new(spool_max_size);
@@ -147,17 +147,17 @@ impl UploadFile {
 #[pyclass]
 pub struct FormData {
     #[pyo3(get)]
-    pub items: Vec<(String, PyObject)>,
+    pub items: Vec<(String, Py<PyAny>)>,
 }
 
 #[pymethods]
 impl FormData {
     #[new]
-    fn new(items: Vec<(String, PyObject)>) -> Self {
+    fn new(items: Vec<(String, Py<PyAny>)>) -> Self {
         FormData { items }
     }
 
-    fn get(&self, py: Python, key: &str) -> PyResult<Option<PyObject>> {
+    fn get(&self, py: Python, key: &str) -> PyResult<Option<Py<PyAny>>> {
         for (k, v) in &self.items {
             if k == key {
                 return Ok(Some(v.clone_ref(py)));
@@ -166,7 +166,7 @@ impl FormData {
         Ok(None)
     }
 
-    fn getlist(&self, py: Python, key: &str) -> PyResult<Vec<PyObject>> {
+    fn getlist(&self, py: Python, key: &str) -> PyResult<Vec<Py<PyAny>>> {
         let mut result = Vec::new();
         for (k, v) in &self.items {
             if k == key {
@@ -187,8 +187,8 @@ pub struct FormParser {
 #[pymethods]
 impl FormParser {
     #[new]
-    fn new(headers: PyObject, max_part_size: Option<usize>) -> PyResult<Self> {
-        let headers_map = Python::with_gil(|py| {
+    fn new(headers: Py<PyAny>, max_part_size: Option<usize>) -> PyResult<Self> {
+        let headers_map = Python::attach(|py| {
             let mut map = HashMap::new();
             let headers_dict = headers.bind(py);
             
@@ -278,12 +278,12 @@ pub struct MultiPartParser {
 impl MultiPartParser {
     #[new]
     fn new(
-        headers: PyObject,
+        headers: Py<PyAny>,
         max_files: Option<usize>,
         max_fields: Option<usize>,
         max_part_size: Option<usize>,
     ) -> PyResult<Self> {
-        let headers_map = Python::with_gil(|py| {
+        let headers_map = Python::attach(|py| {
             let mut map = HashMap::new();
             let headers_dict = headers.bind(py);
             
@@ -584,7 +584,7 @@ fn parse_content_disposition(header: &str) -> Option<HashMap<String, String>> {
 /// assert options == {b"charset": b"utf-8"}
 /// ```
 #[pyfunction]
-pub fn parse_options_header(py: Python<'_>, value: Option<PyObject>) -> PyResult<(PyObject, PyObject)> {
+pub fn parse_options_header(py: Python<'_>, value: Option<Py<PyAny>>) -> PyResult<(Py<PyAny>, Py<PyAny>)> {
     let empty_bytes = PyBytes::new(py, b"").into();
     let empty_dict = PyDict::new(py).into();
     
