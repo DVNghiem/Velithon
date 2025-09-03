@@ -2,6 +2,7 @@ use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use regex::Regex;
 use ahash::AHashMap;
+use parking_lot::Mutex as ParkingLotMutex;
 
 /// Match result for route matching
 #[pyclass]
@@ -40,7 +41,7 @@ pub struct RouteOptimizer {
     path_regex: Regex,
     param_convertors: Py<PyDict>,
     methods: Option<AHashMap<String, ()>>,
-    path_cache: AHashMap<String, (Match, Option<AHashMap<String, Py<PyAny>>>)>,
+    path_cache: ParkingLotMutex<AHashMap<String, (Match, Option<AHashMap<String, Py<PyAny>>>)>>,
     max_cache_size: usize,
     // Fast path for simple routes without parameters
     is_simple_route: bool,
@@ -81,7 +82,7 @@ impl RouteOptimizer {
             path_regex: regex,
             param_convertors,
             methods: methods_map,
-            path_cache: AHashMap::new(),
+            path_cache: ParkingLotMutex::new(AHashMap::new()),
             max_cache_size,
             is_simple_route,
             simple_path,
@@ -90,7 +91,7 @@ impl RouteOptimizer {
 
     /// Fast path matching with caching
     #[pyo3(signature = (route_path, method))]
-    fn matches(&mut self, py: Python, route_path: &str, method: &str) -> PyResult<(Match, Option<Py<PyDict>>)> {
+    fn matches(&self, py: Python, route_path: &str, method: &str) -> PyResult<(Match, Option<Py<PyDict>>)> {
         // Fast path for simple routes without parameters
         if self.is_simple_route {
             if let Some(ref simple_path) = self.simple_path {
@@ -114,18 +115,21 @@ impl RouteOptimizer {
         let path_key = format!("{}:{}", route_path, method);
         
         // Check cache first
-        if let Some((match_type, cached_params)) = self.path_cache.get(&path_key) {
-            let params_dict = if let Some(params) = cached_params {
-                let dict = PyDict::new(py);
-                for (key, value) in params {
-                    dict.set_item(key, value.bind(py))?;
-                }
-                Some(dict.unbind())
-            } else {
-                None
-            };
-            return Ok((*match_type, params_dict));
-        }
+        {
+            let cache = self.path_cache.lock();
+            if let Some((match_type, cached_params)) = cache.get(&path_key) {
+                let params_dict = if let Some(params) = cached_params {
+                    let dict = PyDict::new(py);
+                    for (key, value) in params {
+                        dict.set_item(key, value.bind(py))?;
+                    }
+                    Some(dict.unbind())
+                } else {
+                    None
+                };
+                return Ok((*match_type, params_dict));
+            }
+        } // Release cache lock before regex matching
 
         // Perform regex matching
         if let Some(captures) = self.path_regex.captures(route_path) {
@@ -156,28 +160,31 @@ impl RouteOptimizer {
             };
 
             // Cache the result (with size limit)
-            if self.path_cache.len() >= self.max_cache_size {
-                // Clear 20% of the cache when it gets too big
-                let keys_to_remove: Vec<String> = self.path_cache.keys()
-                    .take(self.max_cache_size / 5)
-                    .cloned()
-                    .collect();
-                for key in keys_to_remove {
-                    self.path_cache.remove(&key);
+            {
+                let mut cache = self.path_cache.lock();
+                if cache.len() >= self.max_cache_size {
+                    // Clear 20% of the cache when it gets too big
+                    let keys_to_remove: Vec<String> = cache.keys()
+                        .take(self.max_cache_size / 5)
+                        .cloned()
+                        .collect();
+                    for key in keys_to_remove {
+                        cache.remove(&key);
+                    }
                 }
+                
+                let cache_params = if matched_params.is_empty() {
+                    None
+                } else {
+                    // Create a new hashmap for caching by cloning the values
+                    let mut cache_map = AHashMap::new();
+                    for (key, value) in &matched_params {
+                        cache_map.insert(key.clone(), value.clone_ref(py));
+                    }
+                    Some(cache_map)
+                };
+                cache.insert(path_key, (match_type, cache_params));
             }
-            
-            let cache_params = if matched_params.is_empty() {
-                None
-            } else {
-                // Create a new hashmap for caching by cloning the values
-                let mut cache_map = AHashMap::new();
-                for (key, value) in &matched_params {
-                    cache_map.insert(key.clone(), value.clone_ref(py));
-                }
-                Some(cache_map)
-            };
-            self.path_cache.insert(path_key, (match_type, cache_params));
 
             // Convert to Python dict
             let params_dict = if matched_params.is_empty() {
@@ -193,8 +200,11 @@ impl RouteOptimizer {
             Ok((match_type, params_dict))
         } else {
             // Cache miss result
-            if self.path_cache.len() < self.max_cache_size {
-                self.path_cache.insert(path_key, (Match::None, None));
+            {
+                let mut cache = self.path_cache.lock();
+                if cache.len() < self.max_cache_size {
+                    cache.insert(path_key, (Match::None, None));
+                }
             }
             Ok((Match::None, None))
         }
@@ -206,13 +216,13 @@ impl RouteOptimizer {
     }
 
     /// Clear the path cache
-    fn clear_cache(&mut self) {
-        self.path_cache.clear();
+    fn clear_cache(&self) {
+        self.path_cache.lock().clear();
     }
 
     /// Get cache statistics
     fn cache_stats(&self) -> (usize, usize) {
-        (self.path_cache.len(), self.max_cache_size)
+        (self.path_cache.lock().len(), self.max_cache_size)
     }
 }
 
