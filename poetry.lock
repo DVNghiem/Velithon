@@ -1805,6 +1805,101 @@ doc = ["sphinx", "sphinx_rtd_theme"]
 test = ["pillow", "pytest", "ruff"]
 
 [[package]]
+name = "pyferris"
+version = "0.4.0"
+description = "PyFerris is a high-performance parallel processing library for Python, powered by Rust and PyO3"
+optional = false
+python-versions = ">=3.10"
+groups = ["main"]
+files = [
+    {file = "pyferris-0.4.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:6272f434d8fb674d9f0d7de150369b0b9c8c63a1249eb2c445e9442bf452f3eb"},
+    {file = "pyferris-0.4.0-cp310-cp310-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:852c064f846a73405277992eafee8499334ec2675c7690c2b2813b4b88552b65"},
+    {file = "pyferris-0.4.0-cp310-cp310-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:75afc06c92b6dd5da8b53778e6818b0e0a23ddde25fa2e128cea07a92abb3cb6"},
+    {file = "pyferris-0.4.0-cp310-cp310-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:01472bd2164675361c02341d67cc86d45293d3cbe9cc13f8c135a8ccc9984a46"},
+    {file = "pyferris-0.4.0-cp310-cp310-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:c61433f7a56b51f62a7528adff3c3d69a3776f214e58436a71d76919156468ab"},
+    {file = "pyferris-0.4.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:17a3c9859d2f94219ce7872854a5429c47b22c4a522d03b14cd0e2c9fab8e0e9"},
+    {file = "pyferris-0.4.0-cp310-cp310-musllinux_1_2_aarch64.whl", hash = "sha256:7291e441e4588f9cc91e24991b109f4c6123705754a8968d7419fd67e7d2cf96"},
+    {file = "pyferris-0.4.0-cp310-cp310-musllinux_1_2_armv7l.whl", hash = "sha256:b1ce69b3f5b92d1277cd4f05a961893bee96b4611c51f8808101080304d31f75"},
+    {file = "pyferris-0.4.0-cp310-cp310-musllinux_1_2_i686.whl", hash = "sha256:57692d69c5ada4afb9eb78579c81db388e8278d3c4fbfa1ddf1fb4ae024a84d1"},
+    {file = "pyferris-0.4.0-cp310-cp310-musllinux_1_2_x86_64.whl", hash = "sha256:331f6fa23ec5fa856dc97fcb0326eaa5f77226081d6f841b9f5534f994ed79e1"},
+    {file = "pyferris-0.4.0-cp310-cp310-win32.whl", hash = "sha256:63aba243aa003b98e785443205f36ec415aa220f8020e231266e4251f7652103"},
+    {file = "pyferris-0.4.0-cp310-cp310-win_amd64.whl", hash = "sha256:45383b6a51c9af1272cf4facb5b1c7671b55f343807ffd1c54f33880a3c37241"},
+    {file = "pyferris-0.4.0-cp311-cp311-macosx_10_12_x86_64.whl", hash = "sha256:b61387e911102f18fd4e68aa1fe91d6ed6cea5e0e033ea133f357a1a2e226ca4"},
+    {file = "pyferris-0.4.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:117c7370fc956b523406e1fe349039d9dbf57bcc7992295fb9c13eb6cda211c2"},
+    {file = "pyferris-0.4.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:48d7d8acbb345c61d8db0a30958cbe4c8f2e263c3b61a59db703ea05d4a29367"},
+    {file = "pyferris-0.4.0-cp311-cp311-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:003f6ab75bd1430f20bca6850c3c820ef267c72616476fac329820c44ef6e674"},
+    {file = "pyferris-0.4.0-cp311-cp311-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:21e96529a029dbc95aa9d22e2c73a9eb56f59e588e4f562dbd9be3a5b68dfe7c"},
+    {file = "pyferris-0.4.0-cp311-cp311-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:3731b035beaed6bb63294c2268e6f565c74f35ae85627c6e34071bb453a59d1d"},
+    {file = "pyferris-0.4.0-cp311-cp311-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:c58a3a3fe4ad5c8d9c6f4a61869a97aa88b6b731d40538cde9ffc6fef5eb8802"},
+    {file = "pyferris-0.4.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:52e313ec97d595631ae57e0630e82a6e7306f9ab45055864f3521784d0a6f29a"},
+    {file = "pyferris-0.4.0-cp311-cp311-musllinux_1_2_aarch64.whl", hash = "sha256:9e6f36fda77559c1982de3166d88b5cd16cf7ed8e8ae3d5186dccdf1c035bbf7"},
+    {file = "pyferris-0.4.0-cp311-cp311-musllinux_1_2_armv7l.whl", hash = "sha256:fe4c7e3ee27e5a989be5f608b90b96bb264023a6a440627d04e8b2c0aee58a90"},
+    {file = "pyferris-0.4.0-cp311-cp311-musllinux_1_2_i686.whl", hash = "sha256:02168bc64f785162bf36a69a1d0e49115a8fafe8a34c1e0d16f1eb1d80c12330"},
+    {file = "pyferris-0.4.0-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:96bc51ad9e8063432390193aa592457e783aab06fcb1e1c13c14013dc28ea6ff"},
+    {file = "pyferris-0.4.0-cp311-cp311-win32.whl", hash = "sha256:710d9b04ef373db7c6c24c8ca87fe445cbb50df95cfd3f8f654a13b8f1bff391"},
+    {file = "pyferris-0.4.0-cp311-cp311-win_amd64.whl", hash = "sha256:59dc805d4fa6b506f40fbfb8ca70a1f8452522bd20f8ce5be24fc62d68256ae9"},
+    {file = "pyferris-0.4.0-cp312-cp312-macosx_10_12_x86_64.whl", hash = "sha256:0777a09a310cbd9c0996300620c4a19d9883236e6d027449f9720ce7ba55843d"},
+    {file = "pyferris-0.4.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:0df9aa899b67ede6580bae86917f203ed867239b338fce9aba2a39d86c067c50"},
+    {file = "pyferris-0.4.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:0e75cbbd763a1a0d09c0597a52e6616aff776e1dcc92c25c6ab8eb06dc71dff9"},
+    {file = "pyferris-0.4.0-cp312-cp312-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:2caf6b25e1f36afdb198871d63c67c4b680333418ff4711f92682a32dbb75089"},
+    {file = "pyferris-0.4.0-cp312-cp312-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:c4fbe510ad4f4986658ecfce117a93b7b08a36e58c23db30b5a943038f4e34f7"},
+    {file = "pyferris-0.4.0-cp312-cp312-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:07068a00e118a77e75d14985e6b9e546dce7355111a03aaaf7faacc69a69d1a6"},
+    {file = "pyferris-0.4.0-cp312-cp312-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:818ad3ceaa41972f1dc72dfd9c84dbb9b35b752558fb89c546aea6f25d542bad"},
+    {file = "pyferris-0.4.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d3c49621d6ca202cca82ec57c13d8e181264274125ce425ccfd003105be58121"},
+    {file = "pyferris-0.4.0-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:e8e6d9fd53de4b46648573bd12126faaa0178cde3029d93b2280141ca6efae19"},
+    {file = "pyferris-0.4.0-cp312-cp312-musllinux_1_2_armv7l.whl", hash = "sha256:bc3030712101bf9ffdb92f1e264997f255c9b24679771fdd07a76a5406659ffd"},
+    {file = "pyferris-0.4.0-cp312-cp312-musllinux_1_2_i686.whl", hash = "sha256:cd5519339f21418f05bde3be42e8b461d9bb6c5f374611a27fabd7933a6ec018"},
+    {file = "pyferris-0.4.0-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:1e3256c33e0d79ac0ef06f98bfb7a07d49fd90840fea2fcb435effe0d49fe205"},
+    {file = "pyferris-0.4.0-cp312-cp312-win32.whl", hash = "sha256:b323ae3d25c9c61efae08b887e46d2e7b27d379a8b335230886d89665251673c"},
+    {file = "pyferris-0.4.0-cp312-cp312-win_amd64.whl", hash = "sha256:edc3e036a90f01becc8f1e6505a4322fe43db50ca9af05e59e8cc222fe19f625"},
+    {file = "pyferris-0.4.0-cp313-cp313-macosx_10_12_x86_64.whl", hash = "sha256:018c0dc83205ce5a9243ad1d3602a6ed1e0fb26b7b31105995a64367c07cf365"},
+    {file = "pyferris-0.4.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:c4b048a1ae325d364cfd8c23d79af8c8f5559862996538872352269cc03015c8"},
+    {file = "pyferris-0.4.0-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:69ee8d72fab3994dc6e11684d995fb0c27787f6f45bca390a6a1c75a096b718a"},
+    {file = "pyferris-0.4.0-cp313-cp313-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:da396b978238549a172dab1996ea69523d1139d4556b53c6703f692977ee4aa0"},
+    {file = "pyferris-0.4.0-cp313-cp313-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:2209e494c2d936883a8a78b8b56e00961e5843f6c36e052b2687cb257e9170a8"},
+    {file = "pyferris-0.4.0-cp313-cp313-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:fc392f392ee0958fc31f3812bd538f81ebda41354c6e00f890d54c45431ee9a1"},
+    {file = "pyferris-0.4.0-cp313-cp313-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:fe78c370845dda194a831e6507957c46577103f19e3016bef71152415c477689"},
+    {file = "pyferris-0.4.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4295ef4a2c2c3766f811638ddfa40366a312f69ccca2f0a1511fe634e784d04a"},
+    {file = "pyferris-0.4.0-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:e88ea0a95af73c0c8c366ff7c5c7f972a9de746443a8082afcc13cbcf8fe77a6"},
+    {file = "pyferris-0.4.0-cp313-cp313-musllinux_1_2_armv7l.whl", hash = "sha256:8eeea92edb6d58154c187255a44b1ad9cad29ede160bfe54d11453bbf9f5f070"},
+    {file = "pyferris-0.4.0-cp313-cp313-musllinux_1_2_i686.whl", hash = "sha256:6df5efa48d2901c6bb518642b2dc2141543ab138cf895d83191466e890e5e89d"},
+    {file = "pyferris-0.4.0-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:e31a187d71c62f568e194705840bdd5a53531107d632e63b59a8bd4bab25dc3f"},
+    {file = "pyferris-0.4.0-cp313-cp313-win32.whl", hash = "sha256:90eb92e3500d6b9e50380894f22c05504f5d49d121de2cae66d4dcfde665ca24"},
+    {file = "pyferris-0.4.0-cp313-cp313-win_amd64.whl", hash = "sha256:16aaa27fe53f380569a084771b83acfcc0ba318dab7766dee3bd808b2a0fcdbb"},
+    {file = "pyferris-0.4.0-cp313-cp313t-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:846afe105d5598e21a7dd0fee7c00c343b78e54196f7a56f6093662d15f63388"},
+    {file = "pyferris-0.4.0-cp313-cp313t-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:4fa0441ea36a9c85278620a0f527b63f67c38fceffca6061add1c07b9f2908f2"},
+    {file = "pyferris-0.4.0-cp313-cp313t-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:2736feb6a5630c41877a43988188fb227accdf14e31345015fe9a58b3b393263"},
+    {file = "pyferris-0.4.0-cp313-cp313t-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:bf9780eb162d2ad5c0a0e63729a6bbdfb7d211c4cb5facd2188c4aa3faaa9d96"},
+    {file = "pyferris-0.4.0-cp313-cp313t-musllinux_1_2_aarch64.whl", hash = "sha256:3a798f0058e470a4fa6685774e70f6ffacb0da42b0a08251d685cf05275c9ec2"},
+    {file = "pyferris-0.4.0-cp313-cp313t-musllinux_1_2_armv7l.whl", hash = "sha256:3c298f438f85455b9b5340bcdae241456e39f9120cf7bd832b3fa2fbfe09f112"},
+    {file = "pyferris-0.4.0-cp313-cp313t-musllinux_1_2_i686.whl", hash = "sha256:1c68981d2cb7b9a85e13b9f49257a0a2c076e9362c734f50677968fe3a7b61dd"},
+    {file = "pyferris-0.4.0-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:00a1a848fccc6ee23cf451ae43a0af19dd740b67a9d5a52eb6ad9c3e1580789f"},
+    {file = "pyferris-0.4.0-cp314-cp314-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:dae86ff5b3e663dfd734bf9d961ea33313b093f2bc8c3cb218e701fb1e5b56e0"},
+    {file = "pyferris-0.4.0-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:65b261449e35a06ced3c6250e34868e9f1f2cc26baeac8fc93bde6042e4a910f"},
+    {file = "pyferris-0.4.0-pp310-pypy310_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:d043e5f716396d3e763e6ac4a7e70bcc15f1f5db7e9bf954c69a982cf8fa791e"},
+    {file = "pyferris-0.4.0-pp310-pypy310_pp73-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:43c62e2633ffb7d8d1ba74be61b51c8950ed025775e534228a1b9b155fa41454"},
+    {file = "pyferris-0.4.0-pp310-pypy310_pp73-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:f810b874a032eae4948b0e25bbbee91334668e995ba32f206c00892ffefb123c"},
+    {file = "pyferris-0.4.0-pp310-pypy310_pp73-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:4a777b0974d2123176add23e29cef1b333a8053f7b098fc117871ac44cd5505e"},
+    {file = "pyferris-0.4.0-pp310-pypy310_pp73-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:f656942790cc5d78f1297d9d07540416cb968bc692921304867f99d2292a8caf"},
+    {file = "pyferris-0.4.0-pp310-pypy310_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:c240faef6685c80d7b6707cc7cd3970c5eb466e48f0befb202815a79535f2cce"},
+    {file = "pyferris-0.4.0-pp310-pypy310_pp73-musllinux_1_2_aarch64.whl", hash = "sha256:29fffb4499ae4c331debfbfb09c39f9a0adbc9eb6e5e31795aab3b3d6e00e916"},
+    {file = "pyferris-0.4.0-pp310-pypy310_pp73-musllinux_1_2_armv7l.whl", hash = "sha256:b5037a9012c748b88627ebe86cd106de2a6653ffc542dc0e37d5148053879be7"},
+    {file = "pyferris-0.4.0-pp310-pypy310_pp73-musllinux_1_2_i686.whl", hash = "sha256:bccbd447ddc1d1a16b17262d54170769ee66c8826563112603498fc439c3d13f"},
+    {file = "pyferris-0.4.0-pp310-pypy310_pp73-musllinux_1_2_x86_64.whl", hash = "sha256:efe7396c2519d4228dd3f6392d4b49b99797203abdbc08004801879c34081da3"},
+    {file = "pyferris-0.4.0-pp311-pypy311_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:e21ad50ab75a1f03965fc479c79f6654f5bd31900efadd64e717f7b1ce03347f"},
+    {file = "pyferris-0.4.0-pp311-pypy311_pp73-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:1f32f2ff23a64d2aa56029adf0f776e99c8bb968adc3c424f5ed1049c221e741"},
+    {file = "pyferris-0.4.0-pp311-pypy311_pp73-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:404bfc24cc0ce15e8c7ca9fe414e75945b7124fb4287a2e3098ef6b056b9b8f3"},
+    {file = "pyferris-0.4.0-pp311-pypy311_pp73-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:7c6d66b1b73193fa0a893f75848d325a083f30fa7e9fa5fb351c899d6c1ad6ca"},
+    {file = "pyferris-0.4.0-pp311-pypy311_pp73-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:48aee3032aef1876cbd7f9ba0a07afec6ca183211d2a5265485e3dcd8b3b4148"},
+    {file = "pyferris-0.4.0-pp311-pypy311_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6f66413a00bd4588b43acde98cdc738b01391c2e91b95337b0ad37aae6f378bd"},
+    {file = "pyferris-0.4.0-pp311-pypy311_pp73-musllinux_1_2_aarch64.whl", hash = "sha256:a6fc4d028d575a65e8553cb7a9ac4ef5320b4fd40a1283055d6e25d69447fd2f"},
+    {file = "pyferris-0.4.0-pp311-pypy311_pp73-musllinux_1_2_armv7l.whl", hash = "sha256:ad9f40c74d5d8b31e3b836856fddebea3f996064c9963fc7a8ccd00400a3740d"},
+    {file = "pyferris-0.4.0-pp311-pypy311_pp73-musllinux_1_2_i686.whl", hash = "sha256:14f7e6871ef9c6a4d584615eff6f055fe10d95aeb971519df189dfa4439f9f05"},
+    {file = "pyferris-0.4.0-pp311-pypy311_pp73-musllinux_1_2_x86_64.whl", hash = "sha256:5e6a635893ee822e0c18b7250ed967fd804a3905ffdb49939fb243c66fc88d16"},
+    {file = "pyferris-0.4.0.tar.gz", hash = "sha256:3b60f1afd12bdebaafa693d628be45c41352d3e4b90caa6795e316d788abb54b"},
+]
+
+[[package]]
 name = "pygments"
 version = "2.19.1"
 description = "Pygments is a syntax highlighting package written in Python."
@@ -2709,4 +2804,4 @@ docs = ["jinja2", "markdown", "weasyprint"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<4.0"
-content-hash = "01b5ffa8e591e21fc052f2b090bb66c63d1eaf85c9c4f2c56ae58946f187c2ff"
+content-hash = "46ec4aa695dd22ae4ccc365281cbf6a0dda270da4fd3248da02c242061504381"

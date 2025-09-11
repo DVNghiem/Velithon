@@ -1,7 +1,6 @@
 
 
 import asyncio
-import concurrent.futures
 import functools
 import os
 import random
@@ -9,6 +8,8 @@ import threading
 import time
 from collections.abc import AsyncIterator, Callable, Iterable
 from typing import Any, Optional, TypeVar
+
+import pyferris
 
 try:
     import orjson
@@ -19,7 +20,7 @@ except ImportError as exc:
 
 T = TypeVar('T')
 
-_thread_pool: Optional[concurrent.futures.ThreadPoolExecutor] = None
+_thread_pool: Optional[pyferris.Executor] = None
 _pool_lock = threading.Lock()
 _cache_lock = threading.Lock()
 _cached_partials = {}
@@ -36,9 +37,8 @@ def set_thread_pool() -> None:
             # For CPU bound: cpu_count or cpu_count + 1
             max_workers = min(32, cpu_count * 2)
 
-            _thread_pool = concurrent.futures.ThreadPoolExecutor(
+            _thread_pool = pyferris.Executor(
                 max_workers=max_workers,
-                thread_name_prefix='velithon_pool'
             )
 
 async def run_in_threadpool(func: Callable, *args, **kwargs) -> Any:
