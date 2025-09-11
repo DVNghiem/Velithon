@@ -281,13 +281,6 @@ def configure_logger(
         backup_count=backup_count,
     )
 
-    # Set up Python logging to use our Rust handler
-    root_logger = logging.getLogger()
-
-    # Remove existing handlers to avoid duplicates
-    for handler in root_logger.handlers[:]:
-        root_logger.removeHandler(handler)
-
     # Add our Rust handler
     rust_handler = RustLoggingHandler()
 
@@ -299,15 +292,11 @@ def configure_logger(
         'ERROR': logging.ERROR,
         'CRITICAL': logging.CRITICAL,
     }
-    python_level = level_map.get(level.upper(), logging.INFO)
+    log_level = level_map.get(level.upper(), logging.INFO)
 
-    root_logger.setLevel(python_level)
-    rust_handler.setLevel(python_level)
-    root_logger.addHandler(rust_handler)
-
-    # Also configure the velithon logger specifically
     velithon_logger = logging.getLogger('velithon')
-    velithon_logger.setLevel(python_level)
+    velithon_logger.setLevel(log_level)
+
     # Clear existing handlers and add our Rust handler
     velithon_logger.handlers.clear()
     velithon_logger.addHandler(rust_handler)
