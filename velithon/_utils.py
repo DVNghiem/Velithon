@@ -22,8 +22,6 @@ T = TypeVar('T')
 
 _thread_pool: Optional[pyferris.Executor] = None
 _pool_lock = threading.Lock()
-_cache_lock = threading.Lock()
-_cached_partials = {}
 
 def set_thread_pool() -> None:
     """Set up optimized thread pool with realistic worker count."""
@@ -63,16 +61,7 @@ async def run_in_threadpool(func: Callable, *args, **kwargs) -> Any:
     if not args and not kwargs:
         return await loop.run_in_executor(_thread_pool, func)
 
-    cache_key = (id(func), args, tuple(sorted(kwargs.items())) if kwargs else ())
-
-    with _cache_lock:
-        if cache_key in _cached_partials:
-            partial_func = _cached_partials[cache_key]
-        else:
-            partial_func = functools.partial(func, *args, **kwargs)
-            if len(_cached_partials) < 100:
-                _cached_partials[cache_key] = partial_func
-
+    partial_func = functools.partial(func, *args, **kwargs)
     return await loop.run_in_executor(_thread_pool, partial_func)
 
 
