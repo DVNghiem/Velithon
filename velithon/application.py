@@ -488,11 +488,9 @@ class Velithon:
         if self.openapi_url and self.docs_url:
 
             async def swagger_ui_html(req: Request) -> HTMLResponse:
-                root_path = req.scope.scheme + '://' + req.scope.server.rstrip('/')
-                openapi_url = root_path + self.openapi_url
+                # Use relative URLs to avoid mixed-content issues with HTTPS proxies
+                openapi_url = self.openapi_url
                 oauth2_redirect_url = self.swagger_ui_oauth2_redirect_url
-                if oauth2_redirect_url:
-                    oauth2_redirect_url = root_path + oauth2_redirect_url
                 return get_swagger_ui_html(
                     openapi_url=openapi_url,
                     title=f'{self.title} - Swagger UI',
