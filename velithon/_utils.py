@@ -35,7 +35,7 @@ def set_thread_pool() -> None:
             # For CPU bound: cpu_count or cpu_count + 1
             max_workers = min(32, cpu_count * 2)
 
-            _thread_pool = pyferris.Executor(
+            _thread_pool = pyferris.AsyncExecutor(
                 max_workers=max_workers,
             )
 

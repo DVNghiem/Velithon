@@ -32,7 +32,7 @@ def get_constant(_) -> str:
 class TestFunctionDependencyEndpoint(HTTPEndpoint):
     """Test endpoint for function dependency injection."""
 
-    async def get(
+    def get(
         self,
         user_id: Annotated[str, get_user_id],
         permissions: Annotated[list[str], get_user_permissions],

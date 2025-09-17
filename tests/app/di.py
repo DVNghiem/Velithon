@@ -11,14 +11,14 @@ logger = logging.getLogger(__name__)
 
 class TestSingletonProvider(HTTPEndpoint):
     @inject
-    async def get(self, db: MockDatabase = Provide[container.db]):
+    def get(self, db: MockDatabase = Provide[container.db]):
         assert isinstance(db, MockDatabase)
         return PlainTextResponse('success')
 
 
 class TestFactoryProvider(HTTPEndpoint):
     @inject
-    async def get(
+    def get(
         self, user_repository: MockUserRepository = Provide[container.user_repository]
     ):
         assert isinstance(user_repository, MockUserRepository)
@@ -27,7 +27,7 @@ class TestFactoryProvider(HTTPEndpoint):
 
 class TestAsyncFactoryProvider(HTTPEndpoint):
     @inject
-    async def get(
+    def get(
         self, user_service: MockUserService = Provide[container.user_service]
     ):
         assert isinstance(user_service, MockUserService)
