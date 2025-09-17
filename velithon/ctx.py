@@ -6,6 +6,7 @@ allowing for clean separation of concerns and proper context isolation across re
 
 import contextvars
 import typing
+import weakref
 from typing import Any, Callable, Optional
 
 if typing.TYPE_CHECKING:
@@ -84,12 +85,48 @@ class RequestContext:
             request (Request): The current request object.
 
         """
-        self.app = app
+        # Use weak reference to prevent circular references
+        self._app_ref = weakref.ref(app)
         self.request = request
         self._token: Optional[contextvars.Token] = None
 
         # Additional context data that can be set during request processing
         self.g = SimpleNamespace()
+
+    @property
+    def app(self) -> 'Velithon':
+        """Get the application instance, raising error if garbage collected."""
+        app = self._app_ref()
+        if app is None:
+            raise RuntimeError("Application was garbage collected")
+        return app
+
+    def _cleanup_request(self) -> None:
+        """Clean up request data to prevent memory leaks.
+
+        This method clears cached attributes and breaks potential circular references.
+        """
+        if self.request is not None:
+            if hasattr(self.request, '_body'):
+                delattr(self.request, '_body')
+            if hasattr(self.request, '_json'):
+                delattr(self.request, '_json')
+            if hasattr(self.request, '_form'):
+                self.request._form = None
+            if hasattr(self.request, '_cookies'):
+                delattr(self.request, '_cookies')
+            if hasattr(self.request, '_headers'):
+                delattr(self.request, '_headers')
+            if hasattr(self.request, '_query_params'):
+                delattr(self.request, '_query_params')
+            if hasattr(self.request, '_url'):
+                delattr(self.request, '_url')
+
+        # Clear the global context data
+        self.g.__dict__.clear()
+
+        # Break potential circular references
+        self.request = None
 
     @classmethod
     def create_with_singleton_request(
@@ -113,11 +150,15 @@ class RequestContext:
         """Exit the request context and reset the context variable.
 
         This method is called when exiting the context manager and ensures
-        the request context variable is properly reset.
+        the request context variable is properly reset and cleaned up.
         """
-        if self._token is not None:
-            _request_ctx_stack.reset(self._token)
-            self._token = None
+        try:
+            # Clean up request data to prevent memory leaks
+            self._cleanup_request()
+        finally:
+            if self._token is not None:
+                _request_ctx_stack.reset(self._token)
+                self._token = None
 
     async def __aenter__(self) -> 'RequestContext':
         """Async context manager entry - non-blocking."""
@@ -126,9 +167,13 @@ class RequestContext:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
         """Async context manager exit - non-blocking cleanup."""
-        if self._token is not None:
-            _request_ctx_stack.reset(self._token)
-            self._token = None
+        try:
+            # Clean up request data to prevent memory leaks
+            self._cleanup_request()
+        finally:
+            if self._token is not None:
+                _request_ctx_stack.reset(self._token)
+                self._token = None
 
 
 class SimpleNamespace:
@@ -255,11 +300,27 @@ def get_or_create_request(scope: 'Scope', protocol: 'Protocol') -> 'Request':
     """
     try:
         # Try to get existing request from context first
-        request = get_current_request()
-        request.protocol = protocol  # Ensure protocol is up-to-date
-        return request
+        ctx = _request_ctx_stack.get()
+        if ctx is None:
+            raise RuntimeError("No request context available")
+
+        # Validate that the request belongs to the same scope
+        request = ctx.request
+        if request is None:
+            raise RuntimeError("Request was cleaned up")
+
+        # Only update protocol if it's the same request (same request ID)
+        if (hasattr(request, 'scope') and hasattr(request.scope, '_request_id') and
+            hasattr(scope, '_request_id') and
+            request.scope._request_id == scope._request_id):
+            # Safe to update protocol for the same request
+            request.protocol = protocol
+            return request
+        else:
+            # Different request, should not reuse
+            raise RuntimeError("Request scope mismatch")
     except RuntimeError:
-        # No request context exists, create new request
+        # No request context exists or scope mismatch, create new request
         from velithon.requests import Request
 
         return Request(scope, protocol)
@@ -293,8 +354,17 @@ class RequestIDManager:
             app (Velithon): The Velithon application instance.
 
         """
-        self.app = app
+        # Use weak reference to prevent circular references
+        self._app_ref = weakref.ref(app)
         self._default_generator = None
+
+    @property
+    def app(self) -> 'Velithon':
+        """Get the application instance, raising error if garbage collected."""
+        app = self._app_ref()
+        if app is None:
+            raise RuntimeError("Application was garbage collected")
+        return app
 
     def generate_request_id(self, request_context: Any) -> str:
         """Generate a request ID using the configured generator."""
