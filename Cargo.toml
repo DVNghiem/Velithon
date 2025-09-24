@@ -35,6 +35,8 @@ ahash = "0.8"
 handlebars = "6.2"
 percent-encoding = "2.3.2"
 tempfile = "3.21.0"
+async-graphql = { version = "7.0", features = ["chrono", "uuid", "tracing"] }
+async-graphql-parser = "7.0"
 
 [target.'cfg(not(any(target_env = "musl", target_os = "freebsd", target_os = "openbsd", target_os = "windows")))'.dependencies]
 tikv-jemallocator = { version = "0.6.0", default-features = false, features = ["disable_initial_exec_tls"] }

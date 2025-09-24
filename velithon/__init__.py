@@ -74,7 +74,25 @@ from .ctx import (
     RequestIDManager,
 )
 
+# High-performance GraphQL support
+from .graphql import (
+    GraphQLSchema,
+    GraphQLResponse,
+    GraphQLQueryBuilder,
+    GraphQLEndpoint,
+    create_schema,
+    create_query_builder,
+)
+
 __all__ = [
+    # GraphQL support
+    'GraphQLEndpoint',
+    'GraphQLQueryBuilder',
+    'GraphQLResponse',
+    'GraphQLSchema',
+    'create_schema',
+    'create_query_builder',
+    # HTTP status codes
     'HTTP_200_OK',
     'HTTP_201_CREATED',
     'HTTP_204_NO_CONTENT',
@@ -108,6 +126,7 @@ __all__ = [
     'Route',
     'Router',
     'SSEResponse',
+    'SchemaBuilder',
     'StreamingResponse',
     'UnauthorizedException',
     'ValidationException',
@@ -123,6 +142,7 @@ __all__ = [
     'get_current_app',
     'get_current_request',
     'get_or_create_request',
+    'graphql_route',
     'has_app_context',
     'has_request_context',
     'request',
