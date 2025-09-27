@@ -59,6 +59,23 @@ from .status import (
     HTTP_500_INTERNAL_SERVER_ERROR,
 )
 
+# GraphQL support
+from .graphql import (
+    GraphQLEndpoint,
+    GraphQLMiddleware,
+    GraphQLPlayground,
+    GraphQLRoute,
+    GraphQLSchema,
+    Field,
+    Mutation,
+    ObjectType,
+    Query,
+    Subscription,
+    graphql_field,
+    graphql_route,
+    graphql_type,
+)
+
 # Context management (Flask-style)
 from .ctx import (
     AppContext,
@@ -87,19 +104,28 @@ __all__ = [
     # Context management
     'AppContext',
     'BadRequestException',
+    'Field',
     'FileResponse',
     'ForbiddenException',
     'Gateway',
     'GatewayRoute',
+    'GraphQLEndpoint',
+    'GraphQLMiddleware',
+    'GraphQLPlayground',
+    'GraphQLRoute',
+    'GraphQLSchema',
     'HTMLResponse',
     'HTTPException',
     'InternalServerException',
     'JSONResponse',
     'Middleware',
+    'Mutation',
     'NotFoundException',
+    'ObjectType',
     # Performance configuration
     'PlainTextResponse',
     'ProxyResponse',
+    'Query',
     'RedirectResponse',
     'Request',
     'RequestContext',
@@ -109,6 +135,7 @@ __all__ = [
     'Router',
     'SSEResponse',
     'StreamingResponse',
+    'Subscription',
     'UnauthorizedException',
     'ValidationException',
     'Velithon',
@@ -123,6 +150,9 @@ __all__ = [
     'get_current_app',
     'get_current_request',
     'get_or_create_request',
+    'graphql_field',
+    'graphql_route',
+    'graphql_type',
     'has_app_context',
     'has_request_context',
     'request',
