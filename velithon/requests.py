@@ -112,7 +112,7 @@ def cookie_parser(cookie_string: str) -> dict[str, str]:
     return cookie_dict
 
 
-class HTTPConnection(typing.Mapping[str, typing.Any]):
+class HTTPConnection:
     """A base class for incoming HTTP connections, that is used to provide.
 
     any functionality that is common to both `Request` and `WebSocket`.
@@ -126,15 +126,6 @@ class HTTPConnection(typing.Mapping[str, typing.Any]):
         self.scope = scope
         self.protocol = protocol
 
-    def __getitem__(self, key: str) -> typing.Any:
-        """Get an item from the scope by key."""
-        return self.scope[key]
-
-    def __iter__(self) -> typing.Iterator[str]:
-        """Return an iterator over the keys in the scope."""
-        return iter(self.scope)
-
-    # Don't use the `abc.Mapping.__eq__` implementation.
     # Connection instances should never be considered equal
     # unless `self is other`.
     __eq__ = object.__eq__
@@ -230,10 +221,6 @@ class Request(HTTPConnection):
         super().__init__(scope, protocol)
         assert scope.proto == 'http'
         self._form = None
-
-    def __len__(self) -> int:
-        """Return the number of items in the scope."""
-        return 0
 
     @property
     def request_id(self) -> str:
