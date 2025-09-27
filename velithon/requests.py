@@ -134,10 +134,6 @@ class HTTPConnection(typing.Mapping[str, typing.Any]):
         """Return an iterator over the keys in the scope."""
         return iter(self.scope)
 
-    def __len__(self) -> int:
-        """Return the number of items in the scope."""
-        return len(self.scope)
-
     # Don't use the `abc.Mapping.__eq__` implementation.
     # Connection instances should never be considered equal
     # unless `self is other`.
