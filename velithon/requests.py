@@ -231,6 +231,10 @@ class Request(HTTPConnection):
         assert scope.proto == 'http'
         self._form = None
 
+    def __len__(self) -> int:
+        """Return the number of items in the scope."""
+        return 0
+
     @property
     def request_id(self) -> str:
         """Return the unique request ID for this HTTP request.
