@@ -63,17 +63,21 @@ class GraphQLRoute(BaseRoute):
     def matches(self, scope):
         """Check if the route matches the given scope."""
         from velithon._velithon import Match, compile_path
+        from velithon.convertors import CONVERTOR_TYPES
 
         # Compile the path pattern
-        regex, _, _ = compile_path(self.path)
+        regex, _, _ = compile_path(self.path, CONVERTOR_TYPES)
 
         # Check if the path matches
-        path = scope.path
+        path = scope.path if hasattr(scope, 'path') else scope.get('path', '')
         match = regex.match(path)
 
         if match:
             path_params = match.groupdict()
-            scope.path_params = path_params
+            if hasattr(scope, 'path_params'):
+                scope.path_params = path_params
+            else:
+                scope['path_params'] = path_params
             return Match.FULL, scope
         else:
             return Match.NONE, scope

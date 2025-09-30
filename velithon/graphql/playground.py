@@ -10,13 +10,42 @@ from __future__ import annotations
 class GraphQLPlayground:
     """GraphQL Playground integration for Velithon."""
 
+    def __init__(
+        self,
+        endpoint_url: str = "/graphql",
+        subscription_endpoint: str | None = None,
+        title: str = "GraphQL Playground",
+    ):
+        """Initialize GraphQL Playground.
+
+        Args:
+            endpoint_url: The GraphQL endpoint URL
+            subscription_endpoint: WebSocket endpoint for subscriptions
+            title: Page title
+
+        """
+        self.endpoint_url = endpoint_url
+        self.subscription_endpoint = subscription_endpoint
+        self.title = title
+
+    def create_html(self) -> str:
+        """Create GraphQL Playground HTML.
+
+        Returns:
+            str: HTML content for GraphQL Playground
+
+        """
+        return get_playground_html(
+            self.endpoint_url, self.subscription_endpoint, self.title
+        )
+
     @staticmethod
-    def create_html(
+    def create_html_static(
         endpoint_url: str = "/graphql",
         subscription_endpoint: str | None = None,
         title: str = "GraphQL Playground",
     ) -> str:
-        """Create GraphQL Playground HTML.
+        """Create GraphQL Playground HTML (static method).
 
         Args:
             endpoint_url: The GraphQL endpoint URL

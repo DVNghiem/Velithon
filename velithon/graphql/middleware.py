@@ -7,7 +7,8 @@ including authentication, authorization, and query complexity analysis.
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from velithon.middleware.base import BaseHTTPMiddleware
 from velithon.requests import Request
@@ -83,8 +84,15 @@ class GraphQLMiddleware(BaseHTTPMiddleware):
 
     def _is_graphql_request(self, scope) -> bool:
         """Check if the request is for a GraphQL endpoint."""
-        path = scope.path
-        content_type = dict(scope.headers).get(b"content-type", b"")
+        path = (
+            scope.get('path', '') if isinstance(scope, dict) 
+            else getattr(scope, 'path', '')
+        )
+        headers = (
+            scope.get('headers', []) if isinstance(scope, dict) 
+            else getattr(scope, 'headers', [])
+        )
+        content_type = dict(headers).get(b"content-type", b"")
 
         # Check for common GraphQL paths or content types
         return (
