@@ -23,6 +23,7 @@ from velithon.datastructures import (
     UploadFile,
 )
 from velithon.formparsers import FormParser, MultiPartException, MultiPartParser
+from velithon.middleware.session import Session
 
 T_co = typing.TypeVar('T_co', covariant=True)
 
@@ -112,37 +113,21 @@ def cookie_parser(cookie_string: str) -> dict[str, str]:
     return cookie_dict
 
 
-class HTTPConnection(typing.Mapping[str, typing.Any]):
+class HTTPConnection:
     """A base class for incoming HTTP connections, that is used to provide.
 
     any functionality that is common to both `Request` and `WebSocket`.
     """
 
     __slots__ = ('protocol', 'scope')
+    __eq__ = object.__eq__
+    __hash__ = object.__hash__
 
     def __init__(self, scope: Scope, protocol: Protocol) -> None:
         """Initialize the HTTPConnection with scope and protocol."""
         assert scope.proto in ('http', 'websocket')
         self.scope = scope
         self.protocol = protocol
-
-    def __getitem__(self, key: str) -> typing.Any:
-        """Get an item from the scope by key."""
-        return self.scope[key]
-
-    def __iter__(self) -> typing.Iterator[str]:
-        """Return an iterator over the keys in the scope."""
-        return iter(self.scope)
-
-    def __len__(self) -> int:
-        """Return the number of items in the scope."""
-        return len(self.scope)
-
-    # Don't use the `abc.Mapping.__eq__` implementation.
-    # Connection instances should never be considered equal
-    # unless `self is other`.
-    __eq__ = object.__eq__
-    __hash__ = object.__hash__
 
     @property
     def url(self) -> URL:
@@ -258,8 +243,6 @@ class Request(HTTPConnection):
         if hasattr(self.scope, '_session'):
             return self.scope._session
         # Return empty dict-like object if session middleware is not enabled
-        from velithon.middleware.session import Session
-
         return Session()
 
     async def stream(self) -> typing.AsyncGenerator[bytes, None]:
