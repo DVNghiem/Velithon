@@ -77,7 +77,7 @@ class PrometheusMetrics:
 
         # Request duration metrics
         lines.append(
-            '# HELP http_request_duration_seconds ' 'HTTP request duration in seconds'
+            '# HELP http_request_duration_seconds HTTP request duration in seconds'
         )
         lines.append('# TYPE http_request_duration_seconds histogram')
         for key, durations in self._request_duration.items():
@@ -136,7 +136,7 @@ class PrometheusMetrics:
                 )
 
         # Response size metrics
-        lines.append('# HELP http_response_size_bytes ' 'HTTP response size in bytes')
+        lines.append('# HELP http_response_size_bytes HTTP response size in bytes')
         lines.append('# TYPE http_response_size_bytes histogram')
         for key, sizes in self._response_size.items():
             if sizes:

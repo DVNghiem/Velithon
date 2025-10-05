@@ -40,7 +40,7 @@ class CORSMiddleware(ConditionalMiddleware):
             allow_credentials: Whether to allow credentials in CORS requests.
             max_age: Maximum age for preflight requests in seconds.
 
-        """ 
+        """
         super().__init__(app)
 
         if '*' in allow_methods:

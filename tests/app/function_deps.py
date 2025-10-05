@@ -39,11 +39,13 @@ class TestFunctionDependencyEndpoint(HTTPEndpoint):
         constant: Annotated[str, get_constant],
     ) -> JSONResponse:
         """Handle GET request with function dependencies."""
-        return JSONResponse({
-            'user_id': user_id,
-            'permissions': permissions,
-            'constant': constant,
-        })
+        return JSONResponse(
+            {
+                'user_id': user_id,
+                'permissions': permissions,
+                'constant': constant,
+            }
+        )
 
 
 class TestSimpleFunctionDependencyEndpoint(HTTPEndpoint):

@@ -65,7 +65,12 @@ def test_inject_body_fail(session):
 # InjectHeadersEndpoint
 @pytest.mark.benchmark
 def test_inject_headers_success(session):
-    res = get('/inject/headers', headers={'X-Custom-Header': 'CustomValue',})
+    res = get(
+        '/inject/headers',
+        headers={
+            'X-Custom-Header': 'CustomValue',
+        },
+    )
     assert 200 == res.status_code
 
 

@@ -1,4 +1,3 @@
-
 """
 Event handling system for Velithon.
 
@@ -20,7 +19,7 @@ class EventChannel(RustEventChannel):
     """
 
     def __init__(self, buffer_size: int = 1000):
-        """Initialize the EventChannel with an optional buffer size for event handling.""" # noqa: E501
+        """Initialize the EventChannel with an optional buffer size for event handling."""  # noqa: E501
         self.buffer_size = buffer_size
         self.events: list[tuple[str, typing.Callable, bool]] = []
 
@@ -31,8 +30,10 @@ class EventChannel(RustEventChannel):
             event_name: The name of the event to listen for.
 
         """
+
         def decorator(func):
             is_async = asyncio.iscoroutinefunction(func)
             self.events.append((event_name, func, is_async))
             return func
+
         return decorator

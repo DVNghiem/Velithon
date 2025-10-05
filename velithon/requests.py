@@ -52,7 +52,8 @@ class SupportsAsyncClose(typing.Protocol):
         This method should be implemented to release any resources or perform cleanup
         when the object is no longer needed.
         """
-        ... 
+        ...
+
 
 SupportsAsyncCloseType = typing.TypeVar(
     'SupportsAsyncCloseType', bound=SupportsAsyncClose, covariant=False
@@ -349,6 +350,7 @@ class Request(HTTPConnection):
             return self.scope._session
         # Return empty dict-like object if session middleware is not enabled
         from velithon.middleware.session import Session
+
         return Session()
 
     async def stream(self) -> typing.AsyncGenerator[bytes, None]:
@@ -372,7 +374,7 @@ class Request(HTTPConnection):
                 total_size += len(chunk)
                 if total_size > max_size:
                     raise ValueError(
-                        f"Request body too large: {total_size} > {max_size}"
+                        f'Request body too large: {total_size} > {max_size}'
                     )
                 chunks.append(chunk)
             self._body = b''.join(chunks)
@@ -389,7 +391,7 @@ class Request(HTTPConnection):
                 body = await self.body()
                 self._json = orjson.loads(body)
             except orjson.JSONDecodeError as e:
-                raise ValueError(f"Invalid JSON: {e}") from e
+                raise ValueError(f'Invalid JSON: {e}') from e
         return self._json
 
     async def _get_form(
@@ -400,9 +402,9 @@ class Request(HTTPConnection):
         max_part_size: int = 1024 * 1024,
     ) -> FormData:
         if self._form is None:  # pragma: no branch
-            assert (
-                parse_options_header is not None
-            ), 'The `python-multipart` library must be installed to use form parsing.'
+            assert parse_options_header is not None, (
+                'The `python-multipart` library must be installed to use form parsing.'
+            )
             content_type_header = self.headers.get('Content-Type')
             content_type: bytes
             content_type, _ = parse_options_header(content_type_header)

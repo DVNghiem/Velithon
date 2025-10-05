@@ -24,6 +24,7 @@ from velithon.base_datastructures import (
 
 request_id_generator = RequestIDGenerator()
 
+
 class ResponseDataCapture:
     """Efficient response data capture with memory pooling.
 

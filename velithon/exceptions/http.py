@@ -25,7 +25,8 @@ class BadRequestException(HTTPException):
 
     This exception is used when the client sends a malformed or invalid request.
     It allows customization of error details, headers, and response formatting.
-    """ # noqa
+    """  # noqa
+
     def __init__(
         self,
         error: VelithonError | None = ErrorDefinitions.BAD_REQUEST,
@@ -70,7 +71,7 @@ class UnauthorizedException(HTTPException):
 
         This exception is used when authentication is required and has failed or has
         not yet been provided.
-        """ # noqa
+        """  # noqa
 
         super().__init__(
             status_code=HTTP_401_UNAUTHORIZED,
@@ -118,7 +119,8 @@ class NotFoundException(HTTPException):
 
     This exception is used when the requested resource could not be found.
     It allows customization of error details, headers, and response formatting.
-    """ # noqa
+    """  # noqa
+
     def __init__(
         self,
         error: VelithonError | None = ErrorDefinitions.NOT_FOUND,
@@ -148,7 +150,7 @@ class ValidationException(HTTPException):
         headers: dict[str, str] | None = None,
         formatter: ResponseFormatter | None = None,
     ):
-        """Initialize ValidationException with optional details, headers, and formatter.""" # noqa: E501
+        """Initialize ValidationException with optional details, headers, and formatter."""  # noqa: E501
         super().__init__(
             status_code=HTTP_400_BAD_REQUEST,
             error=ErrorDefinitions.VALIDATION_ERROR,
@@ -168,7 +170,7 @@ class InternalServerException(HTTPException):
         headers: dict[str, str] | None = None,
         formatter: ResponseFormatter | None = None,
     ):
-        """Initialize InternalServerException with optional error, details, headers, and formatter.""" # noqa: E501
+        """Initialize InternalServerException with optional error, details, headers, and formatter."""  # noqa: E501
         super().__init__(
             status_code=HTTP_500_INTERNAL_SERVER_ERROR,
             error=error,
@@ -187,7 +189,7 @@ class RateLimitException(HTTPException):
         details: dict[str, Any] | None = None,
         formatter: ResponseFormatter | None = None,
     ):
-        """Initialize RateLimitException with retry_after, details, and optional formatter.""" # noqa: E501
+        """Initialize RateLimitException with retry_after, details, and optional formatter."""  # noqa: E501
         super().__init__(
             status_code=HTTP_429_TOO_MANY_REQUESTS,
             error=ErrorDefinitions.TOO_MANY_REQUESTS,
@@ -207,7 +209,7 @@ class InvalidMediaTypeException(HTTPException):
         headers: dict[str, str] | None = None,
         formatter: ResponseFormatter | None = None,
     ):
-        """Initialize InvalidMediaTypeException with optional error, details, headers, and formatter.""" # noqa: E501
+        """Initialize InvalidMediaTypeException with optional error, details, headers, and formatter."""  # noqa: E501
         super().__init__(
             status_code=HTTP_415_UNSUPPORTED_MEDIA_TYPE,
             error=error,
@@ -227,7 +229,7 @@ class UnsupportParameterException(HTTPException):
         headers: dict[str, str] | None = None,
         formatter: ResponseFormatter | None = None,
     ):
-        """Initialize UnsupportParameterException with optional error, details, headers, and formatter.""" # noqa: E501
+        """Initialize UnsupportParameterException with optional error, details, headers, and formatter."""  # noqa: E501
         super().__init__(
             status_code=HTTP_400_BAD_REQUEST,
             error=error,
@@ -247,7 +249,7 @@ class MultiPartException(HTTPException):
         headers: dict[str, str] | None = None,
         formatter: ResponseFormatter | None = None,
     ):
-        """Initialize MultiPartException with optional error, details, headers, and formatter.""" # noqa: E501
+        """Initialize MultiPartException with optional error, details, headers, and formatter."""  # noqa: E501
         super().__init__(
             status_code=HTTP_400_BAD_REQUEST,
             error=error,

@@ -62,21 +62,21 @@ class LogConfig:
         if self.log_level.upper() not in valid_levels:
             raise ValueError(
                 f"Invalid log level '{self.log_level}'. "
-                f"Must be one of: {', '.join(valid_levels)}"
+                f'Must be one of: {", ".join(valid_levels)}'
             )
 
         valid_formats = {'text', 'json'}
         if self.log_format.lower() not in valid_formats:
             raise ValueError(
                 f"Invalid log format '{self.log_format}'. "
-                f"Must be one of: {', '.join(valid_formats)}"
+                f'Must be one of: {", ".join(valid_formats)}'
             )
 
         if self.max_bytes <= 0:
-            raise ValueError("max_bytes must be a positive integer")
+            raise ValueError('max_bytes must be a positive integer')
 
         if self.backup_count < 0:
-            raise ValueError("backup_count must be a non-negative integer")
+            raise ValueError('backup_count must be a non-negative integer')
 
     def to_dict(self) -> dict[str, Any]:
         """Convert LogConfig to dictionary for easier parameter passing."""
@@ -95,7 +95,7 @@ class Velithon:
 
     This class provides the main interface for building
         and configuring Velithon web applications,
-    including route registration, middleware management, 
+    including route registration, middleware management,
         OpenAPI documentation, and server startup.
     """
 
@@ -380,7 +380,7 @@ class Velithon:
     ):
         """Initialize the Velithon application instance.
 
-        This constructor sets up the application's routing, 
+        This constructor sets up the application's routing,
             middleware, OpenAPI documentation,
         logging configuration, and other core settings.
 
@@ -652,9 +652,7 @@ class Velithon:
             tags: Tags to add to all routes in the router
 
         """
-        self.router.add_router(
-            router, prefix=prefix, tags=tags
-        )
+        self.router.add_router(router, prefix=prefix, tags=tags)
 
     def include_router(
         self,

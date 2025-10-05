@@ -226,7 +226,7 @@ class Route(BaseRoute):
             scope (Scope): The request scope containing path and method information.
 
         Returns:
-            tuple[Match, Scope]: A tuple containing the match type 
+            tuple[Match, Scope]: A tuple containing the match type
                 and the updated scope with path parameters.
 
         """
@@ -502,7 +502,7 @@ class Router:
                         )
                     else:
                         # Add as regex route for parameterized paths
-                        path_regex, path_format, param_convertors = compile_path(
+                        path_regex, _, param_convertors = compile_path(
                             route.path, CONVERTOR_TYPES
                         )
                         self._unified_optimizer.add_regex_route(
@@ -714,7 +714,8 @@ class Router:
         Returns:
             Callable[[Callable[..., Any]], Callable[..., Any]]: A decorator that registers the route.
 
-        """ # noqa
+        """  # noqa
+
         def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
             self.add_api_route(
                 path,

@@ -27,8 +27,6 @@ class TestFactoryProvider(HTTPEndpoint):
 
 class TestAsyncFactoryProvider(HTTPEndpoint):
     @inject
-    def get(
-        self, user_service: MockUserService = Provide[container.user_service]
-    ):
+    def get(self, user_service: MockUserService = Provide[container.user_service]):
         assert isinstance(user_service, MockUserService)
         return PlainTextResponse('success')

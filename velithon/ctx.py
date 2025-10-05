@@ -71,9 +71,9 @@ class AppContext:
 class RequestContext:
     """Request context for Velithon requests.
 
-    This holds request-specific information that needs 
+    This holds request-specific information that needs
         to be accessible during request processing.
-    Implements singleton pattern for Request objects 
+    Implements singleton pattern for Request objects
         to ensure only one instance per request.
     """
 
@@ -98,7 +98,7 @@ class RequestContext:
         """Get the application instance, raising error if garbage collected."""
         app = self._app_ref()
         if app is None:
-            raise RuntimeError("Application was garbage collected")
+            raise RuntimeError('Application was garbage collected')
         return app
 
     def _cleanup_request(self) -> None:
@@ -302,23 +302,26 @@ def get_or_create_request(scope: 'Scope', protocol: 'Protocol') -> 'Request':
         # Try to get existing request from context first
         ctx = _request_ctx_stack.get()
         if ctx is None:
-            raise RuntimeError("No request context available")
+            raise RuntimeError('No request context available')
 
         # Validate that the request belongs to the same scope
         request = ctx.request
         if request is None:
-            raise RuntimeError("Request was cleaned up")
+            raise RuntimeError('Request was cleaned up')
 
         # Only update protocol if it's the same request (same request ID)
-        if (hasattr(request, 'scope') and hasattr(request.scope, '_request_id') and
-            hasattr(scope, '_request_id') and
-            request.scope._request_id == scope._request_id):
+        if (
+            hasattr(request, 'scope')
+            and hasattr(request.scope, '_request_id')
+            and hasattr(scope, '_request_id')
+            and request.scope._request_id == scope._request_id
+        ):
             # Safe to update protocol for the same request
             request.protocol = protocol
             return request
         else:
             # Different request, should not reuse
-            raise RuntimeError("Request scope mismatch")
+            raise RuntimeError('Request scope mismatch')
     except RuntimeError:
         # No request context exists or scope mismatch, create new request
         from velithon.requests import Request
@@ -363,7 +366,7 @@ class RequestIDManager:
         """Get the application instance, raising error if garbage collected."""
         app = self._app_ref()
         if app is None:
-            raise RuntimeError("Application was garbage collected")
+            raise RuntimeError('Application was garbage collected')
         return app
 
     def generate_request_id(self, request_context: Any) -> str:
@@ -385,6 +388,7 @@ class RequestIDManager:
             ctx = _request_ctx_stack.get()
             if ctx and hasattr(ctx.request, '_request_id'):
                 ctx.request._request_id = request_id
+
 
 __all__ = [
     'AppContext',

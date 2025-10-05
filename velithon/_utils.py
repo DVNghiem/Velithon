@@ -1,5 +1,3 @@
-
-
 import asyncio
 import functools
 import os
@@ -23,6 +21,7 @@ T = TypeVar('T')
 _thread_pool: Optional[pyferris.Executor] = None
 _pool_lock = threading.Lock()
 
+
 def set_thread_pool() -> None:
     """Set up optimized thread pool with realistic worker count."""
     global _thread_pool
@@ -38,6 +37,7 @@ def set_thread_pool() -> None:
             _thread_pool = pyferris.AsyncExecutor(
                 max_workers=max_workers,
             )
+
 
 async def run_in_threadpool(func: Callable, *args, **kwargs) -> Any:
     """Thread pool execution with enhanced performance features.
@@ -80,18 +80,15 @@ async def iterate_in_threadpool(iterator: Iterable[T]) -> AsyncIterator[T]:
             break
         yield item
 
+
 def is_async_callable(obj: Any) -> bool:
     if isinstance(obj, functools.partial):
         obj = obj.func
-    return (
-        asyncio.iscoroutinefunction(obj)
-        or (
-            callable(obj)
-            and asyncio.iscoroutinefunction(
-                obj.__call__ if callable(obj) else None
-            )
-        )
+    return asyncio.iscoroutinefunction(obj) or (
+        callable(obj)
+        and asyncio.iscoroutinefunction(obj.__call__ if callable(obj) else None)
     )
+
 
 class RequestIDGenerator:
     """Ultra-fast request ID generator optimized for high-throughput scenarios."""
@@ -200,10 +197,10 @@ def get_middleware_optimizer() -> SimpleMiddlewareOptimizer:
     """Get the global simplified middleware optimizer."""
     return _middleware_optimizer
 
+
 def clear_all_caches() -> None:
     """Clear all framework caches."""
     # Clear JSON encoder cache
     _json_encoder._simple_cache.clear()
 
     # Cache management removed
-

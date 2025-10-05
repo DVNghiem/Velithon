@@ -31,9 +31,10 @@ from velithon.requests import Request
 
 logger = logging.getLogger(__name__)
 
-TRUTHY_VALUES = frozenset(['true', '1', 'yes', 'on']) 
+TRUTHY_VALUES = frozenset(['true', '1', 'yes', 'on'])
 READ_ONLY_METHODS = frozenset(['GET', 'DELETE', 'HEAD', 'OPTIONS'])
 BODY_METHODS = frozenset(['POST', 'PUT', 'PATCH'])
+
 
 class ParameterSource:  # noqa: D101
     PATH = 'path'
@@ -56,17 +57,22 @@ T = TypeVar('T')
 @overload
 def convert_value(value: Any, target_type: type[bool]) -> bool: ...
 
+
 @overload
 def convert_value(value: Any, target_type: type[bytes]) -> bytes: ...
+
 
 @overload
 def convert_value(value: Any, target_type: type[int]) -> int: ...
 
+
 @overload
 def convert_value(value: Any, target_type: type[float]) -> float: ...
 
+
 @overload
 def convert_value(value: Any, target_type: type[str]) -> str: ...
+
 
 @overload
 def convert_value(value: Any, target_type: type[T]) -> T: ...
@@ -287,6 +293,7 @@ class ParameterResolver:
             # Handle JSON string in form data
             try:
                 import json
+
                 data = json.loads(value)
                 return annotation(**data)
             except (json.JSONDecodeError, ValidationError) as e:
@@ -368,9 +375,7 @@ class ParameterResolver:
             return self.request.query_params
         return None
 
-    async def _handle_function_dependency(
-        self, annotation: Any, default: Any
-    ) -> Any:
+    async def _handle_function_dependency(self, annotation: Any, default: Any) -> Any:
         """Handle function dependencies in parameter annotations."""
         if get_origin(annotation) is Annotated:
             _, *metadata = get_args(annotation)
@@ -384,9 +389,7 @@ class ParameterResolver:
                         return result
         return default
 
-    def _infer_source_for_basemodel(
-        self, source: str, base_type: type
-    ) -> str:
+    def _infer_source_for_basemodel(self, source: str, base_type: type) -> str:
         """Infer parameter source for BaseModel based on HTTP method."""
         if (
             source == ParameterSource.INFER
@@ -400,9 +403,7 @@ class ParameterResolver:
                 return ParameterSource.BODY
         return source
 
-    async def _get_parameter_value(
-        self, source: str, param_name: str
-    ) -> Any:
+    async def _get_parameter_value(self, source: str, param_name: str) -> Any:
         """Get parameter value based on source."""
         if source == ParameterSource.PATH:
             return self.request.path_params.get(param_name)
@@ -417,13 +418,13 @@ class ParameterResolver:
                 return self.get_param_value(data, param_name)
 
     async def _handle_basemodel_query_form(
-        self, 
-        base_type: type, 
-        source: str, 
+        self,
+        base_type: type,
+        source: str,
         param_name: str,
-        value: Any, 
-        is_required: bool, 
-        default: Any
+        value: Any,
+        is_required: bool,
+        default: Any,
     ) -> BaseModel:
         """Handle BaseModel parsing for query/form parameters."""
         data = await self.get_data(source)
@@ -432,6 +433,7 @@ class ParameterResolver:
         if isinstance(value, str) and value.startswith('{'):
             try:
                 import json
+
                 value = json.loads(value)
                 if isinstance(value, dict):
                     try:
@@ -491,8 +493,8 @@ class ParameterResolver:
 
     async def resolve_parameter(self, param: inspect.Parameter) -> Any:
         """Resolve a single parameter using smaller helper methods."""
-        param_name, annotation, default, is_required = (
-            self._extract_param_metadata(param)
+        param_name, annotation, default, is_required = self._extract_param_metadata(
+            param
         )
 
         # Handle special types

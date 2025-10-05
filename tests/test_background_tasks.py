@@ -223,7 +223,7 @@ class TestBackgroundTasks:
         assert 'task1' in executed_tasks
         assert 'task2' in executed_tasks
         # Async tasks are now properly awaited in the implementation
-        assert "async_task" in executed_tasks
+        assert 'async_task' in executed_tasks
         assert len(executed_tasks) == 3  # All tasks execute properly
 
     @pytest.mark.asyncio
@@ -397,7 +397,7 @@ class TestBackgroundTaskPerformance:
         total_time = time.time() - start_total
 
         # Async tasks are now properly awaited, so execution_times should have data
-        # If running concurrently, total time should be less than sum of 
+        # If running concurrently, total time should be less than sum of
         # individual times (this test is approximate due to timing variations)
         assert len(execution_times) == 3  # All async tasks execute properly
         assert total_time < 0.5  # Should complete in reasonable time
@@ -541,7 +541,7 @@ class TestBackgroundTaskEdgeCases:
 
         assert 'sync' in executed
         # Async tasks are now properly awaited in the implementation
-        assert "async" in executed
+        assert 'async' in executed
         assert 'callable_class' in executed
 
 

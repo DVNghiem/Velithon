@@ -392,7 +392,6 @@ def create_template_engine(
     strict_mode: bool | None = True,
 ) -> _TemplateEngine: ...
 
-
 class UploadFile:
     """Represents an uploaded file."""
 
@@ -441,4 +440,3 @@ def header_init(
 ) -> tuple[str, str]:
     """Initialize headers for the response."""
     ...
-

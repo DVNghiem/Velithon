@@ -381,9 +381,12 @@ async def structured_events():
         # Status events
         for i in range(5):
             yield {
-                'data': {'status': f'Processing step {i+1}', 'progress': (i + 1) * 20},
+                'data': {
+                    'status': f'Processing step {i + 1}',
+                    'progress': (i + 1) * 20,
+                },
                 'event': 'status',
-                'id': f'status-{i+1}',
+                'id': f'status-{i + 1}',
                 'retry': 3000,
             }
             await asyncio.sleep(2)
@@ -397,7 +400,7 @@ async def structured_events():
                     'timestamp': time.time(),
                 },
                 'event': 'data',
-                'id': f'data-{i+1}',
+                'id': f'data-{i + 1}',
             }
             await asyncio.sleep(3)
 

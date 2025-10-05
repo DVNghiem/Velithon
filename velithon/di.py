@@ -25,6 +25,7 @@ from velithon.ctx import current_app
 
 logger = logging.getLogger(__name__)
 
+
 class ServiceContainer:
     """Enhanced ServiceContainer with automatic provider registration.
 
@@ -78,12 +79,9 @@ def inject(func: Callable) -> Callable:
 
     @wraps(func)
     async def wrapper(*args, **kwargs) -> Any:
-
         container = current_app.container
         if not container:
-            raise RuntimeError(
-                "No container available in Velithon context."
-            )
+            raise RuntimeError('No container available in Velithon context.')
 
         # Fast dependency resolution using Rust implementations
         resolved_kwargs = {}

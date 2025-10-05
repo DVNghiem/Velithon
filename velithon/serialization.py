@@ -68,6 +68,7 @@ def is_json_serializable(obj: Any) -> bool:
 
     return False
 
+
 def serialize_to_dict(obj: Any) -> dict[str, Any] | list[Any] | Any:
     """Convert an object to a dictionary or list for JSON serialization.
 
