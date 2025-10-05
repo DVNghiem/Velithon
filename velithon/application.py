@@ -8,6 +8,7 @@ import asyncio
 import logging
 import typing
 from collections.abc import Awaitable, Callable, Sequence
+from dataclasses import dataclass
 from typing import (
     Annotated,
     Any,
@@ -38,6 +39,56 @@ _middleware_optimizer = get_middleware_optimizer()
 logger = logging.getLogger(__name__)
 
 RSGIApp = typing.Callable[[Scope, Protocol], typing.Awaitable[None]]
+
+
+@dataclass
+class LogConfig:
+    """Configuration class for logging settings.
+
+    This class centralizes all logging-related configuration parameters
+    to improve maintainability and provide better type safety.
+    """
+
+    log_file: str = 'velithon.log'
+    log_level: str = 'INFO'
+    log_format: str = 'text'
+    log_to_file: bool = False
+    max_bytes: int = 10 * 1024 * 1024  # 10MB
+    backup_count: int = 7
+
+    def __post_init__(self) -> None:
+        """Validate logging configuration parameters."""
+        valid_levels = {'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'}
+        if self.log_level.upper() not in valid_levels:
+            raise ValueError(
+                f"Invalid log level '{self.log_level}'. "
+                f"Must be one of: {', '.join(valid_levels)}"
+            )
+
+        valid_formats = {'text', 'json'}
+        if self.log_format.lower() not in valid_formats:
+            raise ValueError(
+                f"Invalid log format '{self.log_format}'. "
+                f"Must be one of: {', '.join(valid_formats)}"
+            )
+
+        if self.max_bytes <= 0:
+            raise ValueError("max_bytes must be a positive integer")
+
+        if self.backup_count < 0:
+            raise ValueError("backup_count must be a non-negative integer")
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert LogConfig to dictionary for easier parameter passing."""
+        return {
+            'log_file': self.log_file,
+            'level': self.log_level,
+            'log_format': self.log_format,
+            'log_to_file': self.log_to_file,
+            'max_bytes': self.max_bytes,
+            'backup_count': self.backup_count,
+        }
+
 
 class Velithon:
     """Core Velithon application class.
@@ -384,12 +435,7 @@ class Velithon:
         self.shutdown_functions: list[FunctionInfo] = []
 
         # Default logging configuration (can be overridden by _serve method)
-        self.log_file = 'velithon.log'
-        self.log_level = 'INFO'
-        self.log_format = 'text'
-        self.log_to_file = False
-        self.max_bytes = 10 * 1024 * 1024  # 10MB
-        self.backup_count = 7
+        self.log_config = LogConfig()
         self.event_channel = event_channel or EventChannel()
 
         self.setup()
@@ -923,20 +969,53 @@ class Velithon:
         return decorator
 
     def config_logger(self) -> None:
-        """
-        Configure the logging system for the Velithon application.
+        """Configure the logging system for the Velithon application.
 
-        This method sets up the logger with the specified file, level, 
-            format, and rotation settings.
+        This method sets up the logger with the configuration from self.log_config.
         """
-        configure_logger(
-            log_file=self.log_file,
-            level=self.log_level,
-            log_format=self.log_format,
-            log_to_file=self.log_to_file,
-            max_bytes=self.max_bytes,
-            backup_count=self.backup_count,
-        )
+        configure_logger(**self.log_config.to_dict())
+
+    def update_log_config(
+        self,
+        log_file: str | None = None,
+        log_level: str | None = None,
+        log_format: str | None = None,
+        log_to_file: bool | None = None,
+        max_bytes: int | None = None,
+        backup_count: int | None = None,
+    ) -> None:
+        """Update the logging configuration with new values.
+
+        Args:
+            log_file: Path to log file (if logging to file).
+            log_level: Logging level ('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL').
+            log_format: Log format ('text' or 'json').
+            log_to_file: Whether to log to file or console.
+            max_bytes: Maximum size of log file in bytes before rotation.
+            backup_count: Number of backup log files to keep.
+
+        Raises:
+            ValueError: If any parameter is invalid.
+
+        """
+        if log_file is not None:
+            self.log_config.log_file = log_file
+        if log_level is not None:
+            self.log_config.log_level = log_level
+        if log_format is not None:
+            self.log_config.log_format = log_format
+        if log_to_file is not None:
+            self.log_config.log_to_file = log_to_file
+        if max_bytes is not None:
+            self.log_config.max_bytes = max_bytes
+        if backup_count is not None:
+            self.log_config.backup_count = backup_count
+
+        # Re-validate the configuration
+        self.log_config.__post_init__()
+
+        # Reconfigure the logger with updated settings
+        self.config_logger()
 
     def __rsgi_init__(self, loop: asyncio.AbstractEventLoop) -> None:
         """Initialize the server when it starts.
@@ -1033,12 +1112,14 @@ class Velithon:
         backpressure,
     ) -> None:
         # Set up logging configuration
-        self.log_file = log_file
-        self.log_level = log_level
-        self.log_format = log_format
-        self.log_to_file = log_to_file
-        self.max_bytes = max_bytes
-        self.backup_count = backup_count
+        self.log_config = LogConfig(
+            log_file=log_file,
+            log_level=log_level,
+            log_format=log_format,
+            log_to_file=log_to_file,
+            max_bytes=max_bytes,
+            backup_count=backup_count,
+        )
         self.config_logger()
 
         # Configure Granian server
@@ -1081,14 +1162,14 @@ class Velithon:
             ),
         )
         # check log level is debug then log all the parameters
-        if log_level == 'DEBUG':
+        if self.log_config.log_level == 'DEBUG':
             logger.debug(
                 f'\n App: {app} \n Host: {host} \n Port: {port} \n Workers: {workers} \n '  # noqa: E501
-                f'Log Level: {log_level} \n'
-                f'Log Format: {log_format} \n'
-                f'Log to File: {log_to_file} \n'
-                f'Max Bytes: {max_bytes} \n'
-                f'Backup Count: {backup_count} \n'
+                f'Log Level: {self.log_config.log_level} \n'
+                f'Log Format: {self.log_config.log_format} \n'
+                f'Log to File: {self.log_config.log_to_file} \n'
+                f'Max Bytes: {self.log_config.max_bytes} \n'
+                f'Backup Count: {self.log_config.backup_count} \n'
                 f'Blocking Threads: {blocking_threads} \n'
                 f'Blocking Threads Idle Timeout: {blocking_threads_idle_timeout} \n'
                 f'Runtime Threads: {runtime_threads} \n'
