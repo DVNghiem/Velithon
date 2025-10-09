@@ -3,7 +3,7 @@
 Velithon is a modern, fast (high-performance), web framework for building APIs
 """
 
-__version__ = '0.6.9'
+__version__ = '0.6.10'
 
 # Core application
 from .application import Velithon
