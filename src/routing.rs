@@ -51,7 +51,7 @@ pub struct RouteOptimizer {
 #[pymethods]
 impl RouteOptimizer {
     #[new]
-    #[pyo3(signature = (path_regex, path_format, param_convertors, methods=None, max_cache_size=1000))]
+    #[pyo3(signature = (path_regex, path_format, param_convertors, methods=None, max_cache_size=8192))]
     fn new(
         path_regex: &str,
         path_format: String,
