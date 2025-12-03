@@ -5,11 +5,11 @@ and transactions in Velithon applications.
 """
 
 import logging
-from typing import Callable
+from collections.abc import Callable
 
-from velithon.datastructures import Protocol, Scope
 from velithon.database.manager import Database
 from velithon.database.session import set_current_database, set_current_session
+from velithon.datastructures import Protocol, Scope
 from velithon.middleware.base import BaseHTTPMiddleware
 
 logger = logging.getLogger(__name__)
@@ -33,6 +33,7 @@ class DatabaseSessionMiddleware(BaseHTTPMiddleware):
         Args:
             app: RSGI application
             database: Database instance
+
         """
         super().__init__(app)
         self.database = database
@@ -43,6 +44,7 @@ class DatabaseSessionMiddleware(BaseHTTPMiddleware):
         Args:
             scope: Request scope
             protocol: Protocol instance
+
         """
         # Set database in context
         set_current_database(self.database)
@@ -84,6 +86,7 @@ class TransactionMiddleware(BaseHTTPMiddleware):
             app: RSGI application
             auto_commit: Whether to auto-commit transactions on success
             rollback_on_error: Whether to rollback on exceptions
+
         """
         super().__init__(app)
         self.auto_commit = auto_commit
@@ -95,14 +98,16 @@ class TransactionMiddleware(BaseHTTPMiddleware):
         Args:
             scope: Request scope
             protocol: Protocol instance
+
         """
         # Get session from scope (set by DatabaseSessionMiddleware)
-        session = getattr(scope, "_db_session", None)
+        session = getattr(scope, '_db_session', None)
 
         if session is None:
             logger.warning(
-                "No database session found in scope. "
-                "Ensure DatabaseSessionMiddleware is added before TransactionMiddleware."
+                'No database session found in scope. '
+                'Ensure DatabaseSessionMiddleware is added' 
+                'before TransactionMiddleware.'
             )
             await self.app(scope, protocol)
             return
@@ -120,6 +125,6 @@ class TransactionMiddleware(BaseHTTPMiddleware):
             except Exception as e:
                 # Rollback on error if enabled
                 if self.rollback_on_error:
-                    logger.error(f"Rolling back transaction due to error: {e}")
+                    logger.error(f'Rolling back transaction due to error: {e}')
                     await session.rollback()
                 raise

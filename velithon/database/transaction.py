@@ -6,8 +6,9 @@ including context managers and decorators.
 
 import functools
 import logging
+from collections.abc import AsyncGenerator, Callable
 from contextlib import asynccontextmanager
-from typing import Any, AsyncGenerator, Callable, Optional, TypeVar
+from typing import Any, TypeVar
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -20,7 +21,7 @@ T = TypeVar("T")
 
 @asynccontextmanager
 async def transaction(
-    session: Optional[AsyncSession] = None,
+    session: AsyncSession | None = None,
     *,
     nested: bool = False,
 ) -> AsyncGenerator[AsyncSession, None]:
@@ -47,6 +48,7 @@ async def transaction(
             async with transaction(session):
                 user = User(name="John")
                 session.add(user)
+
     """
     if session is None:
         session = get_current_session()
@@ -69,7 +71,7 @@ def transactional(
     nested: bool = False,
     commit: bool = True,
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-    """Decorator to wrap a function in a transaction.
+    """Wrap a function in a transaction.
 
     Args:
         nested: Whether to create a nested transaction (savepoint)
@@ -93,10 +95,11 @@ def transactional(
             user = User(name=name)
             session.add(user)
             await session.flush()
-            
+
             profile = Profile(user_id=user.id)
             session.add(profile)
             return user
+
     """
 
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -120,7 +123,7 @@ def transactional(
                 if session.in_transaction():
                     # Just execute the function without starting a new transaction
                     return await func(*args, **kwargs)
-                
+
                 async with session.begin():
                     result = await func(*args, **kwargs)
                     if commit:
@@ -143,6 +146,7 @@ class TransactionManager:
 
         Args:
             session: Database session
+
         """
         self.session = session
 
@@ -158,7 +162,7 @@ class TransactionManager:
         """Rollback the current transaction."""
         await self.session.rollback()
 
-    async def savepoint(self, name: Optional[str] = None) -> Any:
+    async def savepoint(self, name: str | None = None) -> Any:
         """Create a savepoint.
 
         Args:
@@ -166,6 +170,7 @@ class TransactionManager:
 
         Returns:
             Savepoint object
+
         """
         return await self.session.begin_nested()
 
@@ -174,6 +179,7 @@ class TransactionManager:
 
         Returns:
             True if in transaction, False otherwise
+
         """
         return self.session.in_transaction()
 
@@ -194,6 +200,7 @@ class TransactionManager:
             async with tx_manager.atomic():
                 user = User(name="John")
                 session.add(user)
+
         """
         async with transaction(self.session, nested=nested):
             yield self.session

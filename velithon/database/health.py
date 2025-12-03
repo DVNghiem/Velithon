@@ -7,7 +7,7 @@ and connection pool monitoring.
 import logging
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -43,15 +43,15 @@ class DatabaseHealthResponse(BaseModel):
         ...,
         description="Whether database is reachable (ping successful)",
     )
-    pool_status: Optional[dict[str, Any]] = Field(
+    pool_status: dict[str, Any] | None = Field(
         default=None,
         description="Connection pool status",
     )
-    response_time_ms: Optional[float] = Field(
+    response_time_ms: float | None = Field(
         default=None,
         description="Database ping response time in milliseconds",
     )
-    error: Optional[str] = Field(
+    error: str | None = Field(
         default=None,
         description="Error message if unhealthy",
     )
@@ -69,6 +69,7 @@ class DatabaseHealthCheck:
 
         Args:
             database: Database instance
+
         """
         self.database = database
 
@@ -77,6 +78,7 @@ class DatabaseHealthCheck:
 
         Returns:
             DatabaseHealthResponse with health status
+
         """
         import time
 
@@ -131,6 +133,7 @@ class DatabaseHealthCheck:
 
         Returns:
             True if pool is degraded, False otherwise
+
         """
         # Skip check for NullPool (SQLite)
         if pool_status.get("pool_type") == "NullPool":
@@ -155,9 +158,10 @@ class DatabaseHealthCheck:
 
         Returns:
             Dictionary with database metrics
+
         """
         health = await self.check_health()
-        
+
         metrics = {
             "status": health.status.value,
             "connected": health.database_connected,
