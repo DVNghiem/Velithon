@@ -513,5 +513,349 @@ def export_docs(
         logger.error(f'Failed to export documentation: {e!s}')
 
 
+@cli.group()
+def db() -> None:
+    """Database management commands."""
+    pass
+
+
+@db.command()
+@click.option(
+    '--migrations-dir',
+    default='migrations',
+    help='Directory for migration files.',
+)
+def init(migrations_dir: str) -> None:
+    """Initialize migration directory."""
+    try:
+        from velithon.database.migrations import MigrationManager
+
+        # Use a placeholder URL for initialization
+        manager = MigrationManager(
+            database_url="sqlite:///placeholder.db",
+            migrations_dir=migrations_dir,
+        )
+        manager.init()
+        click.echo(f'Initialized migrations in {migrations_dir}/')
+        click.echo('Update alembic.ini with your database URL.')
+
+    except ImportError:
+        click.echo(
+            'Database dependencies not installed. '
+            'Install with: pip install velithon[database]',
+            err=True,
+        )
+    except Exception as e:
+        traceback.print_exc()
+        logger.error(f'Failed to initialize migrations: {e!s}')
+
+
+@db.command()
+@click.option(
+    '--app',
+    default='simple_app:app',
+    help='Application module and instance (format: module:app_instance).',
+)
+@click.option(
+    '-m',
+    '--message',
+    required=True,
+    help='Migration message.',
+)
+@click.option(
+    '--autogenerate/--no-autogenerate',
+    default=True,
+    help='Auto-generate migration from model changes.',
+)
+@click.option(
+    '--migrations-dir',
+    default='migrations',
+    help='Directory for migration files.',
+)
+def migrate(app: str, message: str, autogenerate: bool, migrations_dir: str) -> None:
+    """Generate a new migration from model changes."""
+    try:
+        from velithon.database.migrations import MigrationManager
+
+        # Import the application to get database config
+        app_instance = import_from_string(app)
+        
+        # Get database URL from app (you may need to adjust this based on your app structure)
+        if hasattr(app_instance, 'database'):
+            database_url = app_instance.database.config.url
+        else:
+            click.echo(
+                'Application does not have a database configured. '
+                'Ensure your app has a database attribute.',
+                err=True,
+            )
+            return
+
+        manager = MigrationManager(
+            database_url=database_url,
+            migrations_dir=migrations_dir,
+        )
+        manager.create_migration(message, autogenerate=autogenerate)
+        click.echo(f'Created migration: {message}')
+
+    except ImportError:
+        click.echo(
+            'Database dependencies not installed. '
+            'Install with: pip install velithon[database]',
+            err=True,
+        )
+    except Exception as e:
+        traceback.print_exc()
+        logger.error(f'Failed to create migration: {e!s}')
+
+
+@db.command()
+@click.option(
+    '--app',
+    default='simple_app:app',
+    help='Application module and instance (format: module:app_instance).',
+)
+@click.option(
+    '--revision',
+    default='head',
+    help='Target revision (default: head).',
+)
+@click.option(
+    '--migrations-dir',
+    default='migrations',
+    help='Directory for migration files.',
+)
+def upgrade(app: str, revision: str, migrations_dir: str) -> None:
+    """Apply migrations to the database."""
+    try:
+        from velithon.database.migrations import MigrationManager
+
+        # Import the application to get database config
+        app_instance = import_from_string(app)
+        
+        if hasattr(app_instance, 'database'):
+            database_url = app_instance.database.config.url
+        else:
+            click.echo(
+                'Application does not have a database configured.',
+                err=True,
+            )
+            return
+
+        manager = MigrationManager(
+            database_url=database_url,
+            migrations_dir=migrations_dir,
+        )
+        manager.upgrade(revision)
+        click.echo(f'Upgraded database to {revision}')
+
+    except ImportError:
+        click.echo(
+            'Database dependencies not installed. '
+            'Install with: pip install velithon[database]',
+            err=True,
+        )
+    except Exception as e:
+        traceback.print_exc()
+        logger.error(f'Failed to upgrade database: {e!s}')
+
+
+@db.command()
+@click.option(
+    '--app',
+    default='simple_app:app',
+    help='Application module and instance (format: module:app_instance).',
+)
+@click.option(
+    '--revision',
+    default='-1',
+    help='Target revision (default: -1 for one step back).',
+)
+@click.option(
+    '--migrations-dir',
+    default='migrations',
+    help='Directory for migration files.',
+)
+def downgrade(app: str, revision: str, migrations_dir: str) -> None:
+    """Rollback migrations."""
+    try:
+        from velithon.database.migrations import MigrationManager
+
+        # Import the application to get database config
+        app_instance = import_from_string(app)
+        
+        if hasattr(app_instance, 'database'):
+            database_url = app_instance.database.config.url
+        else:
+            click.echo(
+                'Application does not have a database configured.',
+                err=True,
+            )
+            return
+
+        manager = MigrationManager(
+            database_url=database_url,
+            migrations_dir=migrations_dir,
+        )
+        manager.downgrade(revision)
+        click.echo(f'Downgraded database to {revision}')
+
+    except ImportError:
+        click.echo(
+            'Database dependencies not installed. '
+            'Install with: pip install velithon[database]',
+            err=True,
+        )
+    except Exception as e:
+        traceback.print_exc()
+        logger.error(f'Failed to downgrade database: {e!s}')
+
+
+@db.command()
+@click.option(
+    '--app',
+    default='simple_app:app',
+    help='Application module and instance (format: module:app_instance).',
+)
+@click.option(
+    '--migrations-dir',
+    default='migrations',
+    help='Directory for migration files.',
+)
+def current(app: str, migrations_dir: str) -> None:
+    """Show current database revision."""
+    try:
+        from velithon.database.migrations import MigrationManager
+
+        # Import the application to get database config
+        app_instance = import_from_string(app)
+        
+        if hasattr(app_instance, 'database'):
+            database_url = app_instance.database.config.url
+        else:
+            click.echo(
+                'Application does not have a database configured.',
+                err=True,
+            )
+            return
+
+        manager = MigrationManager(
+            database_url=database_url,
+            migrations_dir=migrations_dir,
+        )
+        manager.current()
+
+    except ImportError:
+        click.echo(
+            'Database dependencies not installed. '
+            'Install with: pip install velithon[database]',
+            err=True,
+        )
+    except Exception as e:
+        traceback.print_exc()
+        logger.error(f'Failed to show current revision: {e!s}')
+
+
+@db.command()
+@click.option(
+    '--app',
+    default='simple_app:app',
+    help='Application module and instance (format: module:app_instance).',
+)
+@click.option(
+    '--verbose',
+    is_flag=True,
+    help='Show verbose output.',
+)
+@click.option(
+    '--migrations-dir',
+    default='migrations',
+    help='Directory for migration files.',
+)
+def history(app: str, verbose: bool, migrations_dir: str) -> None:
+    """Show migration history."""
+    try:
+        from velithon.database.migrations import MigrationManager
+
+        # Import the application to get database config
+        app_instance = import_from_string(app)
+        
+        if hasattr(app_instance, 'database'):
+            database_url = app_instance.database.config.url
+        else:
+            click.echo(
+                'Application does not have a database configured.',
+                err=True,
+            )
+            return
+
+        manager = MigrationManager(
+            database_url=database_url,
+            migrations_dir=migrations_dir,
+        )
+        manager.history(verbose=verbose)
+
+    except ImportError:
+        click.echo(
+            'Database dependencies not installed. '
+            'Install with: pip install velithon[database]',
+            err=True,
+        )
+    except Exception as e:
+        traceback.print_exc()
+        logger.error(f'Failed to show migration history: {e!s}')
+
+
+@db.command()
+@click.option(
+    '--app',
+    default='simple_app:app',
+    help='Application module and instance (format: module:app_instance).',
+)
+@click.option(
+    '--revision',
+    required=True,
+    help='Target revision.',
+)
+@click.option(
+    '--migrations-dir',
+    default='migrations',
+    help='Directory for migration files.',
+)
+def stamp(app: str, revision: str, migrations_dir: str) -> None:
+    """Stamp database with a specific revision."""
+    try:
+        from velithon.database.migrations import MigrationManager
+
+        # Import the application to get database config
+        app_instance = import_from_string(app)
+        
+        if hasattr(app_instance, 'database'):
+            database_url = app_instance.database.config.url
+        else:
+            click.echo(
+                'Application does not have a database configured.',
+                err=True,
+            )
+            return
+
+        manager = MigrationManager(
+            database_url=database_url,
+            migrations_dir=migrations_dir,
+        )
+        manager.stamp(revision)
+        click.echo(f'Stamped database with revision {revision}')
+
+    except ImportError:
+        click.echo(
+            'Database dependencies not installed. '
+            'Install with: pip install velithon[database]',
+            err=True,
+        )
+    except Exception as e:
+        traceback.print_exc()
+        logger.error(f'Failed to stamp database: {e!s}')
+
+
 if __name__ == '__main__':
     cli()

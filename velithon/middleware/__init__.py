@@ -41,6 +41,10 @@ from velithon.middleware.session import (
     SignedCookieSessionInterface,
     get_session,
 )
+from velithon.middleware.database_middleware import (
+    DatabaseSessionMiddleware,
+    TransactionMiddleware,
+)
 
 P = ParamSpec('P')
 
@@ -51,6 +55,7 @@ __all__ = [
     'CompressionLevel',
     'CompressionMiddleware',
     'ConditionalMiddleware',
+    'DatabaseSessionMiddleware',
     'FastLoggingMiddleware',
     'FastPrometheusMiddleware',
     'LoggingMiddleware',
@@ -69,6 +74,7 @@ __all__ = [
     'SessionInterface',
     'SessionMiddleware',
     'SignedCookieSessionInterface',
+    'TransactionMiddleware',
     'get_session',
 ]
 
