@@ -4,14 +4,15 @@ This module provides base repository classes for implementing
 the repository pattern with SQLAlchemy models.
 """
 
-from typing import Any, Generic, Optional, Sequence, Type, TypeVar
+from collections.abc import Sequence
+from typing import Any, Generic, TypeVar
 
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from velithon.database.sqlalchemy_adapter import Base
 
-ModelType = TypeVar("ModelType", bound=Base)
+ModelType = TypeVar('ModelType', bound=Base)
 
 
 class BaseRepository(Generic[ModelType]):
@@ -21,17 +22,18 @@ class BaseRepository(Generic[ModelType]):
     following the repository pattern.
     """
 
-    def __init__(self, model: Type[ModelType], session: AsyncSession):
+    def __init__(self, model: type[ModelType], session: AsyncSession):
         """Initialize the repository.
 
         Args:
             model: SQLAlchemy model class
             session: Database session
+
         """
         self.model = model
         self.session = session
 
-    async def get(self, id: Any) -> Optional[ModelType]:
+    async def get(self, id: Any) -> ModelType | None:
         """Get a single record by ID.
 
         Args:
@@ -39,10 +41,11 @@ class BaseRepository(Generic[ModelType]):
 
         Returns:
             Model instance or None if not found
+
         """
         return await self.session.get(self.model, id)
 
-    async def get_by(self, **filters: Any) -> Optional[ModelType]:
+    async def get_by(self, **filters: Any) -> ModelType | None:
         """Get a single record by filters.
 
         Args:
@@ -50,6 +53,7 @@ class BaseRepository(Generic[ModelType]):
 
         Returns:
             Model instance or None if not found
+
         """
         stmt = select(self.model).filter_by(**filters)
         result = await self.session.execute(stmt)
@@ -58,8 +62,8 @@ class BaseRepository(Generic[ModelType]):
     async def get_all(
         self,
         *,
-        limit: Optional[int] = None,
-        offset: Optional[int] = None,
+        limit: int | None = None,
+        offset: int | None = None,
         **filters: Any,
     ) -> Sequence[ModelType]:
         """Get all records matching filters.
@@ -71,6 +75,7 @@ class BaseRepository(Generic[ModelType]):
 
         Returns:
             List of model instances
+
         """
         stmt = select(self.model).filter_by(**filters)
 
@@ -91,6 +96,7 @@ class BaseRepository(Generic[ModelType]):
 
         Returns:
             Created model instance
+
         """
         instance = self.model(**data)
         self.session.add(instance)
@@ -106,18 +112,19 @@ class BaseRepository(Generic[ModelType]):
 
         Returns:
             List of created model instances
+
         """
         instances = [self.model(**item) for item in items]
         self.session.add_all(instances)
         await self.session.flush()
-        
+
         # Refresh all instances
         for instance in instances:
             await self.session.refresh(instance)
-        
+
         return instances
 
-    async def update(self, id: Any, **data: Any) -> Optional[ModelType]:
+    async def update(self, id: Any, **data: Any) -> ModelType | None:
         """Update a record by ID.
 
         Args:
@@ -126,6 +133,7 @@ class BaseRepository(Generic[ModelType]):
 
         Returns:
             Updated model instance or None if not found
+
         """
         instance = await self.get(id)
         if instance is None:
@@ -153,9 +161,10 @@ class BaseRepository(Generic[ModelType]):
                 filters={'status': 'active'},
                 values={'status': 'inactive'}
             )
+
         """
-        filters = data.pop("filters", {})
-        values = data.pop("values", data)
+        filters = data.pop('filters', {})
+        values = data.pop('values', data)
 
         stmt = update(self.model).filter_by(**filters).values(**values)
         result = await self.session.execute(stmt)
@@ -169,6 +178,7 @@ class BaseRepository(Generic[ModelType]):
 
         Returns:
             True if deleted, False if not found
+
         """
         instance = await self.get(id)
         if instance is None:
@@ -186,6 +196,7 @@ class BaseRepository(Generic[ModelType]):
 
         Returns:
             Number of deleted records
+
         """
         stmt = delete(self.model).filter_by(**filters)
         result = await self.session.execute(stmt)
@@ -199,6 +210,7 @@ class BaseRepository(Generic[ModelType]):
 
         Returns:
             Number of matching records
+
         """
         stmt = select(func.count()).select_from(self.model).filter_by(**filters)
         result = await self.session.execute(stmt)
@@ -212,6 +224,7 @@ class BaseRepository(Generic[ModelType]):
 
         Returns:
             True if at least one record exists, False otherwise
+
         """
         count = await self.count(**filters)
         return count > 0
@@ -231,28 +244,29 @@ class BaseRepository(Generic[ModelType]):
 
         Returns:
             Dictionary with pagination metadata and items
+
         """
         if page < 1:
             page = 1
 
         offset = (page - 1) * page_size
-        
+
         # Get total count
         total = await self.count(**filters)
-        
+
         # Get items for current page
         items = await self.get_all(limit=page_size, offset=offset, **filters)
 
         total_pages = (total + page_size - 1) // page_size
 
         return {
-            "items": items,
-            "total": total,
-            "page": page,
-            "page_size": page_size,
-            "total_pages": total_pages,
-            "has_next": page < total_pages,
-            "has_prev": page > 1,
+            'items': items,
+            'total': total,
+            'page': page,
+            'page_size': page_size,
+            'total_pages': total_pages,
+            'has_next': page < total_pages,
+            'has_prev': page > 1,
         }
 
     async def refresh(self, instance: ModelType) -> ModelType:
@@ -263,6 +277,7 @@ class BaseRepository(Generic[ModelType]):
 
         Returns:
             Refreshed model instance
+
         """
         await self.session.refresh(instance)
         return instance

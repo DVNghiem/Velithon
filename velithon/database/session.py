@@ -4,21 +4,21 @@ This module provides utilities for managing database sessions,
 including dependency injection helpers and request-scoped session management.
 """
 
+from collections.abc import AsyncGenerator
 from contextvars import ContextVar
-from typing import AsyncGenerator, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from velithon.database.manager import Database
 
 # Context variable for storing the current database session
-_current_session: ContextVar[Optional[AsyncSession]] = ContextVar(
-    "current_session", default=None
+_current_session: ContextVar[AsyncSession | None] = ContextVar(
+    'current_session', default=None
 )
 
 # Context variable for storing the database instance
-_current_database: ContextVar[Optional[Database]] = ContextVar(
-    "current_database", default=None
+_current_database: ContextVar[Database | None] = ContextVar(
+    'current_database', default=None
 )
 
 
@@ -39,6 +39,7 @@ async def get_db(database: Database) -> AsyncGenerator[AsyncSession, None]:
         async def get_users(db: AsyncSession = Depends(get_db)):
             result = await db.execute(select(User))
             return result.scalars().all()
+
     """
     async with database.session() as session:
         # Store session in context for potential access
@@ -49,7 +50,7 @@ async def get_db(database: Database) -> AsyncGenerator[AsyncSession, None]:
             _current_session.reset(token)
 
 
-def get_current_session() -> Optional[AsyncSession]:
+def get_current_session() -> AsyncSession | None:
     """Get the current database session from context.
 
     Returns:
@@ -59,11 +60,12 @@ def get_current_session() -> Optional[AsyncSession]:
         session = get_current_session()
         if session:
             result = await session.execute(select(User))
+
     """
     return _current_session.get()
 
 
-def set_current_session(session: Optional[AsyncSession]) -> None:
+def set_current_session(session: AsyncSession | None) -> None:
     """Set the current database session in context.
 
     Args:
@@ -73,24 +75,27 @@ def set_current_session(session: Optional[AsyncSession]) -> None:
         async with db.session() as session:
             set_current_session(session)
             # Now session is available via get_current_session()
+
     """
     _current_session.set(session)
 
 
-def get_current_database() -> Optional[Database]:
+def get_current_database() -> Database | None:
     """Get the current database instance from context.
 
     Returns:
         Current Database instance if available, None otherwise
+
     """
     return _current_database.get()
 
 
-def set_current_database(database: Optional[Database]) -> None:
+def set_current_database(database: Database | None) -> None:
     """Set the current database instance in context.
 
     Args:
         database: Database instance to set as current
+
     """
     _current_database.set(database)
 
@@ -107,15 +112,17 @@ class SessionManager:
 
         Args:
             database: Database instance
+
         """
         self.database = database
-        self._session: Optional[AsyncSession] = None
+        self._session: AsyncSession | None = None
 
     async def __aenter__(self) -> AsyncSession:
         """Async context manager entry.
 
         Returns:
             AsyncSession instance
+
         """
         session_cm = self.database.session()
         self._session = await session_cm.__aenter__()
@@ -129,6 +136,7 @@ class SessionManager:
             exc_type: Exception type
             exc_val: Exception value
             exc_tb: Exception traceback
+
         """
         set_current_session(None)
         if self._session is not None:

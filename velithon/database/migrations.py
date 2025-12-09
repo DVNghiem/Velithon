@@ -4,9 +4,7 @@ This module provides integration with Alembic for database migrations.
 """
 
 import logging
-import os
 from pathlib import Path
-from typing import Optional
 
 from alembic import command
 from alembic.config import Config as AlembicConfig
@@ -24,7 +22,7 @@ class MigrationManager:
         self,
         database_url: str,
         migrations_dir: str = "migrations",
-        script_location: Optional[str] = None,
+        script_location: str | None = None,
     ):
         """Initialize the migration manager.
 
@@ -32,6 +30,7 @@ class MigrationManager:
             database_url: Database connection URL
             migrations_dir: Directory for migration files
             script_location: Custom script location (defaults to migrations_dir)
+
         """
         self.database_url = database_url
         self.migrations_dir = Path(migrations_dir)
@@ -42,6 +41,7 @@ class MigrationManager:
 
         Returns:
             AlembicConfig instance
+
         """
         # Create alembic config
         alembic_cfg = AlembicConfig()
@@ -50,7 +50,7 @@ class MigrationManager:
 
         # Set additional options
         alembic_cfg.set_main_option(
-            "file_template", "%%(year)d_%%(month).2d_%%(day).2d_%%(hour).2d%%(minute).2d-%%(rev)s_%%(slug)s"
+            "file_template", "%%(year)d_%%(month).2d_%%(day).2d_%%(hour).2d%%(minute).2d-%%(rev)s_%%(slug)s"  # noqa: E501
         )
 
         return alembic_cfg
@@ -60,6 +60,7 @@ class MigrationManager:
 
         Args:
             template: Alembic template to use (default: 'async' for async support)
+
         """
         logger.info(f"Initializing migrations in {self.migrations_dir}")
 
@@ -79,6 +80,7 @@ class MigrationManager:
         Args:
             message: Migration message/description
             autogenerate: Whether to auto-generate migration from model changes
+
         """
         logger.info(f"Creating migration: {message}")
 
@@ -96,6 +98,7 @@ class MigrationManager:
 
         Args:
             revision: Target revision (default: 'head' for latest)
+
         """
         logger.info(f"Upgrading database to {revision}")
 
@@ -109,6 +112,7 @@ class MigrationManager:
 
         Args:
             revision: Target revision (default: '-1' for one step back)
+
         """
         logger.info(f"Downgrading database to {revision}")
 
@@ -127,6 +131,7 @@ class MigrationManager:
 
         Args:
             verbose: Whether to show verbose output
+
         """
         alembic_cfg = self._get_alembic_config()
         command.history(alembic_cfg, verbose=verbose)
@@ -136,6 +141,7 @@ class MigrationManager:
 
         Args:
             revision: Target revision
+
         """
         logger.info(f"Stamping database with revision {revision}")
 
@@ -149,16 +155,18 @@ class MigrationManager:
 
         Args:
             revision: Migration revision
+
         """
         alembic_cfg = self._get_alembic_config()
         command.show(alembic_cfg, revision)
 
-    def merge(self, revisions: list[str], message: Optional[str] = None) -> None:
+    def merge(self, revisions: list[str], message: str | None = None) -> None:
         """Merge multiple revisions.
 
         Args:
             revisions: List of revisions to merge
             message: Merge message
+
         """
         logger.info(f"Merging revisions: {', '.join(revisions)}")
 
@@ -173,6 +181,7 @@ def get_migration_template() -> str:
 
     Returns:
         Migration template content
+
     """
     return '''"""${message}
 
