@@ -36,8 +36,16 @@ def start_server(domain: str, port: int) -> subprocess.Popen:
     Call this method to wait for the server to start
     """
     # Start the server
+    # Use the velithon CLI from the virtual environment
+    venv_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    velithon_path = os.path.join(venv_dir, 'venv', 'bin', 'velithon')
+    
+    # Fallback to system velithon if venv not found
+    if not os.path.exists(velithon_path):
+        velithon_path = 'velithon'
+    
     command = [
-        'velithon',
+        velithon_path,
         'run',
         '--app',
         'tests.app.server:app',

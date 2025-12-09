@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.pool import NullPool, QueuePool
+from sqlalchemy.pool import NullPool, QueuePool, StaticPool
 
 from velithon.database.config import DatabaseConfig
 
@@ -103,7 +103,10 @@ class Database:
         
         if is_sqlite:
             # SQLite doesn't support connection pooling well in async mode
-            engine_args["poolclass"] = NullPool
+            if ":memory:" in self.config.url:
+                engine_args["poolclass"] = StaticPool
+            else:
+                engine_args["poolclass"] = NullPool
         else:
             # Use QueuePool for other databases
             engine_args.update({
@@ -212,12 +215,12 @@ class Database:
 
         pool = self._engine.pool
         
-        # Handle NullPool (SQLite)
-        if isinstance(pool, NullPool):
+        # Handle NullPool (SQLite) and StaticPool (SQLite in-memory)
+        if isinstance(pool, (NullPool, StaticPool)):
             return {
                 "connected": True,
-                "pool_type": "NullPool",
-                "note": "SQLite uses NullPool (no connection pooling)",
+                "pool_type": type(pool).__name__,
+                "note": f"SQLite uses {type(pool).__name__}",
             }
 
         return {

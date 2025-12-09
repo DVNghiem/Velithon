@@ -153,10 +153,11 @@ class TestTransactionMiddleware:
         
         scope = MagicMock()
         scope.proto = "http"
-        # No _db_session attribute
+        # Explicitly set _db_session to None (MagicMock would return a mock otherwise)
+        scope._db_session = None
         protocol = MagicMock()
 
-        # Should not raise, just log warning
+        # Should not raise, middleware should handle gracefully
         await middleware(scope, protocol)
 
 
