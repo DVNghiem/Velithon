@@ -78,6 +78,7 @@ nav:
     - 'Routing': 'user-guide/routing.md'
     - 'Middleware': 'user-guide/middleware.md'
     - 'Dependency Injection': 'user-guide/dependency-injection.md'
+    - 'Database Integration': 'user-guide/database.md'
     - 'Background Tasks': 'user-guide/background-tasks.md'
     - 'WebSocket Support': 'user-guide/websocket.md'
     - 'Server-Sent Events': 'user-guide/sse.md'

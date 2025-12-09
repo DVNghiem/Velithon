@@ -50,7 +50,23 @@ Velithon is far more than a simple web framework. It's a comprehensive platform 
     
     **Proxy & Gateway** - High-performance reverse proxy with load balancing
 
--   **🔐 Security & Auth**
+-   **�️ Database Integration**
+
+    ---
+
+    **SQLAlchemy ORM** - Async database operations with PostgreSQL, MySQL, SQLite
+    
+    **Repository Pattern** - Clean data access layer with CRUD operations
+    
+    **Transaction Management** - Automatic and manual transaction handling
+    
+    **Migration System** - Alembic integration for schema versioning
+    
+    **Connection Pooling** - Efficient connection management and health checks
+    
+    **Session Management** - Request-scoped database sessions
+
+-   **�🔐 Security & Auth**
 
     ---
 
