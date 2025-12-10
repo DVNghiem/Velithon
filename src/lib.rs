@@ -24,6 +24,7 @@ mod templates;
 mod formparsers;
 mod event;
 mod responses;
+mod graphql;
 
 /// Velithon Rust Extensions
 /// High-performance Rust implementations for critical Velithon components
@@ -58,6 +59,9 @@ fn _velithon(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     // Register response handling system
     responses::register_responses(m.py(), m)?;
+    
+    // Register GraphQL engine
+    graphql::register_graphql(m.py(), m)?;
     
     Ok(())
 }
