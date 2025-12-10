@@ -56,8 +56,6 @@ sqlite = [
     "aiosqlite (>=0.20.0,<1.0.0)",
 ]
 
-all = ['velithon[docs,database,postgres,mysql,sqlite]']
-
 [tool.poetry.dependencies]
 python = ">=3.10,<4.0"
 
