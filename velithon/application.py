@@ -439,6 +439,9 @@ class Velithon:
         self.event_channel = event_channel or EventChannel()
 
         self.setup()
+        
+        # Build middleware stack eagerly to avoid first-request latency
+        self.middleware_stack = self.build_middleware_stack()
 
     def register_container(self, container: ServiceContainer) -> None:
         """Register a ServiceContainer for dependency injection.
@@ -500,9 +503,8 @@ class Velithon:
 
     async def __call__(self, scope: Scope, protocol: Protocol):
         """Handle incoming RSGI requests with memory optimization."""
-        if self.middleware_stack is None:
-            self.middleware_stack = self.build_middleware_stack()
-
+        # Middleware stack is now built eagerly in __init__
+        
         # Use optimized request context that respects global settings
         wrapped_scope = Scope(scope=scope)
         wrapped_protocol = Protocol(protocol=protocol)
