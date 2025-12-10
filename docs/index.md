@@ -62,6 +62,12 @@ Velithon is a modern, lightning-fast web framework for Python that combines simp
 
     Built-in authentication and session management with JWT, OAuth2, API Keys, and secure HMAC signing.
 
+-   :material-database: **Database Integration**
+
+    ---
+
+    Full SQLAlchemy async support with PostgreSQL, MySQL, SQLite. Repository pattern, transactions, migrations, and health checks.
+
 -   :material-api: **OpenAPI Integration**
 
     ---
