@@ -464,6 +464,7 @@ class Router:
         # Initialize unified Rust routing optimization
         cache_size = 4096 * 2  # Larger unified cache (8192)
         self._unified_optimizer = _UnifiedRouteOptimizer(max_cache_size=cache_size)
+        self._defer_optimization = False  # Flag to batch route additions
         self._rebuild_rust_optimizations()
 
     def _get_full_path(self, path: str) -> str:
@@ -486,6 +487,10 @@ class Router:
 
     def _rebuild_rust_optimizations(self):
         """Rebuild unified Rust optimizations for all routes."""
+        # Skip rebuild if deferred (for batch operations)
+        if self._defer_optimization:
+            return
+            
         try:
             # Clear previous optimizations
             self._unified_optimizer.clear_all()
@@ -627,6 +632,36 @@ class Router:
         )
         self.routes.append(route)
         self._rebuild_rust_optimizations()
+
+    def batch_add_routes(
+        self,
+        routes: list[tuple[str, Callable[[Request], Awaitable[Response] | Response], list[str] | None]],
+    ) -> None:
+        """Add multiple routes efficiently without rebuilding optimizer each time.
+        
+        Args:
+            routes: List of tuples (path, endpoint, methods) to add
+            
+        Example:
+            router.batch_add_routes([
+                ('/users', get_users, ['GET']),
+                ('/users/{id}', get_user, ['GET']),
+                ('/users', create_user, ['POST']),
+            ])
+        """
+        self._defer_optimization = True
+        try:
+            for path, endpoint, methods in routes:
+                full_path = self._get_full_path(path)
+                route = Route(
+                    full_path,
+                    endpoint=endpoint,
+                    methods=methods,
+                )
+                self.routes.append(route)
+        finally:
+            self._defer_optimization = False
+            self._rebuild_rust_optimizations()
 
     def add_api_route(
         self,

@@ -132,9 +132,9 @@ class Scope:
         # extend the scope with additional properties
         self._path_params = {}
 
-        # Generate request ID using default generator for now
-        # The request ID will be updated later by the context manager
-        self._request_id = request_id_generator.generate()
+        # Lazy request ID generation - only create when accessed
+        # This avoids unnecessary ID generation when middleware will set it
+        self._request_id = None
 
         self._session = None
 
@@ -197,6 +197,18 @@ class Scope:
     def path_params(self) -> typing.Mapping[str, str]:
         """Get the path parameters of the request."""
         return self._path_params
+
+    @property
+    def request_id(self) -> str:
+        """Get the request ID, generating it lazily if not set."""
+        if self._request_id is None:
+            self._request_id = request_id_generator.generate()
+        return self._request_id
+
+    @request_id.setter
+    def request_id(self, value: str) -> None:
+        """Set the request ID."""
+        self._request_id = value
 
 
 class Protocol:
