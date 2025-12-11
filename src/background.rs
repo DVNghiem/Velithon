@@ -68,8 +68,8 @@ impl BackgroundTask {
                 // For async functions, create the coroutine and properly await it
                 let coroutine = Python::attach(|py| -> PyResult<Py<PyAny>> {
                     let func_bound = func.bind(py);
-                    let args_bound = args.bind(py).downcast::<PyTuple>()?;
-                    let kwargs_bound = kwargs.bind(py).downcast::<PyDict>()?;
+                    let args_bound = args.bind(py).cast::<PyTuple>()?;
+                    let kwargs_bound = kwargs.bind(py).cast::<PyDict>()?;
                     let coro = func_bound.call(args_bound, Some(kwargs_bound))?;
                     Ok(coro.unbind())
                 })?;
@@ -101,8 +101,8 @@ impl BackgroundTask {
                 let result = tokio::task::spawn_blocking(move || {
                     Python::attach(|py| -> PyResult<Py<PyAny>> {
                         let func_bound = func.bind(py);
-                        let args_bound = args.bind(py).downcast::<PyTuple>()?;
-                        let kwargs_bound = kwargs.bind(py).downcast::<PyDict>()?;
+                        let args_bound = args.bind(py).cast::<PyTuple>()?;
+                        let kwargs_bound = kwargs.bind(py).cast::<PyDict>()?;
                         let result = func_bound.call(args_bound, Some(kwargs_bound))?;
                         Ok(result.unbind())
                     })
@@ -231,8 +231,8 @@ impl BackgroundTasks {
                         let kwargs = task.kwargs.clone_ref(py);
                         
                         let func_bound = func.bind(py);
-                        let args_bound = args.bind(py).downcast::<PyTuple>()?;
-                        let kwargs_bound = kwargs.bind(py).downcast::<PyDict>()?;
+                        let args_bound = args.bind(py).cast::<PyTuple>()?;
+                        let kwargs_bound = kwargs.bind(py).cast::<PyDict>()?;
                         
                         // Create the coroutine
                         let coro = func_bound.call(args_bound, Some(kwargs_bound))?;
@@ -269,8 +269,8 @@ impl BackgroundTasks {
                         let kwargs = task.kwargs.clone_ref(py);
                         
                         let func_bound = func.bind(py);
-                        let args_bound = args.bind(py).downcast::<PyTuple>().map_err(|e| format!("Args error: {}", e))?;
-                        let kwargs_bound = kwargs.bind(py).downcast::<PyDict>().map_err(|e| format!("Kwargs error: {}", e))?;
+                        let args_bound = args.bind(py).cast::<PyTuple>().map_err(|e| format!("Args error: {}", e))?;
+                        let kwargs_bound = kwargs.bind(py).cast::<PyDict>().map_err(|e| format!("Kwargs error: {}", e))?;
                         
                         let _result = func_bound.call(args_bound, Some(kwargs_bound)).map_err(|e| format!("Call error: {}", e))?;
                         Ok(())

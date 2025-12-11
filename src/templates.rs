@@ -262,13 +262,13 @@ impl TemplateEngine {
             }
         } else if let Ok(s) = py_value.extract::<String>() {
             Ok(Value::String(s))
-        } else if let Ok(list) = py_value.downcast::<pyo3::types::PyList>() {
+        } else if let Ok(list) = py_value.cast::<pyo3::types::PyList>() {
             let mut arr = Vec::new();
             for item in list.iter() {
                 arr.push(self.python_to_json_value(item)?);
             }
             Ok(Value::Array(arr))
-        } else if let Ok(dict) = py_value.downcast::<PyDict>() {
+        } else if let Ok(dict) = py_value.cast::<PyDict>() {
             self.python_dict_to_json(dict)
         } else {
             // Fallback: convert to string

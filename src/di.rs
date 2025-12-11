@@ -132,7 +132,7 @@ impl SingletonProvider {
             self.cls.call0(py)?
         } else {
             // Has kwargs - unpack them
-            let kwargs_dict = self.kwargs.bind(py).downcast::<PyDict>()?;
+            let kwargs_dict = self.kwargs.bind(py).cast::<PyDict>()?;
             let empty_args = PyTuple::empty(py);
             self.cls.call(py, empty_args, Some(kwargs_dict))?
         };
@@ -281,7 +281,7 @@ impl AsyncFactoryProvider {
 
             // Call the async factory function and return the result/coroutine
             let factory_bound = self.factory.bind(py);
-            let deps_dict = deps.downcast::<PyDict>()?;
+            let deps_dict = deps.cast::<PyDict>()?;
             let result = factory_bound.call((), Some(deps_dict))?;
 
             // Return the result directly - if it's a coroutine, let the caller handle awaiting
@@ -348,7 +348,7 @@ fn create_instance(
     let deps = resolve_dependencies(py, &signature, container, kwargs, resolution_stack)?;
 
     let cls_bound = cls.bind(py);
-    let deps_dict = deps.downcast::<PyDict>()?;
+    let deps_dict = deps.cast::<PyDict>()?;
     let instance = cls_bound.call((), Some(deps_dict))?;
     Ok(instance.unbind())
 }

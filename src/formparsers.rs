@@ -184,7 +184,7 @@ impl FormParser {
             let mut map = HashMap::new();
             let headers_dict = headers.bind(py);
             
-            if let Ok(dict) = headers_dict.downcast::<PyDict>() {
+            if let Ok(dict) = headers_dict.cast::<PyDict>() {
                 for (key, value) in dict.iter() {
                     let key_str: String = key.extract()?;
                     let value_str: String = value.extract()?;
@@ -279,7 +279,7 @@ impl MultiPartParser {
             let mut map = HashMap::new();
             let headers_dict = headers.bind(py);
             
-            if let Ok(dict) = headers_dict.downcast::<PyDict>() {
+            if let Ok(dict) = headers_dict.cast::<PyDict>() {
                 for (key, value) in dict.iter() {
                     let key_str: String = key.extract()?;
                     let value_str: String = value.extract()?;
