@@ -218,7 +218,7 @@ class Database:
             }
 
         pool = self._engine.pool
-        
+
         # Handle NullPool (SQLite) and StaticPool (SQLite in-memory)
         if isinstance(pool, (NullPool, StaticPool)):
             return {
