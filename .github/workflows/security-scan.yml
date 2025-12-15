@@ -51,7 +51,7 @@ jobs:
           
       # Upload scan results as artifacts
       - name: Upload scan results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: security-scan-results
           path: |
@@ -64,7 +64,7 @@ jobs:
     if: github.event_name == 'pull_request'
     steps:
       - name: 'Checkout Repository'
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       
       - name: 'Dependency Review'
         uses: actions/dependency-review-action@v4
