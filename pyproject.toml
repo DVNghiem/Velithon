@@ -89,7 +89,7 @@ mkdocs-material = "^9.5.0"
 mkdocs-mermaid2-plugin = "^1.1.0"
 mkdocs-awesome-pages-plugin = "^2.9.0"
 mkdocs-git-revision-date-localized-plugin = "^1.2.0"
-pymdown-extensions = "^10.11.0"
+pymdown-extensions = "^10.16.1"
 
 [build-system]
 requires = ["maturin>=1.0,<2.0"]
