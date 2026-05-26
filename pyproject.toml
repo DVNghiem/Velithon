@@ -70,7 +70,7 @@ velithon = "velithon.cli:cli"
 optional = true
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^8.3.5"
+pytest = "^9.0.3"
 pytest-codspeed = "^4.0.0"
 pytest-cov = "^7.0.0"
 ruff = "^0.13.0"
