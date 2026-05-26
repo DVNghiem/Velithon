@@ -74,7 +74,7 @@ pytest = "^8.3.5"
 pytest-codspeed = "^4.0.0"
 pytest-cov = "^7.0.0"
 ruff = "^0.13.0"
-black = "^25.1.0"
+black = "^26.3.1"
 isort = "^6.0.1"
 bandit = "^1.8.0"
 coverage = "^7.6.0"
@@ -89,7 +89,7 @@ mkdocs-material = "^9.5.0"
 mkdocs-mermaid2-plugin = "^1.1.0"
 mkdocs-awesome-pages-plugin = "^2.9.0"
 mkdocs-git-revision-date-localized-plugin = "^1.2.0"
-pymdown-extensions = "^10.11.0"
+pymdown-extensions = "^10.16.1"
 
 [build-system]
 requires = ["maturin>=1.0,<2.0"]
