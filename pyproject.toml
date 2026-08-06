@@ -30,7 +30,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "granian[asyncio,reload,rloop,uvloop] (>=2.2.6,<3.0.0)",
+    "granian[asyncio,reload,rloop,uvloop] (>=2.7.4,<3.0.0)",
     "orjson (>=3.10.16,<4.0.0)",
     "pydantic[email] (>=2.11.7,<3.0.0)",
     "pyferris (>=0.5.0,<1.0.0)",
@@ -43,7 +43,7 @@ docs = [
     "jinja2 (>=3.1.0,<4.0.0)",
 ]
 auth = [
-    "pyjwt (>=2.8.0,<3.0.0)",
+    "pyjwt (>=2.13.0,<3.0.0)",
     "bcrypt (>=5.0.0,<6.0.0)",
 ]
 database = [
@@ -70,7 +70,7 @@ velithon = "velithon.cli:cli"
 optional = true
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^8.3.5"
+pytest = "^9.0.3"
 pytest-codspeed = "^4.0.0"
 pytest-cov = "^7.0.0"
 ruff = "^0.13.0"
@@ -89,7 +89,7 @@ mkdocs-material = "^9.5.0"
 mkdocs-mermaid2-plugin = "^1.1.0"
 mkdocs-awesome-pages-plugin = "^2.9.0"
 mkdocs-git-revision-date-localized-plugin = "^1.2.0"
-pymdown-extensions = "^10.21.3"
+pymdown-extensions = "^11.0.0"
 
 [build-system]
 requires = ["maturin>=1.0,<2.0"]
