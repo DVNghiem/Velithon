@@ -39,7 +39,7 @@ jobs:
           python -c "import velithon"
 
       - name: Run benchmarks
-        uses: CodSpeedHQ/action@v5.0.1
+        uses: CodSpeedHQ/action@v5.0.3
         with:
           mode: "instrumentation"
           token: ${{ secrets.CODSPEED_TOKEN }}
